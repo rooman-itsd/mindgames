@@ -401,8 +401,8 @@ postsRouter.post(
     await ensurePostVisible(req.params.id, req.user!.sub)
     // A reaction is one unit of "like" engagement. We keep the denormalised
     // posts.likes counter in sync (a first-time reaction increments it; changing
-    // emoji doesn't) so the Home "Top" sort, the leaderboard, and the weekly
-    // digest — all of which read posts.likes — stay live now that the Like
+    // emoji doesn't) so the Home "Top" sort and the leaderboard — both of
+    // which read posts.likes — stay live now that the Like
     // button is a reaction. (post_reactions holds the per-emoji detail.)
     const isNew = await withTransaction(async (client) => {
       const prev = await client.query(

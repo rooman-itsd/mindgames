@@ -281,8 +281,6 @@ export interface User {
   // True on an invite-created account until the member replaces the password
   // that was generated and emailed to them. Prompts, never blocks.
   mustChangePassword?: boolean
-  // Weekly digest email preference (Settings toggle).
-  emailDigest?: boolean
   avatar: string // initials-based color seed; rendered by <Avatar>
   batchYear: number
   course: string

@@ -17,7 +17,6 @@ import { adminRouter } from './routes/admin.routes.js'
 import { invitesRouter } from './routes/invites.routes.js'
 import { resumeRouter } from './routes/resume.routes.js'
 import { eventsRouter, startEventReminderScheduler } from './routes/events.routes.js'
-import { startDigestScheduler } from './digest.js'
 import { sseHandler } from './realtime.js'
 import { aiRouter } from './routes/ai.routes.js'
 import { reportsRouter } from './routes/reports.routes.js'
@@ -84,7 +83,6 @@ app.use('/api/group-sessions', groupSessionsRouter)
 // --- Terminal error handler -------------------------------------------------
 app.use(errorHandler)
 
-startDigestScheduler()
 startEventReminderScheduler()
 startSessionReminderScheduler()
 startLearningNudgeScheduler()
