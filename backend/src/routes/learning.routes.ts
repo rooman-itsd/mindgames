@@ -13,6 +13,7 @@ import {
   afterAtParam,
   cursorRowSql,
   PROJECT_ABOUT_MIN,
+  WHY_HELPED_MIN,
   PROJECT_DIFFICULTIES,
   REPORTS_TO_HIDE,
   SHARES_PER_DAY,
@@ -28,14 +29,18 @@ import {
   toPrefixQuery,
   toResourceKind,
   topicKey,
+  stageMatchTerms,
   type ShareKind,
 } from '../learning.js'
 import {
   mapCareerResource,
   mapLearningShare,
+  mapStageShare,
   type CareerResourceRow,
   type LearningShareRow,
 } from '../mappers.js'
+import { EMBED_MODEL, EMBED_PROFILE } from '../embeddings.js'
+import { kickLearningEmbed, vectorsReady } from '../learningEmbed.js'
 
 /**
  * The Learning Resources page.
@@ -43,8 +48,10 @@ import {
  * Its whole premise is that the network teaches itself: an alum shares what
  * helped them get through a stage, and every member on that stage sees it with
  * the alum's name on it and a way to reach them. Nothing here is written by a
- * machine, and nothing is scored — an item's standing is the number of members
- * who pressed "this helped me".
+ * machine: every item is a member's own share, and its standing is the members
+ * who said it helped them (with 1–5 stars). The only machine part is matching
+ * — which stages a share is close to in meaning, from embeddings computed in
+ * the background (learningEmbed.ts), never while a page loads.
  *
  * Sized for lakhs of members: every read is the viewer's own rows, or one
  * topic's top-N ordered by a counter kept on the row, always with a LIMIT.
@@ -62,11 +69,25 @@ const SHARE_SELECT = `
             LEFT JOIN learning_tags t ON t.tag = x.tag) AS skill_labels,
          s.shared_by, u.name AS sharer_name, u.designation AS sharer_designation,
          u.company AS sharer_company, u.is_mentor AS sharer_is_mentor,
+         s.rating_sum, s.rating_count, h.rating AS my_rating, s.audience,
          (h.user_id IS NOT NULL) AS i_helped, cr.id AS my_saved_id
     FROM learning_shares s
     JOIN users u ON u.id = s.shared_by
     LEFT JOIN learning_share_helped h ON h.share_id = s.id AND h.user_id = $1
     LEFT JOIN career_resources cr ON cr.share_id = s.id AND cr.user_id = $1`
+
+/**
+ * Whether the viewer ($1) may see share s: the sharer chose its audience.
+ * 'everyone' → all members; 'connections' → the sharer's accepted connections
+ * (and the sharer). An 'everyone' share — the default — never reaches the
+ * connection check; for the rest it is one probe of the connection pair.
+ */
+const SHARE_AUDIENCE_OK = `
+  (s.audience = 'everyone' OR s.shared_by = $1 OR EXISTS (
+     SELECT 1 FROM connections c
+      WHERE c.status = 'accepted'
+        AND ((c.requester_id = $1 AND c.addressee_id = s.shared_by)
+          OR (c.addressee_id = $1 AND c.requester_id = s.shared_by))))`
 
 /** One workable stage of the caller's roadmap, with the shared topic it maps
  *  to and the alumni the roadmap matched to it. */
@@ -137,12 +158,15 @@ async function registerTopics(plan: MyPlan | null, userId: string): Promise<void
     // (designationKey), because the nudge job and the contribute list match
     // members' designations against it.
     const role = designationKey(plan.targetRole) || 'general'
-    await client.query(
+    const created = await client.query(
       `INSERT INTO learning_topics (topic_key, role_label, stage_label)
        SELECT k, $2, label FROM unnest($1::text[], $3::text[]) AS t(k, label)
        ON CONFLICT (topic_key) DO NOTHING`,
       [keys, role.slice(0, 120), labels],
     )
+    // A stage nobody had before: embed it now, so its Related list is by
+    // meaning from the first visits rather than after the next tick.
+    if (created.rowCount) kickLearningEmbed()
     // The pair is the primary key, so only a member's FIRST arrival on a topic
     // inserts a row — and only an inserted row moves member_count (the trigger)
     // — so a repeat page view writes nothing and nobody is counted twice.
@@ -217,16 +241,101 @@ async function alumniForStage(me: string, stage: StageTopic, targetRole: string 
   }))
 }
 
-/** Top shares for one topic, hidden ones excluded. */
-async function topShares(me: string, key: string, limit: number, offset = 0) {
-  const r = await query<LearningShareRow>(
-    `${SHARE_SELECT}
-      WHERE s.topic_key = $2 AND NOT s.hidden
-      ORDER BY s.helped_count DESC, s.created_at DESC, s.id
-      LIMIT $3 OFFSET $4`,
-    [me, key, limit, offset],
-  )
-  return r.rows.map(mapLearningShare)
+// How close in meaning a share must be to a stage (cosine similarity: 1 the
+// same meaning, ~0 unrelated). Every model spreads these differently, so the
+// cut-offs belong to the model — EMBED_PROFILE (embeddings.ts), measured with
+// `npm run learning:calibrate`. Read once at start; numbers, never user input,
+// so they are safe to place in the SQL text.
+const { relatedMin: RELATED_MIN, relatedWithTagMin: RELATED_WITH_TAG_MIN, sameStageMin: SAME_STAGE_MIN } = EMBED_PROFILE
+/** Nearest shares read from the embedding index per stage view. */
+const NEAREST = 100
+
+/**
+ * The shares for one stage: first those filed under this exact stage, then
+ * Related — shares from any roadmap whose MEANING is close to the stage.
+ *
+ * Never shown: the viewer's own shares (they are in "I've shared"), hidden
+ * ones, and shares filed under the viewer's OTHER stages — those appear when
+ * the viewer reaches that stage, not early in this one.
+ *
+ * Cost per view: one primary-key read for the stage's embedding, one HNSW
+ * index scan for its 100 nearest shares, and one topic-index read — bounded,
+ * however many shares exist. Until the stage is embedded (seconds after it
+ * first appears), or without pgvector, a rule-based match by skill tag stands in.
+ */
+async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[], limit: number, offset = 0) {
+  const { tags } = stageMatchTerms(stage.title)
+  const vector = (await vectorsReady())
+    ? (
+        await query<{ v: string }>(
+          `SELECT embedding::text AS v FROM learning_topics
+            WHERE topic_key = $1 AND embed_model = $2 AND embedding IS NOT NULL`,
+          [stage.topicKey, EMBED_MODEL],
+        )
+      ).rows[0]?.v
+    : undefined
+
+  if (!vector) {
+    const r = await query<LearningShareRow>(
+      `${SHARE_SELECT}
+        WHERE NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
+          AND (s.topic_key = $2
+               OR ($3::text[] <> '{}' AND s.skills && $3::text[]
+                   AND NOT (s.topic_key = ANY($4::text[]))))
+        ORDER BY CASE WHEN s.topic_key = $2 THEN 0 ELSE 1 END,
+                 s.helped_count DESC, s.created_at DESC, s.id
+        LIMIT $5 OFFSET $6`,
+      [me, stage.topicKey, tags, otherTopicKeys, limit, offset],
+    )
+    return r.rows.map((row) => mapStageShare(row, stage.topicKey))
+  }
+
+  const rows = await withTransaction(async (client) => {
+    // The HNSW index returns at most ef_search rows per scan (default 40);
+    // this view reads the nearest 100. Scoped to this transaction only.
+    await client.query(`SET LOCAL hnsw.ef_search = ${NEAREST}`)
+    const r = await client.query<LearningShareRow>(
+      // Only this model's vectors: another model's numbers are not comparable.
+      `WITH near AS (
+         SELECT id FROM learning_shares
+          WHERE embedding IS NOT NULL AND embed_model = $9
+          ORDER BY embedding <=> $3::halfvec
+          LIMIT ${NEAREST}),
+       -- This stage's own shares, filtered BEFORE the window is cut and in the
+       -- outer ORDER BY's order, so OFFSET pages walk one fixed list.
+       same AS (
+         SELECT s.id FROM learning_shares s
+          WHERE s.topic_key = $2 AND NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
+            AND (s.embedding IS NULL OR s.embed_model IS DISTINCT FROM $9
+                 OR 1 - (s.embedding <=> $3::halfvec) >= ${SAME_STAGE_MIN}
+                 OR ($4::text[] <> '{}' AND s.skills && $4::text[]))
+          ORDER BY s.helped_count DESC, s.created_at DESC, s.id
+          LIMIT $7),
+       cand AS (
+         SELECT id, 0 AS tier FROM same
+         UNION ALL
+         SELECT id, 1 FROM near)
+       ${SHARE_SELECT}
+       JOIN cand c ON c.id = s.id
+       CROSS JOIN LATERAL (
+         SELECT CASE WHEN s.embed_model = $9 THEN 1 - (s.embedding <=> $3::halfvec) END AS sim,
+                ($4::text[] <> '{}' AND s.skills && $4::text[]) AS tag_hit) m
+      WHERE NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
+        AND (c.tier = 0
+             OR (s.topic_key <> $2 AND NOT (s.topic_key = ANY($5::text[]))
+                 AND (m.sim >= ${RELATED_MIN} OR (m.tag_hit AND m.sim >= ${RELATED_WITH_TAG_MIN}))))
+      ORDER BY c.tier,
+               CASE WHEN c.tier = 0 THEN s.helped_count END DESC NULLS LAST,
+               CASE WHEN c.tier = 0 THEN s.created_at END DESC NULLS LAST,
+               CASE WHEN c.tier = 0 THEN s.id END,
+               m.sim + CASE WHEN m.tag_hit THEN 0.1 ELSE 0 END DESC NULLS LAST,
+               s.created_at DESC, s.id
+      LIMIT $6 OFFSET $8`,
+      [me, stage.topicKey, vector, tags, otherTopicKeys, limit, offset + limit, offset, EMBED_MODEL],
+    )
+    return r.rows
+  })
+  return rows.map((row) => mapStageShare(row, stage.topicKey))
 }
 
 /** Resources assigned to the caller, newest first, keyset-paged by the last id
@@ -236,6 +345,21 @@ async function assignedPage(me: string, limit: number, after: string | null, aft
     `WITH cursor_row AS (${cursorRowSql('career_resources', '$2', '$4')})
      ${RESOURCE_SELECT}
       WHERE r.assigned_to = $1 AND r.user_id <> $1
+        AND ($2::text IS NULL OR (r.created_at, r.id) < (SELECT created_at, id FROM cursor_row))
+      ORDER BY r.created_at DESC, r.id DESC
+      LIMIT $3`,
+    [me, after, limit, afterAt],
+  )
+  return r.rows.map(mapCareerResource)
+}
+
+/** The other side of assignedPage: what the caller, as a mentor, gave to
+ *  mentees — newest first, same keyset paging. Reads idx_career_resources_given. */
+async function givenPage(me: string, limit: number, after: string | null, afterAt: string | null) {
+  const r = await query<CareerResourceRow>(
+    `WITH cursor_row AS (${cursorRowSql('career_resources', '$2', '$4')})
+     ${RESOURCE_SELECT}
+      WHERE r.user_id = $1 AND r.assigned_to IS NOT NULL AND r.assigned_to <> r.user_id
         AND ($2::text IS NULL OR (r.created_at, r.id) < (SELECT created_at, id FROM cursor_row))
       ORDER BY r.created_at DESC, r.id DESC
       LIMIT $3`,
@@ -323,7 +447,8 @@ learningRouter.get(
     if (!stage) throw new ApiError(404, 'No such stage in your roadmap')
 
     const offset = offsetParam(req.query.offset)
-    const shares = await topShares(me, stage.topicKey, pageLimit(req.query.limit), offset)
+    const others = plan.stages.filter((s) => s.topicKey !== stage.topicKey).map((s) => s.topicKey)
+    const shares = await topShares(me, stage, others, pageLimit(req.query.limit), offset)
     // Only when there is nothing to show, and only on the first page: the
     // people are the fallback, not a permanent second list.
     const alumni = shares.length === 0 && offset === 0 ? await alumniForStage(me, stage, plan.targetRole) : []
@@ -350,6 +475,20 @@ learningRouter.get(
     const after = afterParam(req.query.after)
     res.json(
       await assignedPage(req.user!.sub, pageLimit(req.query.limit), after, after ? afterAtParam(req.query.afterAt) : null),
+    )
+  }),
+)
+
+// GET /api/learning/given?after= — what I gave my mentees as their mentor
+// (before a session, after it, or directly), each with who it went to and
+// whether they have sent work back. Shown under "I've shared".
+learningRouter.get(
+  '/given',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const after = afterParam(req.query.after)
+    res.json(
+      await givenPage(req.user!.sub, pageLimit(req.query.limit), after, after ? afterAtParam(req.query.afterAt) : null),
     )
   }),
 )
@@ -509,7 +648,9 @@ learningRouter.get(
           WHERE id = $6 AND ($8::int IS NULL OR $9::timestamptz IS NULL)
          LIMIT 1)
        ${SHARE_SELECT}
-        WHERE NOT s.hidden
+        -- Never the viewer's own shares: those live in "I've shared", with who
+        -- they went to — seeing them again here read as someone else's.
+        WHERE NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
           AND ($2::text[] IS NULL OR s.skills && $2::text[])
           AND ($3::text[] IS NULL OR s.kind = ANY($3::text[]))
           AND ($4::text[] IS NULL OR s.difficulty = ANY($4::text[]))
@@ -580,16 +721,19 @@ async function moveTagCounts(client: pg.PoolClient, tags: { tag: string; label: 
   }
 }
 
-/** Locks one visible share for the rest of the transaction, or 404s. The row
- *  lock is what serialises concurrent saves and "helped me" presses on the
- *  same item, so its counters can never drift from the rows they count. */
-async function lockShare(client: pg.PoolClient, id: string) {
+/** Locks one share the viewer may see for the rest of the transaction, or
+ *  404s. The row lock is what serialises concurrent saves and "helped me"
+ *  presses on the same item, so its counters can never drift from the rows
+ *  they count. The audience is checked too, so a connections-only share
+ *  cannot be saved, rated or reported by someone outside it just by its id. */
+async function lockShare(client: pg.PoolClient, id: string, me: string) {
   const r = await client.query<{
     id: string; shared_by: string; title: string; url: string | null; why_helped: string; kind: ShareKind
   }>(
-    `SELECT id, shared_by, title, url, why_helped, kind FROM learning_shares
-      WHERE id = $1 AND NOT hidden FOR UPDATE`,
-    [id],
+    `SELECT s.id, s.shared_by, s.title, s.url, s.why_helped, s.kind FROM learning_shares s
+      WHERE s.id = $2 AND NOT s.hidden AND ${SHARE_AUDIENCE_OK}
+      FOR UPDATE OF s`,
+    [me, id],
   )
   if (!r.rowCount) throw new ApiError(404, 'That share was not found')
   return r.rows[0]
@@ -601,13 +745,17 @@ const shareSchema = z
     kind: z.enum(SHARE_KINDS),
     title: z.string().trim().min(3).max(160),
     url: z.string().trim().url().regex(HTTP_URL, HTTP_URL_MESSAGE).max(2000).optional(),
-    whyHelped: z.string().trim().min(10).max(500),
+    // A real reason — "web development" says nothing a reader can act on, and
+    // this text is also what the share's meaning is matched on.
+    whyHelped: z.string().trim().min(WHY_HELPED_MIN, `Say in a sentence what it taught you (at least ${WHY_HELPED_MIN} characters)`).max(500),
     // Project briefs: the full problem statement.
     about: z.string().trim().max(5000).optional(),
     // Every share, so the Skill filter can find it.
     skills: z.array(z.string().trim().min(1).max(40)).min(1, 'Add at least one skill it covers').max(20),
     difficulty: z.enum(PROJECT_DIFFICULTIES),
     estHours: z.number().int().min(1).max(500).optional(),
+    // Everyone (default) or My connections — see SHARE_AUDIENCE_OK.
+    audience: z.enum(['everyone', 'connections']).default('everyone'),
   })
   // Anything but a project brief is a pointer to something, so it needs a link.
   .refine((d) => d.kind === 'project' || !!d.url, {
@@ -664,8 +812,8 @@ learningRouter.post(
 
       const ins = await client.query<{ id: string }>(
         `INSERT INTO learning_shares
-           (topic_key, shared_by, kind, title, url, url_norm, why_helped, about, skills, difficulty, est_hours)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           (topic_key, shared_by, kind, title, url, url_norm, why_helped, about, skills, difficulty, est_hours, audience)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT (topic_key, url_norm) WHERE url_norm IS NOT NULL DO NOTHING
          RETURNING id`,
         [
@@ -674,6 +822,7 @@ learningRouter.post(
           tags.map((t) => t.tag),
           d.difficulty,
           isProject ? d.estHours ?? null : null,
+          d.audience,
         ],
       )
       if (ins.rowCount) {
@@ -683,16 +832,23 @@ learningRouter.post(
       // Already shared for this stage: hand back that one — unless reports
       // have hidden it, which must not be shown to anyone again, or it was
       // deleted in the instant since the insert ran into it.
-      const existing = await client.query<{ id: string; hidden: boolean }>(
-        `SELECT id, hidden FROM learning_shares WHERE topic_key = $1 AND url_norm = $2`,
-        [d.topicKey, urlNorm],
+      const existing = await client.query<{ id: string; hidden: boolean; visible: boolean }>(
+        `SELECT s.id, s.hidden, ${SHARE_AUDIENCE_OK} AS visible
+           FROM learning_shares s WHERE s.topic_key = $2 AND s.url_norm = $3`,
+        [me, d.topicKey, urlNorm],
       )
       if (!existing.rowCount) throw new ApiError(409, 'That link was just changed on this stage — please try again')
       if (existing.rows[0].hidden) {
         throw new ApiError(409, 'That link was already shared for this stage and has been hidden after members reported it')
       }
+      // Shared for someone's connections only, and this member is not one:
+      // say it exists, never show it.
+      if (!existing.rows[0].visible) throw new ApiError(409, 'That link has already been shared for this stage')
       return { id: existing.rows[0].id, duplicate: true }
     })
+    // Embed it now rather than at the next tick, so it reaches other stages
+    // within seconds. Runs after this response, never delays it.
+    if (!duplicate) kickLearningEmbed()
     const full = await query<LearningShareRow>(`${SHARE_SELECT} WHERE s.id = $2`, [me, id])
     if (!full.rowCount) throw new ApiError(409, 'That share was just removed — please try again')
     res.status(duplicate ? 200 : 201).json({ share: mapLearningShare(full.rows[0]), duplicate })
@@ -736,7 +892,7 @@ learningRouter.post(
     const plan = await loadPlan(me)
 
     const result = await withTransaction(async (client) => {
-      const share = await lockShare(client, req.params.id)
+      const share = await lockShare(client, req.params.id, req.user!.sub)
       const topic = await client.query<{ topic_key: string }>(
         `SELECT topic_key FROM learning_shares WHERE id = $1`,
         [share.id],
@@ -795,40 +951,73 @@ learningRouter.delete(
   }),
 )
 
-// POST /api/learning/shares/:id/helped — "this helped me". The item's standing
-// and the alum's thanks are the same action: one press tells the network the
-// share is good AND tells the person who shared it that it landed.
+const helpedSchema = z.object({ rating: z.number().int().min(1).max(5) })
+
+/** A share's rating as the card shows it: average to one decimal, and how
+ *  many members rated. */
+function ratingOf(sum: number, count: number) {
+  return { rating: count > 0 ? Math.round((sum / count) * 10) / 10 : null, ratingCount: count }
+}
+
+// POST /api/learning/shares/:id/helped  { rating: 1–5 } — "this helped me",
+// with how much. The item's standing and the alum's thanks are the same action:
+// one press tells the network the share is good, rates it for everyone, and
+// tells the person who shared it that it landed. A rating is final: once
+// given it cannot be changed or taken back, so a share's standing can't be
+// nudged up and down by the same member. (A press from before ratings existed
+// has no rating yet — that member may add one, once.)
 learningRouter.post(
   '/shares/:id/helped',
   requireAuth,
   asyncHandler(async (req, res) => {
+    const parsed = helpedSchema.safeParse(req.body ?? {})
+    if (!parsed.success) throw new ApiError(400, 'Pick 1 to 5 stars')
+    const rating = parsed.data.rating
     const me = req.user!.sub
     const result = await withTransaction(async (client) => {
-      const share = await lockShare(client, req.params.id)
+      const share = await lockShare(client, req.params.id, req.user!.sub)
       if (share.shared_by === me) throw new ApiError(400, 'That is your own share')
-      const ins = await client.query(
-        `INSERT INTO learning_share_helped (share_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      // The share row is locked, so reading the old rating and moving the sums
+      // cannot interleave with another press on the same share.
+      const old = await client.query<{ rating: number | null }>(
+        `SELECT rating FROM learning_share_helped WHERE share_id = $1 AND user_id = $2`,
         [share.id, me],
       )
-      if (!ins.rowCount) {
-        const c = await client.query<{ helped_count: number }>(
-          `SELECT helped_count FROM learning_shares WHERE id = $1`,
-          [share.id],
+      if (old.rowCount) {
+        if (old.rows[0].rating !== null) throw new ApiError(409, 'You have already rated this — ratings are final')
+        // An old press with no rating: record its rating, once.
+        await client.query(
+          `UPDATE learning_share_helped SET rating = $3 WHERE share_id = $1 AND user_id = $2`,
+          [share.id, me, rating],
         )
-        return { helpedCount: c.rows[0].helped_count, first: false, sharedBy: share.shared_by, title: share.title }
+        const c = await client.query<{ helped_count: number; rating_sum: number; rating_count: number }>(
+          `UPDATE learning_shares
+              SET rating_sum = rating_sum + $2, rating_count = rating_count + 1
+            WHERE id = $1
+            RETURNING helped_count, rating_sum, rating_count`,
+          [share.id, rating],
+        )
+        return { ...c.rows[0], first: false, sharedBy: share.shared_by, title: share.title }
       }
-      const c = await client.query<{ helped_count: number }>(
-        `UPDATE learning_shares SET helped_count = helped_count + 1 WHERE id = $1 RETURNING helped_count`,
-        [share.id],
+      await client.query(
+        `INSERT INTO learning_share_helped (share_id, user_id, rating) VALUES ($1, $2, $3)`,
+        [share.id, me, rating],
       )
-      // Thank the alum once per member, ever: un-pressing deletes the "helped"
-      // row but never this one, so pressing again cannot notify again.
+      const c = await client.query<{ helped_count: number; rating_sum: number; rating_count: number }>(
+        `UPDATE learning_shares
+            SET helped_count = helped_count + 1, rating_sum = rating_sum + $2, rating_count = rating_count + 1
+          WHERE id = $1
+          RETURNING helped_count, rating_sum, rating_count`,
+        [share.id, rating],
+      )
+      // Thank the alum once per member, ever. A rating is final now, but this
+      // row also outlives a "helped" press from the older un-pressable days.
       const thanked = await client.query(
         `INSERT INTO learning_share_thanked (share_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [share.id, me],
       )
       return {
-        helpedCount: c.rows[0].helped_count,
+        ...c.rows[0],
         first: (thanked.rowCount ?? 0) > 0,
         sharedBy: share.shared_by,
         title: share.title,
@@ -845,29 +1034,23 @@ learningRouter.post(
         { type: 'learning_share', id: req.params.id },
       )
     }
-    res.json({ helpedCount: result.helpedCount, iHelped: true })
+    res.json({
+      helpedCount: result.helped_count,
+      ...ratingOf(result.rating_sum, result.rating_count),
+      iHelped: true,
+      myRating: rating,
+    })
   }),
 )
 
-// DELETE /api/learning/shares/:id/helped — take it back.
+// DELETE /api/learning/shares/:id/helped — kept so an older client gets a clear
+// answer, but ratings are final: nothing is removed. (A member's ratings do
+// leave with their account — the users BEFORE DELETE trigger in schema.sql.)
 learningRouter.delete(
   '/shares/:id/helped',
   requireAuth,
-  asyncHandler(async (req, res) => {
-    const r = await query<{ helped_count: number }>(
-      `WITH del AS (
-         DELETE FROM learning_share_helped WHERE share_id = $1 AND user_id = $2 RETURNING share_id),
-       upd AS (
-         UPDATE learning_shares s SET helped_count = GREATEST(s.helped_count - 1, 0)
-           FROM del WHERE s.id = del.share_id
-         RETURNING s.helped_count)
-       SELECT helped_count FROM upd
-       UNION ALL
-       SELECT helped_count FROM learning_shares WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM del)`,
-      [req.params.id, req.user!.sub],
-    )
-    if (!r.rowCount) throw new ApiError(404, 'That share was not found')
-    res.json({ helpedCount: r.rows[0].helped_count, iHelped: false })
+  asyncHandler(async () => {
+    throw new ApiError(409, 'Ratings are final — once given, they cannot be taken back')
   }),
 )
 
@@ -880,7 +1063,7 @@ learningRouter.post(
   asyncHandler(async (req, res) => {
     const me = req.user!.sub
     const hidden = await withTransaction(async (client) => {
-      await lockShare(client, req.params.id)
+      await lockShare(client, req.params.id, req.user!.sub)
       const ins = await client.query(
         `INSERT INTO learning_share_reports (share_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [req.params.id, me],

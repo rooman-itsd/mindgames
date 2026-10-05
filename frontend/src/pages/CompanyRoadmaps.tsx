@@ -121,7 +121,6 @@ export function CompanyRoadmaps() {
               companyName={company.name}
               companyLogoUrl={company.logoUrl}
               isMine={isMine}
-              hiddenFromOthers={isMine && data?.viewerIsPrivate}
               onOpen={() => setViewing(roadmap)}
             />
           ))}

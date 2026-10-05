@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import {
-  appendPage, assignmentOrigin, displayLink, helpedByLabel, isFiltering, monthsLabel, stepPosition,
+  appendPage, assignmentOrigin, displayLink, helpedByLabel, isFiltering, monthsLabel, ratingSummary, stepPosition,
   submissionState, supportLabel, toggleValue, waitingLabel, workable,
 } from './learningHub'
 import type { LearningStageLite } from '../types'
@@ -28,6 +28,9 @@ assert.equal(
   'Follow-up from AWS basics',
 )
 assert.equal(assignmentOrigin({ requiresSubmission: true }), 'Assigned directly')
+// A follow-up given after the session that asks for nothing back is still a follow-up.
+assert.equal(assignmentOrigin({ sessionId: 's', sessionTopic: 'AWS basics', afterSession: true }), 'Follow-up from AWS basics')
+assert.equal(assignmentOrigin({ sessionId: 's', sessionTopic: 'AWS basics', afterSession: false }), 'Prep for AWS basics')
 
 // --- submission state ------------------------------------------------------
 assert.equal(submissionState({}), 'not_needed')
@@ -51,6 +54,11 @@ assert.equal(isFiltering({ q: '', tags: ['aws'], types: [], difficulty: [] }), t
 assert.equal(helpedByLabel(0), 'Be the first to say it helped')
 assert.equal(helpedByLabel(1), 'Helped 1 member')
 assert.equal(helpedByLabel(12), 'Helped 12 members')
+assert.equal(ratingSummary(4, 1), '4.0 · helped 1 member')
+assert.equal(ratingSummary(4.6, 23), '4.6 · helped 23 members')
+assert.equal(ratingSummary(4.6, 23, 23), '4.6 · helped 23 members')
+assert.equal(ratingSummary(4.5, 5, 2), '4.5 from 2 ratings · helped 5 members')
+assert.equal(ratingSummary(4, 3, 1), '4.0 from 1 rating · helped 3 members')
 assert.equal(waitingLabel(0), 'No one here yet')
 assert.equal(waitingLabel(1), '1 member is on this step')
 assert.equal(waitingLabel(4), '4 members are on this step')

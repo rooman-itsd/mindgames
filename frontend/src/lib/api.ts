@@ -14,6 +14,7 @@ import type {
   ContributeStage,
   LearningShare,
   LearningOverview,
+  ShareAudience,
   ShareKind,
   BrowseFilters,
   SkillTag,
@@ -106,6 +107,15 @@ export const isPaymentRequired = (err: unknown): err is HttpError =>
 /** "?after=<id>&afterAt=<createdAt>" for a keyset-paged list, or "" for its
  *  first page. The timestamp lets the server keep its place when the row the
  *  client last saw has been deleted in the meantime. */
+/** What a "Helped me" press or un-press returns: the share's new standing. */
+type HelpedResult = {
+  helpedCount: number
+  rating: number | null
+  ratingCount: number
+  iHelped: boolean
+  myRating: number | null
+}
+
 function afterQuery(after?: { id: string; createdAt: string }): string {
   return after ? `?${new URLSearchParams({ after: after.id, afterAt: after.createdAt })}` : ''
 }
@@ -859,6 +869,9 @@ export const api = {
   // survives that row being deleted.
   getLearningAssigned: (after?: Pick<CareerResource, 'id' | 'createdAt'>) =>
     http<CareerResource[]>(`/api/learning/assigned${afterQuery(after)}`),
+  // The mentor's side: what I gave my mentees, with who it went to.
+  getLearningGiven: (after?: Pick<CareerResource, 'id' | 'createdAt'>) =>
+    http<CareerResource[]>(`/api/learning/given${afterQuery(after)}`),
   // The alum's side: stages this member can speak to, and where members are
   // waiting with nothing shared yet.
   getContributeStages: () => http<{ stages: ContributeStage[] }>('/api/learning/contribute'),
@@ -899,6 +912,8 @@ export const api = {
     skills: string[]
     difficulty: ProjectDifficulty
     estHours?: number
+    /** Everyone (default) or My connections. */
+    audience?: ShareAudience
   }) =>
     http<{ share: LearningShare; duplicate: boolean }>('/api/learning/shares', {
       method: 'POST',
@@ -912,15 +927,13 @@ export const api = {
     }),
   unsaveShare: (id: string) =>
     http<{ savedCount: number }>(`/api/learning/shares/${encodeURIComponent(id)}/save`, { method: 'DELETE' }),
-  // "This helped me" — tells the network the share is good and thanks the
-  // person who shared it, in one press.
-  markShareHelped: (id: string) =>
-    http<{ helpedCount: number; iHelped: boolean }>(`/api/learning/shares/${encodeURIComponent(id)}/helped`, {
+  // "This helped me", with how much (1–5 stars): tells the network the share
+  // is good and thanks the person who shared it, in one press. A rating is
+  // final once given. Returns the share's updated standing.
+  markShareHelped: (id: string, rating: number) =>
+    http<HelpedResult>(`/api/learning/shares/${encodeURIComponent(id)}/helped`, {
       method: 'POST',
-    }),
-  unmarkShareHelped: (id: string) =>
-    http<{ helpedCount: number; iHelped: boolean }>(`/api/learning/shares/${encodeURIComponent(id)}/helped`, {
-      method: 'DELETE',
+      body: JSON.stringify({ rating }),
     }),
   reportShare: (id: string) =>
     http<{ reported: boolean; hidden: boolean }>(`/api/learning/shares/${encodeURIComponent(id)}/report`, {

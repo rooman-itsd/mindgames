@@ -11,6 +11,7 @@
  */
 export const RESOURCE_SELECT = `
   SELECT r.*, u.name AS owner_name, s.topic AS session_topic, s.status AS session_status,
+         s.ended_at AS session_ended_at,
          a.name AS assignee_name, sh_u.name AS share_sharer_name
     FROM career_resources r
     JOIN users u ON u.id = r.user_id

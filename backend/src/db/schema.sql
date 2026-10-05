@@ -83,11 +83,11 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL
 -- apart from "signed in and skipped the password prompt". NULL = never.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 
--- is_private: a private member's POSTS and rich profile detail are visible
--- only to their connections. Their card-level identity (name, photo, bio,
--- batch, course, role) stays public so they remain discoverable — otherwise
--- nobody could find them to send a request in the first place.
--- Defaults FALSE so every existing account stays exactly as it is today.
+-- is_private: RETIRED — no longer read anywhere. Profiles, posts and shares are
+-- visible network-wide; members withhold per field (show_email, show_phone and
+-- the other locks) and per post (posts.visibility = 'My Network'). Kept because
+-- this file only ever adds; the one-off near the end of this file set it FALSE
+-- for everyone and told the members who had chosen private.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_profile_tag_check;
 ALTER TABLE users
@@ -1532,6 +1532,14 @@ CREATE TABLE IF NOT EXISTS learning_shares (
     CHECK (kind = 'project' OR url IS NOT NULL)
 );
 
+-- Who a share is for, chosen when it is shared: 'everyone' (the default, and
+-- what every share before this column was) or 'connections' — then only the
+-- sharer's accepted connections see it, the same way a 'My Network' post works.
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'everyone';
+ALTER TABLE learning_shares DROP CONSTRAINT IF EXISTS learning_shares_audience_check;
+ALTER TABLE learning_shares ADD CONSTRAINT learning_shares_audience_check
+  CHECK (audience IN ('everyone', 'connections'));
+
 -- One share of a given link per topic: the same docs page can genuinely serve
 -- two roles' stages, but not appear twice on one. Partial, because a project
 -- brief may have no url.
@@ -1582,10 +1590,82 @@ CREATE TABLE IF NOT EXISTS learning_share_helped (
   PRIMARY KEY (share_id, user_id)
 );
 
--- Who has already been thanked for, per share. "This helped me" can be pressed
--- and un-pressed freely, but the alum hears about it once per member: this row
--- is written on the first press and never removed, so toggling cannot turn
--- into a stream of notifications.
+-- "Helped me" carries a rating: pressing it asks how much (1–5 stars). One
+-- per member per share, changeable. Nullable only for rows written before
+-- ratings existed; every press from now on sets it.
+ALTER TABLE learning_share_helped ADD COLUMN IF NOT EXISTS rating INTEGER
+  CHECK (rating IS NULL OR rating BETWEEN 1 AND 5);
+
+-- The share's rating as two counters moved with each rate/un-rate, so a card
+-- shows "★ 4.6 (23)" as rating_sum / rating_count straight off the row —
+-- never an average over the ratings table.
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS rating_sum INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS rating_count INTEGER NOT NULL DEFAULT 0;
+
+-- Semantic matching: each share and each stage topic is turned, once and in
+-- the background (learningEmbed.ts), into an embedding — 1024 numbers that
+-- capture what the text MEANS, so "Amazon VPC guide" sits near "Deepen AWS
+-- and Cloud Fundamentals" with no word in common. A stage then shows the
+-- shares nearest to it. Stored as halfvec (2 bytes a number, ~2 KB a row).
+--
+-- pgvector is an extension the database may not have (or this role may not be
+-- allowed to create). The DO block tries, and on failure leaves a NOTICE and
+-- skips the vector columns — the rest of this file still applies, and the app
+-- detects the missing column and keeps the rule-based matching. Never a failed
+-- migration over an optional feature.
+--
+-- halfvec needs pgvector 0.7 or newer, and some Postgres builds (RDS minor
+-- versions among them) ship older. So: install, try to update to the newest
+-- the server offers, and only then — at 0.7+ — add the columns and index, as
+-- one all-or-nothing step. Anything short of that leaves a NOTICE and the
+-- rule-based matching, never a failed deploy.
+DO $$
+BEGIN
+  BEGIN
+    CREATE EXTENSION IF NOT EXISTS vector;
+    ALTER EXTENSION vector UPDATE;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'pgvector unavailable (%): Learning Resources keeps rule-based matching', SQLERRM;
+  END;
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector'
+              AND string_to_array(split_part(extversion, '-', 1), '.')::int[] >= ARRAY[0, 7]) THEN
+    BEGIN
+      EXECUTE 'ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS embedding halfvec(1024)';
+      EXECUTE 'ALTER TABLE learning_topics ADD COLUMN IF NOT EXISTS embedding halfvec(1024)';
+      -- "Nearest shares to this stage" without comparing against every share.
+      EXECUTE 'CREATE INDEX IF NOT EXISTS idx_learning_shares_embedding
+                 ON learning_shares USING hnsw (embedding halfvec_cosine_ops)';
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'pgvector embedding columns not added (%): rule-based matching stays', SQLERRM;
+    END;
+  ELSIF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    RAISE NOTICE 'pgvector % is older than 0.7 (no halfvec): Learning Resources keeps rule-based matching',
+      (SELECT extversion FROM pg_extension WHERE extname = 'vector');
+  END IF;
+END
+$$;
+
+-- Bookkeeping for the embedding worker, present with or without pgvector.
+-- embed_model: which model produced the stored embedding (NULL = not yet), so
+-- switching models re-embeds everything — numbers from two models are not
+-- comparable. embed_attempts / embed_next_at: a failed row is retried later,
+-- and given up on after a few tries instead of being retried forever.
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS embed_model TEXT;
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS embed_attempts SMALLINT NOT NULL DEFAULT 0;
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS embed_next_at TIMESTAMPTZ;
+ALTER TABLE learning_topics ADD COLUMN IF NOT EXISTS embed_model TEXT;
+ALTER TABLE learning_topics ADD COLUMN IF NOT EXISTS embed_attempts SMALLINT NOT NULL DEFAULT 0;
+ALTER TABLE learning_topics ADD COLUMN IF NOT EXISTS embed_next_at TIMESTAMPTZ;
+-- The worker's queue: only rows still waiting, oldest first — it never reads
+-- the shares that are already done.
+CREATE INDEX IF NOT EXISTS idx_learning_shares_embed_queue
+  ON learning_shares (created_at) WHERE embed_model IS NULL;
+CREATE INDEX IF NOT EXISTS idx_learning_topics_embed_queue
+  ON learning_topics (created_at) WHERE embed_model IS NULL;
+
+-- Who has already been thanked for, per share: the alum hears about it once
+-- per member. Written on the first press and never removed. (Ratings are final
+-- now, but presses from before could be taken back and pressed again.)
 CREATE TABLE IF NOT EXISTS learning_share_thanked (
   share_id   TEXT NOT NULL REFERENCES learning_shares(id) ON DELETE CASCADE,
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1634,7 +1714,10 @@ CREATE INDEX IF NOT EXISTS idx_learning_share_helped_user
 
 CREATE OR REPLACE FUNCTION learning_counts_on_user_delete() RETURNS trigger AS $$
 BEGIN
-  UPDATE learning_shares s SET helped_count = GREATEST(s.helped_count - 1, 0)
+  UPDATE learning_shares s SET helped_count = GREATEST(s.helped_count - 1, 0),
+         -- Their rating leaves the average with them.
+         rating_sum   = GREATEST(s.rating_sum - coalesce(h.rating, 0), 0),
+         rating_count = GREATEST(s.rating_count - (h.rating IS NOT NULL)::int, 0)
     FROM learning_share_helped h
    WHERE h.user_id = OLD.id AND h.share_id = s.id AND s.shared_by <> OLD.id;
   UPDATE learning_shares s SET saved_count = GREATEST(s.saved_count - 1, 0)
@@ -1666,6 +1749,11 @@ ALTER TABLE career_resources ADD COLUMN IF NOT EXISTS assigned_to TEXT
   REFERENCES users(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_career_resources_assigned
   ON career_resources (assigned_to, created_at DESC) WHERE assigned_to IS NOT NULL;
+-- The other side: what a mentor GAVE ("I've shared → Given to your mentees"),
+-- newest first. Holds only rows handed to someone else, so a mentor's own
+-- saved items never sit in the way.
+CREATE INDEX IF NOT EXISTS idx_career_resources_given
+  ON career_resources (user_id, created_at DESC) WHERE assigned_to IS NOT NULL AND assigned_to <> user_id;
 
 -- One-off: give every existing session resource its recipient (the session's
 -- mentee), so the new list query returns exactly what the old session-based
@@ -1681,6 +1769,35 @@ BEGIN
        AND r.assigned_to IS NULL
        AND r.user_id = s.mentor_id;
     INSERT INTO app_meta (key, value) VALUES ('backfill_resources_assigned_to', now()::text);
+  END IF;
+END $$;
+
+-- One-off: private accounts are retired. Every profile, post and share is
+-- visible to the network; what a member withholds is per field (email, phone
+-- and the other locks), and per post ('My Network'). Members who had chosen
+-- private are told once, so the change is never a surprise. Guarded by an
+-- app_meta marker so it runs on the first deploy only.
+--
+-- Their earlier posts were written for connections only, so they stay that
+-- way: switched to 'My Network' BEFORE the flag is cleared (afterwards there
+-- is no telling whose they were). Pinned announcements and community posts
+-- keep their own audience.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM app_meta WHERE key = 'retire_private_accounts') THEN
+    UPDATE posts p SET visibility = 'My Network'
+      FROM users u
+     WHERE u.id = p.author_id AND u.is_private
+       AND p.visibility = 'All Alumni' AND NOT p.pinned;
+    INSERT INTO notifications (user_id, type, text)
+    SELECT id, 'announcement',
+           'Profiles are now open to the whole network, so people can find and help you. '
+           || 'Your earlier posts stay visible to My connections only. '
+           || 'Your email and phone stay hidden unless you turn them on in Edit profile, '
+           || 'and you can choose My connections whenever you post or share.'
+      FROM users WHERE is_private;
+    UPDATE users SET is_private = FALSE WHERE is_private;
+    INSERT INTO app_meta (key, value) VALUES ('retire_private_accounts', now()::text);
   END IF;
 END $$;
 

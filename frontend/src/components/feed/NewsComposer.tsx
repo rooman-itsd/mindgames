@@ -97,7 +97,7 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
             <Avatar name={currentUser.name} src={currentUser.photo} size={44} />
             <div>
               <p className="font-semibold text-[#1c1c1c]">{currentUser.name}</p>
-              <p className="text-xs text-[#878a8c]">Posting to News &amp; Updates · All Alumni</p>
+              <p className="text-xs text-[#878a8c]">Posting to News &amp; Updates · Everyone</p>
             </div>
           </div>
 

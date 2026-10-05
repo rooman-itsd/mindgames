@@ -4,7 +4,7 @@ import { createHash, randomInt } from 'node:crypto'
 import { query } from '../db/pool.js'
 import { requireAuth } from '../auth/middleware.js'
 import { ApiError, asyncHandler } from '../http.js'
-import { mapLimitedUser, mapOwnUser, mapUser, USER_COLS, type UserRow } from '../mappers.js'
+import { mapOwnUser, mapUser, USER_COLS, type UserRow } from '../mappers.js'
 import { sendEmail, sendEmailChangeRequestEmail } from '../email.js'
 import { getProfileStats } from '../sessionStats.js'
 
@@ -31,35 +31,6 @@ const maskEmail = (email: string) => {
   return `${shown}@${domain}`
 }
 
-/**
- * The set of member ids this viewer may see in full, beyond public accounts.
- *
- * Accepted connections, obviously — and also anyone with a connection request
- * *pending on the viewer*: you cannot sensibly decide whether to accept
- * someone without seeing who they are, so an incoming request opens the
- * requester's profile to the person being asked. It does not work the other
- * way: sending a request does not entitle you to see the recipient.
- */
-async function fullyVisibleTo(viewerId: string): Promise<Set<string>> {
-  const rows = await query<{ other: string }>(
-    `SELECT CASE WHEN requester_id = $1 THEN addressee_id ELSE requester_id END AS other
-       FROM connections
-      WHERE status = 'accepted' AND (requester_id = $1 OR addressee_id = $1)
-      UNION
-     SELECT requester_id AS other
-       FROM connections
-      WHERE status = 'pending' AND addressee_id = $1`,
-    [viewerId],
-  )
-  return new Set(rows.rows.map((r) => r.other))
-}
-
-/** Public accounts and the viewer's own row map in full; private strangers don't. */
-function mapForViewer(r: UserRow, viewerId: string, visible: Set<string>) {
-  if (r.id === viewerId || !r.is_private || visible.has(r.id)) return mapUser(r)
-  return mapLimitedUser(r)
-}
-
 // GET /api/users — the whole directory (drives People You May Know, mentions…).
 //
 // Members only. `mapUser` withholds anything still locked, but the per-field
@@ -67,16 +38,16 @@ function mapForViewer(r: UserRow, viewerId: string, visible: Set<string>) {
 // the resume detail, address, age and salary a member chose to share with the
 // network must not be readable by an anonymous caller. The frontend only ever
 // calls this with a token (bootstrap and refreshNetwork both bail without one).
+//
+// Every profile is visible to every member. What a member keeps to themselves
+// is per field — email, phone and the other locks — and mapUser applies those
+// for every viewer alike.
 usersRouter.get(
   '/',
   requireAuth,
-  asyncHandler(async (req, res) => {
-    const me = req.user!.sub
-    const [result, visible] = await Promise.all([
-      query<UserRow>(`SELECT ${USER_COLS} FROM users ORDER BY name`),
-      fullyVisibleTo(me),
-    ])
-    res.json(result.rows.map((r) => mapForViewer(r, me, visible)))
+  asyncHandler(async (_req, res) => {
+    const result = await query<UserRow>(`SELECT ${USER_COLS} FROM users ORDER BY name`)
+    res.json(result.rows.map(mapUser))
   }),
 )
 
@@ -114,10 +85,7 @@ usersRouter.get(
       req.params.id,
     ])
     if (!result.rowCount) throw new ApiError(404, 'User not found')
-    const me = req.user!.sub
-    const row = result.rows[0]
-    const visible = row.is_private ? await fullyVisibleTo(me) : new Set<string>()
-    res.json(mapForViewer(row, me, visible))
+    res.json(mapUser(result.rows[0]))
   }),
 )
 
@@ -128,7 +96,6 @@ const COLUMN_MAP: Record<string, string> = {
   photo: 'photo',
   profileTag: 'profile_tag',
   emailDigest: 'email_digest',
-  isPrivate: 'is_private',
   avatar: 'avatar',
   batchYear: 'batch_year',
   course: 'course',
@@ -256,9 +223,6 @@ const patchSchema = z
       .optional(),
     profileTag: z.union([z.enum(['Mentor', 'Hiring', 'Open to Work']), z.null()]).optional(),
     emailDigest: z.boolean().optional(),
-    // Account privacy: true restricts posts and rich profile detail to
-    // connections. Self-serve — a member owns this setting outright.
-    isPrivate: z.boolean().optional(),
     avatar: z.string().optional(),
     batchYear: z.number().int().optional(),
     course: z.string().optional(),

@@ -25,14 +25,19 @@ export function SessionResourcesModal({
   topic,
   iAmMentor,
   canAdd,
+  followUp = false,
   sessionAt,
   onClose,
 }: {
   sessionId: string
   topic: string
   iAmMentor: boolean
-  /** Mentor on a session that hasn't finished — the only case with a form. */
+  /** The mentor of a session that is upcoming or done — the only case with a
+   *  form. (A declined session never happened, so it takes nothing.) */
   canAdd: boolean
+  /** The session has happened: what is added now is a follow-up, which may
+   *  ask the mentee to send work back. */
+  followUp?: boolean
   /** The session's real scheduled instant, when it has one. */
   sessionAt?: string
   onClose: () => void
@@ -46,6 +51,7 @@ export function SessionResourcesModal({
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
   const [kind, setKind] = useState<CareerResourceKind>('article')
+  const [askProof, setAskProof] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -83,10 +89,13 @@ export function SessionResourcesModal({
         url: url.trim() || undefined,
         kind,
         sessionId,
+        // Only after the session: a follow-up can ask for proof of work.
+        requiresSubmission: followUp && askProof,
       })
       setItems((prev) => [created, ...prev])
       setTitle('')
       setUrl('')
+      setAskProof(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not assign that.')
     }
@@ -170,10 +179,17 @@ export function SessionResourcesModal({
                 ))}
               </select>
             </div>
-            {/* Prep only: a task that needs evidence is set when the session
-                is completed, not here. */}
+            {/* Before the session it's prep — nothing to send back. After it,
+                a follow-up can ask the mentee for their work. */}
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-[#878a8c]">Prep for them to go through — no evidence asked.</span>
+              {followUp ? (
+                <label className="flex items-center gap-2 text-xs text-[#1c1c1c]">
+                  <input type="checkbox" checked={askProof} onChange={(e) => setAskProof(e.target.checked)} />
+                  Ask them to send back their work
+                </label>
+              ) : (
+                <span className="text-xs text-[#878a8c]">Prep for them to go through — no evidence asked.</span>
+              )}
               <Button className="!px-3 !py-1.5 !text-xs" loading={saving} onClick={() => void add()}>
                 Assign
               </Button>
@@ -217,7 +233,9 @@ export function SessionResourcesModal({
                       {!mine && ` · by ${r.ownerName ?? 'your mentor'}`}
                     </p>
                   </div>
-                  {canAdd && mine && (
+                  {/* A completed session's record (and anything already
+                      answered) is locked server-side — no button to fail. */}
+                  {canAdd && mine && !r.sessionLocked && (
                     <button
                       onClick={() => void remove(r)}
                       aria-label={`Remove ${r.title}`}

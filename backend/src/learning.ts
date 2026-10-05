@@ -16,6 +16,9 @@ export type ShareKind = (typeof SHARE_KINDS)[number]
  *  long enough to be a real problem statement, not a title restated. Keep in
  *  step with learning_shares_project_has_detail in schema.sql. */
 export const PROJECT_ABOUT_MIN = 80
+/** "Why it helped" must say something — it is what a reader acts on, and what
+ *  the share's meaning is matched on. Keep in step with ShareForm.tsx. */
+export const WHY_HELPED_MIN = 30
 
 /** Skill tags per share. */
 export const MAX_TAGS = 8
@@ -153,6 +156,120 @@ export function toResourceKind(kind: ShareKind): 'doc' | 'article' | 'video' | '
 export function toPrefixQuery(text: string): string | null {
   const words = (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length >= 2).slice(0, 6)
   return words.length ? words.map((w) => `${w}:*`).join(' & ') : null
+}
+
+/** Words a roadmap stage title is made of that say nothing about its subject
+ *  ("Deepen AWS and Cloud Fundamentals" is about aws and cloud). */
+const STAGE_FILLER = new Set([
+  'a', 'an', 'and', 'or', 'the', 'of', 'to', 'in', 'on', 'for', 'with', 'via', 'into', 'through', 'your', 'my',
+  'learn', 'learning', 'master', 'mastering', 'gain', 'build', 'building', 'complete', 'completing', 'deepen',
+  'understand', 'understanding', 'fundamentals', 'fundamental', 'basics', 'basic', 'principles', 'expertise',
+  'skills', 'skill', 'advanced', 'intermediate', 'beginner', 'intro', 'introduction', 'core', 'essentials',
+  'practice', 'practical', 'hands', 'real', 'world', 'get', 'become', 'transition', 'role', 'current',
+  'situation', 'gap', 'analysis', 'stage', 'step', 'level', 'start', 'starting', 'foundations', 'foundation',
+  'concepts', 'key', 'strong', 'solid', 'deep', 'dive', 'apply', 'applying', 'using', 'use', 'work', 'working',
+  'professional', 'internship', 'project', 'projects', 'design', 'optimization', 'preparation',
+])
+
+/** Common short forms and their long forms, both directions, plus the
+ *  combined tags people actually type — so "ML" in a stage title finds a
+ *  "Machine Learning" tag and "LLM" finds "LLM/RAG". Lower-case. */
+const STAGE_ALIASES: Record<string, string[]> = {
+  ml: ['machine learning'],
+  'machine learning': ['ml'],
+  ai: ['artificial intelligence'],
+  'artificial intelligence': ['ai'],
+  llm: ['llms', 'llm/rag', 'large language models'],
+  llms: ['llm', 'llm/rag'],
+  rag: ['llm/rag'],
+  k8s: ['kubernetes'],
+  kubernetes: ['k8s'],
+  js: ['javascript'],
+  javascript: ['js'],
+  ts: ['typescript'],
+  typescript: ['ts'],
+  dsa: ['data structures', 'algorithms'],
+  nlp: ['natural language processing'],
+  cv: ['computer vision'],
+  devops: ['ci/cd'],
+  sql: ['databases'],
+  'system design': ['architecture'],
+  cloud: ['aws', 'azure', 'gcp'],
+  // Design: a UX stage rarely names its tools, so "Figma" shares need these.
+  ux: ['user research', 'ui design', 'figma'],
+  prototyping: ['figma'],
+  // DevOps.
+  containerisation: ['docker', 'kubernetes'],
+  containerization: ['docker', 'kubernetes'],
+  'ci/cd': ['github actions', 'jenkins'],
+  pipelines: ['ci/cd'],
+  // Product.
+  product: ['product management'],
+  prioritisation: ['product management'],
+  prioritization: ['product management'],
+  dashboarding: ['power bi', 'tableau', 'data visualization'],
+  visualisation: ['data visualization'],
+  visualization: ['data visualization'],
+}
+
+/**
+ * What a roadmap stage is about, for matching shares to it across roadmaps.
+ *
+ * Roadmaps are written per person, so the same subject appears under
+ * different wording ("Deepen AWS and Cloud Fundamentals", "Learn AWS basics").
+ * Matching on the exact title would show a share only to people with the same
+ * sentence. Instead: the meaningful single words, the two-word terms
+ * ("data analysis", "system design" — kept even when one word alone is
+ * filler), and their common aliases — as normalised values to compare with
+ * share skill tags (GIN &&). The tag half of matching; meaning is matched by
+ * embeddings (learningEmbed.ts).
+ */
+export function stageMatchTerms(stageTitle: string): { tags: string[] } {
+  const words = (stageTitle.toLowerCase().match(/[a-z0-9+#.]+/g) ?? []).map((w) => w.replace(/^\.+|\.+$/g, ''))
+  const connector = new Set(['and', 'or', 'of', 'the', 'to', 'in', 'for', 'with', 'via', 'a', 'an'])
+  const terms = new Set<string>()
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i]
+    if (w.length >= 2 && !STAGE_FILLER.has(w)) terms.add(w)
+    const next = words[i + 1]
+    // A two-word term counts when its FIRST word is the subject — "data
+    // analysis", "cloud architecture", "machine learning" — not "deepen aws".
+    if (next && w.length >= 2 && !STAGE_FILLER.has(w) && !connector.has(next)) terms.add(`${w} ${next}`)
+  }
+  const tags = new Set<string>()
+  for (const t of terms) {
+    tags.add(normalizeTag(t))
+    for (const a of STAGE_ALIASES[t] ?? []) tags.add(normalizeTag(a))
+  }
+  tags.delete('')
+  return { tags: [...tags].slice(0, 30) }
+}
+
+/** The text a share is embedded from: everything a reader would judge it by.
+ *  One fixed shape for every share, so embeddings are compared like for like.
+ *  Capped at ~1500 characters, which also fits a 512-token model if one is chosen. */
+export function shareEmbedText(s: {
+  title: string
+  kind: string
+  why_helped: string
+  about: string | null
+  skills: string[] | null
+}): string {
+  const parts = [
+    `${s.title}.`,
+    `Type: ${s.kind}.`,
+    `Why it helped: ${s.why_helped}`,
+    s.about ? `About: ${s.about}` : '',
+    s.skills?.length ? `Skills: ${s.skills.join(', ')}.` : '',
+  ]
+  return parts.filter(Boolean).join(' ').slice(0, 1500)
+}
+
+/** The text a stage topic is embedded from — the role gives the stage its
+ *  context ("Fundamentals" means something different for a data analyst). */
+export function topicEmbedText(t: { role_label: string; stage_label: string }): string {
+  const role = t.role_label.trim()
+  return (role ? `Career stage for a ${role}: ${t.stage_label}` : `Career stage: ${t.stage_label}`).slice(0, 500)
 }
 
 /** Escapes LIKE wildcards so a typed "%" or "_" matches itself. */

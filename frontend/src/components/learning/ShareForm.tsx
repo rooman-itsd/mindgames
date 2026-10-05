@@ -3,14 +3,16 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { api } from '../../lib/api'
 import { isHttpUrl } from '../../lib/links'
-import { DIFFICULTY_FILTERS, KIND_LABEL, TYPE_FILTERS, waitingLabel } from '../../lib/learningHub'
+import { AUDIENCE_LABEL, DIFFICULTY_FILTERS, KIND_LABEL, TYPE_FILTERS, waitingLabel } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import { Button, Card } from '../ui'
-import type { ContributeStage, LearningShare, ProjectDifficulty, ShareKind } from '../../types'
+import type { ContributeStage, LearningShare, ProjectDifficulty, ShareAudience, ShareKind } from '../../types'
 
 /** A brief's "About" must be this long to stand without a link — the same
  *  rule the server and the database enforce. */
 const ABOUT_MIN = 80
+/** "Why it helped" — the same minimum the server enforces (WHY_HELPED_MIN). */
+const WHY_MIN = 30
 const MAX_TAGS = 8
 
 /**
@@ -47,6 +49,7 @@ export function ShareForm({
   const [tags, setTags] = useState<string[]>([])
   const [difficulty, setDifficulty] = useState<ProjectDifficulty>('beginner')
   const [estHours, setEstHours] = useState('')
+  const [audience, setAudience] = useState<ShareAudience>('everyone')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -87,8 +90,8 @@ export function ShareForm({
     if (isProject && !link && about.trim().length < ABOUT_MIN) {
       return setError(`Add a link to the brief, or describe the project in at least ${ABOUT_MIN} characters.`)
     }
-    if (whyHelped.trim().length < 10) {
-      return setError('Say why it helped you — a sentence is enough, and it is what makes this useful.')
+    if (whyHelped.trim().length < WHY_MIN) {
+      return setError(`Say in a sentence what it taught you (at least ${WHY_MIN} characters) — it is what makes this useful.`)
     }
     if (!allTags.length) return setError('Add at least one skill it covers, so people can find it.')
     setSaving(true)
@@ -103,6 +106,7 @@ export function ShareForm({
         whyHelped: whyHelped.trim(),
         skills: allTags,
         difficulty,
+        audience,
         ...(isProject
           ? {
               about: about.trim() || undefined,
@@ -113,7 +117,9 @@ export function ShareForm({
       notify(
         r.duplicate
           ? 'Someone already shared that link for this stage — here it is.'
-          : 'Shared — thank you. It is now in All Resources for everyone.',
+          : audience === 'connections'
+            ? 'Shared — thank you. Your connections can now find it in All Resources.'
+            : 'Shared — thank you. It is now in All Resources for everyone.',
       )
       onShared(r.share, topicKey)
     } catch (e) {
@@ -223,6 +229,11 @@ export function ShareForm({
             rows={2}
             className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
           />
+          {whyHelped.trim().length < WHY_MIN && (
+            <p className="text-[11px] text-[#878a8c]">
+              {WHY_MIN - whyHelped.trim().length} more characters — what did it teach you?
+            </p>
+          )}
 
           <Label>Skills it covers</Label>
           <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[#edeff1] px-2 py-1.5">
@@ -286,13 +297,31 @@ export function ShareForm({
             )}
           </div>
 
+          <Label>Share with</Label>
+          <div className="flex gap-2" role="radiogroup" aria-label="Share with">
+            {(['everyone', 'connections'] as ShareAudience[]).map((a) => (
+              <button
+                key={a}
+                type="button"
+                role="radio"
+                aria-checked={audience === a}
+                onClick={() => setAudience(a)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  audience === a ? 'bg-[#ff4500] text-white' : 'bg-gray-100 text-[#878a8c] hover:bg-gray-200'
+                }`}
+              >
+                {AUDIENCE_LABEL[a]}
+              </button>
+            ))}
+          </div>
+
           {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
           <div className="mt-1 flex justify-end gap-2">
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
             <Button loading={saving} onClick={() => void submit()}>
-              Share with the network
+              Share with {AUDIENCE_LABEL[audience]}
             </Button>
           </div>
         </div>

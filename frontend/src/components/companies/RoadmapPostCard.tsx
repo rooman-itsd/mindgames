@@ -18,7 +18,6 @@ export function RoadmapPostCard({
   companyName,
   companyLogoUrl,
   isMine,
-  hiddenFromOthers,
   onOpen,
 }: {
   roadmap: CompanyRoadmap
@@ -26,8 +25,6 @@ export function RoadmapPostCard({
   companyLogoUrl?: string
   /** The viewer's own roadmap, badged and pinned to the top of the list. */
   isMine?: boolean
-  /** Viewer is private, so this roadmap reaches nobody but them. */
-  hiddenFromOthers?: boolean
   onOpen: () => void
 }) {
   // A contributor's own words if they wrote any, otherwise a title built from
@@ -49,16 +46,8 @@ export function RoadmapPostCard({
   return (
     <Card className={cx('overflow-hidden', isMine && 'border-[#ffd9cc]')}>
       {isMine && (
-        <div
-          className={
-            hiddenFromOthers
-              ? 'border-b border-amber-100 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-700'
-              : 'border-b border-orange-100 bg-orange-50 px-4 py-1.5 text-xs font-semibold text-[#ff4500]'
-          }
-        >
-          {hiddenFromOthers
-            ? 'Your roadmap — only you can see it while your profile is private'
-            : `Your roadmap — visible to everyone viewing ${companyName}`}
+        <div className="border-b border-orange-100 bg-orange-50 px-4 py-1.5 text-xs font-semibold text-[#ff4500]">
+          Your roadmap — visible to everyone viewing {companyName}
         </div>
       )}
 

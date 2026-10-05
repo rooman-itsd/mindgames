@@ -26,6 +26,7 @@ import { careerRouter } from './routes/career.routes.js'
 import { careerResourcesRouter } from './routes/careerResources.routes.js'
 import { learningRouter } from './routes/learning.routes.js'
 import { startLearningNudgeScheduler } from './learningNudge.js'
+import { startLearningEmbedScheduler } from './learningEmbed.js'
 import { backfillSessionAssignees } from './resourceAssignees.js'
 import { subscriptionRouter } from './routes/subscription.routes.js'
 import { groupSessionsRouter } from './routes/groupSessions.routes.js'
@@ -87,6 +88,7 @@ startDigestScheduler()
 startEventReminderScheduler()
 startSessionReminderScheduler()
 startLearningNudgeScheduler()
+startLearningEmbedScheduler()
 // Session resources written by the previous build during the deploy window
 // get their recipient now that this build is the one running.
 void backfillSessionAssignees()

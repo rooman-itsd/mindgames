@@ -3,6 +3,7 @@ import { HandHeart } from 'lucide-react'
 import { api } from '../../lib/api'
 import { appendPage } from '../../lib/learningHub'
 import type { LearningShare } from '../../types'
+import { GivenToMentees } from './GivenToMentees'
 import { ShareCard } from './ShareCard'
 import { CardGrid, LoadMore, SectionHeader } from './SectionHeader'
 
@@ -11,6 +12,7 @@ const PAGE = 20
 /**
  * What this member has given the network, and what it did: each card carries
  * its own "helped N members" count, which is the only thanks the page keeps.
+ * Below them, for mentors, what they gave their mentees (GivenToMentees).
  */
 export function MySharesView({
   onShare,
@@ -84,6 +86,8 @@ export function MySharesView({
         </CardGrid>
       )}
       {more && rows && <LoadMore loading={loading} onClick={() => void loadPage(rows[rows.length - 1])} />}
+      {/* As a mentor: what you gave your mentees, and who it went to. */}
+      <GivenToMentees />
     </section>
   )
 }
