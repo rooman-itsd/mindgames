@@ -85,8 +85,11 @@ export const EMBED_MODEL = process.env.OPENROUTER_EMBED_MODEL || 'nvidia/nemotro
 export const EMBED_PROFILE = profileFor(EMBED_MODEL)
 export const embeddingsEnabled = !!apiKey
 
+/** The provider is down, slow or unreachable (5xx, timeout, network) — not
+ *  the texts' fault, so the rows keep their attempts and the worker waits. */
+export class EmbedUnavailableError extends Error {}
 /** Rate-limited or out of quota: wait before the next batch. */
-export class EmbedRateLimitError extends Error {}
+export class EmbedRateLimitError extends EmbedUnavailableError {}
 
 const TIMEOUT_MS = 30_000
 
@@ -116,6 +119,9 @@ export async function embedTexts(
         ...(profile.sendDimensions ? { dimensions: EMBED_DIMS } : {}),
       }),
       signal: controller.signal,
+    }).catch((err: unknown) => {
+      // Timed out (our abort) or never reached the provider.
+      throw new EmbedUnavailableError(`OpenRouter unreachable: ${err instanceof Error ? err.message : err}`)
     })
     const body = (await res.json().catch(() => null)) as {
       data?: { index?: number; embedding?: unknown }[]
@@ -123,6 +129,9 @@ export async function embedTexts(
     } | null
     if (res.status === 429 || res.status === 402) {
       throw new EmbedRateLimitError(body?.error?.message ?? `OpenRouter ${res.status}`)
+    }
+    if (res.status >= 500) {
+      throw new EmbedUnavailableError(`OpenRouter ${res.status}: ${body?.error?.message ?? 'server error'}`)
     }
     if (!res.ok || !Array.isArray(body?.data)) {
       throw new Error(`Embedding call failed (${res.status}): ${body?.error?.message ?? 'no data'}`)

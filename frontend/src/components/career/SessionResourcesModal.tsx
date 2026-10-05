@@ -233,7 +233,9 @@ export function SessionResourcesModal({
                       {!mine && ` · by ${r.ownerName ?? 'your mentor'}`}
                     </p>
                   </div>
-                  {canAdd && mine && (
+                  {/* A completed session's record (and anything already
+                      answered) is locked server-side — no button to fail. */}
+                  {canAdd && mine && !r.sessionLocked && (
                     <button
                       onClick={() => void remove(r)}
                       aria-label={`Remove ${r.title}`}

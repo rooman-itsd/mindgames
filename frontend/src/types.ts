@@ -1403,6 +1403,8 @@ export interface CareerResource {
    *  submitted against it: what was assigned is a record, so it can't be
    *  deleted or rewritten (status and visibility can still change). */
   sessionLocked?: boolean
+  /** Given at or after its session ended: a follow-up, not prep. */
+  afterSession?: boolean
   /** This row is the member's saved copy of what an alum shared, and who
    *  shared it — so a saved list can still credit them. */
   shareId?: string

@@ -95,10 +95,13 @@ export function stepPosition(
 }
 
 /** Where an assigned resource came from, as the card's caption. */
-export function assignmentOrigin(r: Pick<CareerResource, 'sessionId' | 'sessionTopic' | 'requiresSubmission'>): string {
+export function assignmentOrigin(
+  r: Pick<CareerResource, 'sessionId' | 'sessionTopic' | 'requiresSubmission' | 'afterSession'>,
+): string {
   if (r.sessionId) {
     const topic = r.sessionTopic ?? 'your session'
-    return r.requiresSubmission ? `Follow-up from ${topic}` : `Prep for ${topic}`
+    // After the session it is a follow-up even when it asks for nothing back.
+    return r.requiresSubmission || r.afterSession ? `Follow-up from ${topic}` : `Prep for ${topic}`
   }
   return 'Assigned directly'
 }

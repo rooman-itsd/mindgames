@@ -117,7 +117,9 @@ export function ShareForm({
       notify(
         r.duplicate
           ? 'Someone already shared that link for this stage — here it is.'
-          : 'Shared — thank you. It is now in All Resources for everyone.',
+          : audience === 'connections'
+            ? 'Shared — thank you. Your connections can now find it in All Resources.'
+            : 'Shared — thank you. It is now in All Resources for everyone.',
       )
       onShared(r.share, topicKey)
     } catch (e) {

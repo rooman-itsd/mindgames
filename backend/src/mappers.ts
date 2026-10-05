@@ -823,18 +823,19 @@ export function mapCareerResource(r: CareerResourceRow) {
     ownerName: r.owner_name ?? undefined,
     ownerPhoto: r.owner_photo ?? undefined,
     sessionTopic: r.session_topic ?? undefined,
-    // Lets the UI hide edit/delete on a finished session's resources, which
-    // the server refuses anyway (they're a record of what was assigned).
-    // Only 'past' locks a session's resources; a direct assignment (no
-    // session) locks once the mentee has submitted against it — mirrors
-    // isLocked in careerResources.routes.ts.
-    // Mirrors isLocked in careerResources.routes.ts: submitted work is always
-    // a record; a completed session's resources from before it ended are its
+    // Lets the UI hide edit/delete where the server refuses them. Mirrors
+    // isLocked in careerResources.routes.ts: submitted work is always a
+    // record; a completed session's resources from before it ended are its
     // record; anything a mentor added after it ended stays editable.
     sessionLocked:
       (!!r.assigned_to && !!r.submission_url) ||
       (!!r.session_id && r.session_status === 'past' &&
         !(r.session_ended_at && new Date(r.created_at) > new Date(r.session_ended_at))),
+    // Given at or after the session's end — a follow-up, not prep — whether
+    // or not it asks for work back.
+    afterSession:
+      !!r.session_id && r.session_status === 'past' && !!r.session_ended_at &&
+      new Date(r.created_at).getTime() >= new Date(r.session_ended_at).getTime(),
     // Learning hub links — all optional, so every existing reader is unchanged.
     // This row is the member's saved copy of what an alum shared, and keeps
     // their name, so a saved list still says who recommended it.

@@ -1,5 +1,5 @@
 import { query } from './db/pool.js'
-import { EMBED_MODEL, EmbedRateLimitError, embedTexts, embeddingsEnabled, toVectorLiteral } from './embeddings.js'
+import { EMBED_MODEL, EmbedUnavailableError, embedTexts, embeddingsEnabled, toVectorLiteral } from './embeddings.js'
 import { shareEmbedText, topicEmbedText } from './learning.js'
 
 /**
@@ -21,7 +21,8 @@ const TICK_MS = 30_000
 const BATCH = 32
 /** A row that fails this many times is left alone rather than retried forever. */
 const MAX_ATTEMPTS = 3
-/** After a rate limit, the whole worker waits this long. */
+/** After a rate limit or an outage, the whole worker waits this long — so a
+ *  long outage costs one call per pause, and no row loses an attempt to it. */
 const RATE_LIMIT_PAUSE_MS = 10 * 60_000
 
 let running = false
@@ -95,8 +96,8 @@ async function embedBatch(table: Table): Promise<number> {
   try {
     vectors = await embedTexts(claimed.rows.map(text), role)
   } catch (err) {
-    if (err instanceof EmbedRateLimitError) {
-      // Not these rows' fault: give the attempt back and retry them soon.
+    if (err instanceof EmbedUnavailableError) {
+      // Rate limit or outage — not these rows' fault: give the attempt back.
       await query(
         `UPDATE ${table} SET embed_attempts = GREATEST(embed_attempts - 1, 0), embed_next_at = NULL
           WHERE ${key} = ANY($1::text[])`,
@@ -144,7 +145,7 @@ async function tick() {
       if (!done) break
     }
   } catch (err) {
-    if (err instanceof EmbedRateLimitError) pausedUntil = Date.now() + RATE_LIMIT_PAUSE_MS
+    if (err instanceof EmbedUnavailableError) pausedUntil = Date.now() + RATE_LIMIT_PAUSE_MS
     console.warn('[learning-embed]', err instanceof Error ? err.message : err)
   } finally {
     running = false

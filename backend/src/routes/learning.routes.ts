@@ -295,36 +295,43 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
     // this view reads the nearest 100. Scoped to this transaction only.
     await client.query(`SET LOCAL hnsw.ef_search = ${NEAREST}`)
     const r = await client.query<LearningShareRow>(
+      // Only this model's vectors: another model's numbers are not comparable.
       `WITH near AS (
          SELECT id FROM learning_shares
-          WHERE embedding IS NOT NULL
+          WHERE embedding IS NOT NULL AND embed_model = $9
           ORDER BY embedding <=> $3::halfvec
           LIMIT ${NEAREST}),
+       -- This stage's own shares, filtered BEFORE the window is cut and in the
+       -- outer ORDER BY's order, so OFFSET pages walk one fixed list.
+       same AS (
+         SELECT s.id FROM learning_shares s
+          WHERE s.topic_key = $2 AND NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
+            AND (s.embedding IS NULL OR s.embed_model IS DISTINCT FROM $9
+                 OR 1 - (s.embedding <=> $3::halfvec) >= ${SAME_STAGE_MIN}
+                 OR ($4::text[] <> '{}' AND s.skills && $4::text[]))
+          ORDER BY s.helped_count DESC, s.created_at DESC, s.id
+          LIMIT $7),
        cand AS (
-         SELECT id, 0 AS tier FROM (
-           SELECT id FROM learning_shares
-            WHERE topic_key = $2 AND NOT hidden AND shared_by <> $1
-            ORDER BY helped_count DESC, created_at DESC, id
-            LIMIT $7) same
+         SELECT id, 0 AS tier FROM same
          UNION ALL
          SELECT id, 1 FROM near)
        ${SHARE_SELECT}
        JOIN cand c ON c.id = s.id
        CROSS JOIN LATERAL (
-         SELECT 1 - (s.embedding <=> $3::halfvec) AS sim,
+         SELECT CASE WHEN s.embed_model = $9 THEN 1 - (s.embedding <=> $3::halfvec) END AS sim,
                 ($4::text[] <> '{}' AND s.skills && $4::text[]) AS tag_hit) m
       WHERE NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
-        AND CASE WHEN c.tier = 0
-                 THEN m.sim IS NULL OR m.sim >= ${SAME_STAGE_MIN} OR m.tag_hit
-                 ELSE s.topic_key <> $2 AND NOT (s.topic_key = ANY($5::text[]))
-                      AND (m.sim >= ${RELATED_MIN} OR (m.tag_hit AND m.sim >= ${RELATED_WITH_TAG_MIN}))
-            END
+        AND (c.tier = 0
+             OR (s.topic_key <> $2 AND NOT (s.topic_key = ANY($5::text[]))
+                 AND (m.sim >= ${RELATED_MIN} OR (m.tag_hit AND m.sim >= ${RELATED_WITH_TAG_MIN}))))
       ORDER BY c.tier,
                CASE WHEN c.tier = 0 THEN s.helped_count END DESC NULLS LAST,
-               m.sim + CASE WHEN m.tag_hit THEN 0.1 ELSE 0 END DESC,
+               CASE WHEN c.tier = 0 THEN s.created_at END DESC NULLS LAST,
+               CASE WHEN c.tier = 0 THEN s.id END,
+               m.sim + CASE WHEN m.tag_hit THEN 0.1 ELSE 0 END DESC NULLS LAST,
                s.created_at DESC, s.id
       LIMIT $6 OFFSET $8`,
-      [me, stage.topicKey, vector, tags, otherTopicKeys, limit, offset + limit, offset],
+      [me, stage.topicKey, vector, tags, otherTopicKeys, limit, offset + limit, offset, EMBED_MODEL],
     )
     return r.rows
   })
@@ -825,14 +832,18 @@ learningRouter.post(
       // Already shared for this stage: hand back that one — unless reports
       // have hidden it, which must not be shown to anyone again, or it was
       // deleted in the instant since the insert ran into it.
-      const existing = await client.query<{ id: string; hidden: boolean }>(
-        `SELECT id, hidden FROM learning_shares WHERE topic_key = $1 AND url_norm = $2`,
-        [d.topicKey, urlNorm],
+      const existing = await client.query<{ id: string; hidden: boolean; visible: boolean }>(
+        `SELECT s.id, s.hidden, ${SHARE_AUDIENCE_OK} AS visible
+           FROM learning_shares s WHERE s.topic_key = $2 AND s.url_norm = $3`,
+        [me, d.topicKey, urlNorm],
       )
       if (!existing.rowCount) throw new ApiError(409, 'That link was just changed on this stage — please try again')
       if (existing.rows[0].hidden) {
         throw new ApiError(409, 'That link was already shared for this stage and has been hidden after members reported it')
       }
+      // Shared for someone's connections only, and this member is not one:
+      // say it exists, never show it.
+      if (!existing.rows[0].visible) throw new ApiError(409, 'That link has already been shared for this stage')
       return { id: existing.rows[0].id, duplicate: true }
     })
     // Embed it now rather than at the next tick, so it reaches other stages

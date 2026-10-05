@@ -28,6 +28,9 @@ assert.equal(
   'Follow-up from AWS basics',
 )
 assert.equal(assignmentOrigin({ requiresSubmission: true }), 'Assigned directly')
+// A follow-up given after the session that asks for nothing back is still a follow-up.
+assert.equal(assignmentOrigin({ sessionId: 's', sessionTopic: 'AWS basics', afterSession: true }), 'Follow-up from AWS basics')
+assert.equal(assignmentOrigin({ sessionId: 's', sessionTopic: 'AWS basics', afterSession: false }), 'Prep for AWS basics')
 
 // --- submission state ------------------------------------------------------
 assert.equal(submissionState({}), 'not_needed')
