@@ -133,9 +133,15 @@ export async function embedTexts(
       if (!Array.isArray(v) || v.length < EMBED_DIMS || !v.every((x) => typeof x === 'number' && Number.isFinite(x))) {
         throw new Error(`Embedding ${i} is not a list of at least ${EMBED_DIMS} numbers`)
       }
-      out[typeof d.index === 'number' ? d.index : i] = (v as number[]).slice(0, EMBED_DIMS)
+      const at = typeof d.index === 'number' ? d.index : i
+      if (!Number.isInteger(at) || at < 0 || at >= texts.length) throw new Error(`Embedding index ${at} is out of range`)
+      out[at] = (v as number[]).slice(0, EMBED_DIMS)
     })
-    if (out.some((v) => !v)) throw new Error('Embedding response is missing items')
+    // A plain loop, not .some(): .some() skips the empty slots of new Array(n),
+    // so a missing item would pass and be stored as a NULL embedding.
+    for (let i = 0; i < texts.length; i++) {
+      if (!out[i]) throw new Error('Embedding response is missing items')
+    }
     return out
   } finally {
     clearTimeout(timeout)

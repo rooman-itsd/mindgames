@@ -130,10 +130,13 @@ export function helpedByLabel(count: number): string {
   return count === 1 ? 'Helped 1 member' : `Helped ${count} members`
 }
 
-/** A rated share's one line, next to a star: "4.0 · helped 3 members". Every
- *  "Helped me" carries a rating, so the members count IS how many rated. */
-export function ratingSummary(rating: number, helpedCount: number): string {
-  return `${rating.toFixed(1)} · helped ${helpedCount} member${helpedCount === 1 ? '' : 's'}`
+/** A rated share's one line, next to a star: "4.0 · helped 3 members". Presses
+ *  from before ratings existed have no rating, so when fewer members rated than
+ *  were helped the line says how many the average is from. */
+export function ratingSummary(rating: number, helpedCount: number, ratingCount = helpedCount): string {
+  const helped = `helped ${helpedCount} member${helpedCount === 1 ? '' : 's'}`
+  if (ratingCount >= helpedCount) return `${rating.toFixed(1)} · ${helped}`
+  return `${rating.toFixed(1)} from ${ratingCount} rating${ratingCount === 1 ? '' : 's'} · ${helped}`
 }
 
 /** "4 members are on this step" — why sharing here is worth an alum's time. */

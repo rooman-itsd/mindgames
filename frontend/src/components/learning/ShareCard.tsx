@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
@@ -52,7 +52,25 @@ export function ShareCard({
   const [busy, setBusy] = useState(false)
   const [reading, setReading] = useState(false)
   const [rating, setRating] = useState(false)
+  const ratingRef = useRef<HTMLDivElement>(null)
   const saved = !!share.mySavedResourceId
+
+  // The star picker closes on a click outside it or Escape, like any popover.
+  useEffect(() => {
+    if (!rating) return
+    const onDown = (e: MouseEvent) => {
+      if (ratingRef.current && !ratingRef.current.contains(e.target as Node)) setRating(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setRating(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [rating])
   const isProject = share.kind === 'project'
 
   const toggleSave = async () => {
@@ -205,7 +223,7 @@ export function ShareCard({
                 title={`Average of ${share.ratingCount} rating${share.ratingCount === 1 ? '' : 's'}`}
               >
                 <Star size={12} className="shrink-0 fill-amber-400 text-amber-400" />
-                {ratingSummary(share.rating, share.helpedCount)}
+                {ratingSummary(share.rating, share.helpedCount, share.ratingCount)}
               </span>
             ) : (
               <span className="truncate">{helpedByLabel(share.helpedCount)}</span>
@@ -268,7 +286,7 @@ export function ShareCard({
           )}
           {!mine && (
             <>
-              <div className="relative">
+              <div className="relative" ref={ratingRef}>
                 <button
                   onClick={() => setRating((v) => !v)}
                   disabled={busy || share.hidden || rated}
