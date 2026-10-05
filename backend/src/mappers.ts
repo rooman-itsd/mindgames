@@ -7,7 +7,7 @@ import { inviteLinkFor } from './email.js'
 // users.routes.ts both SELECT/RETURNING this so a new column can't go missing
 // from one of them (see mapUser below, which has no fallback for a column
 // that a route forgot to select).
-export const USER_COLS = `id, name, email, phone, photo, profile_tag, profile_tags, email_verified_at, email_digest, avatar, batch_year, course, company, designation, college,
+export const USER_COLS = `id, name, email, phone, photo, profile_tag, profile_tags, email_verified_at, avatar, batch_year, course, company, designation, college,
   experience_years, domain, employment_type, city, bio, linkedin, expertise,
   willing_to_mentor, interested_in_startup, connections_count, is_mentor,
   mentor_rate, sessions_conducted, work_email_domain, work_verified_at, is_admin,
@@ -31,7 +31,6 @@ export interface UserRow {
   profile_tag: string | null
   profile_tags: string[]
   email_verified_at: Date | string | null
-  email_digest: boolean
   avatar: string
   batch_year: number
   course: string
@@ -188,7 +187,6 @@ export function mapUser(r: UserRow) {
     profileTag: r.profile_tag ?? undefined,
     profileTags: r.profile_tags ?? [],
     emailVerified: !!r.email_verified_at,
-    emailDigest: r.email_digest,
     avatar: r.avatar,
     batchYear: r.batch_year,
     course: r.course,

@@ -59,7 +59,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS photo TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_tag TEXT;
 -- Set when the user clicks the verification link emailed at signup.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
--- Weekly digest email opt-out (Settings toggle).
+-- email_digest: RETIRED with the weekly digest email — no longer read or
+-- written anywhere. Kept because this file only ever adds.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_digest BOOLEAN NOT NULL DEFAULT TRUE;
 -- Current institution name — only meaningful when employment_type = 'Student'.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS college TEXT NOT NULL DEFAULT '';
@@ -624,7 +625,7 @@ INSERT INTO companies (name, industry)
 ON CONFLICT (LOWER(name)) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- app_meta: tiny key/value store (e.g. when the weekly digest last went out).
+-- app_meta: tiny key/value store (e.g. one-off migration markers).
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS app_meta (
   key   TEXT PRIMARY KEY,

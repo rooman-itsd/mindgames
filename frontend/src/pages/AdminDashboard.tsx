@@ -1005,13 +1005,6 @@ function SettingsPanel() {
         </div>
       </Card>
       <Card className="p-6">
-        <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Weekly Digest</h2>
-        <p className="mb-4 text-sm text-[#878a8c]">
-          Goes out automatically every Monday morning to opted-in members. You can also trigger it now.
-        </p>
-        <DigestButton />
-      </Card>
-      <Card className="p-6">
         <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Invite Link Address</h2>
         <p className="mb-3 text-sm text-[#878a8c]">
           Every invite email links to this address. It comes from <code className="rounded bg-[#f6f7f8] px-1">APP_URL</code>{' '}
@@ -1068,36 +1061,6 @@ function IntegrationRow({ label, ok, okText, offText }: { label: string; ok: boo
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${ok ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
         {ok ? okText : offText}
       </span>
-    </div>
-  )
-}
-
-function DigestButton() {
-  const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle')
-  const [result, setResult] = useState('')
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <Button
-        disabled={state === 'sending'}
-        onClick={async () => {
-          setState('sending')
-          try {
-            const r = await api.sendDigest()
-            setResult(
-              r.simulated
-                ? `Simulated for ${r.recipients} member(s) — configure SMTP to send real email.`
-                : `Sent to ${r.recipients} member(s).`,
-            )
-            setState('done')
-          } catch {
-            setResult('Failed — check the server logs.')
-            setState('done')
-          }
-        }}
-      >
-        {state === 'sending' ? 'Sending…' : 'Send digest now'}
-      </Button>
-      {result && <span className="text-sm text-[#878a8c]">{result}</span>}
     </div>
   )
 }

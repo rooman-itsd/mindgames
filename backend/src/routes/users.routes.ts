@@ -95,7 +95,6 @@ const COLUMN_MAP: Record<string, string> = {
   phone: 'phone',
   photo: 'photo',
   profileTag: 'profile_tag',
-  emailDigest: 'email_digest',
   avatar: 'avatar',
   batchYear: 'batch_year',
   course: 'course',
@@ -222,7 +221,6 @@ const patchSchema = z
       .union([z.string().regex(/^data:image\/(jpeg|png|webp);base64,/).max(400_000), z.null()])
       .optional(),
     profileTag: z.union([z.enum(['Mentor', 'Hiring', 'Open to Work']), z.null()]).optional(),
-    emailDigest: z.boolean().optional(),
     avatar: z.string().optional(),
     batchYear: z.number().int().optional(),
     course: z.string().optional(),

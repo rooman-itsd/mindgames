@@ -671,9 +671,6 @@ export const api = {
       body: JSON.stringify({ question, history }),
     }),
 
-  // admin digest
-  sendDigest: () => http<{ recipients: number; simulated: boolean }>('/api/admin/digest', { method: 'POST' }),
-
   // resume parsing
   parseResume: (dataBase64?: string, mediaType?: string) =>
     http<ResumeParseResult>('/api/resume/parse', {
