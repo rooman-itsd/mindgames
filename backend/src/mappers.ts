@@ -162,63 +162,6 @@ export function mapOwnUser(r: UserRow) {
   }
 }
 
-/**
- * A private member as seen by someone they aren't connected to.
- *
- * An explicit ALLOWLIST, built field by field — not `mapUser` with fields
- * blanked afterwards. That earlier shape was a blocklist: it let 40 of
- * mapUser's fields through untouched, including `industry`, `roomanCenter`
- * and `workEmailDomain`, and any field added to mapUser in future would have
- * joined them silently. Listing what may be seen means a new field is
- * withheld by default, which is the direction a privacy filter has to fail
- * in.
- *
- * What stays visible is what makes someone findable and worth connecting to:
- * their name, photo, bio, batch, course, role, employer, city and training
- * domain, plus the mentor badge. Everything a connection is *for* — the rich
- * detail, availability, intent, contact — is withheld.
- *
- * Fields the client requires (see the non-optional members of `User` in
- * frontend/src/types.ts) are emitted empty rather than omitted, so the shape
- * stays valid; optional fields are simply absent.
- */
-export function mapLimitedUser(r: UserRow) {
-  return {
-    // --- identity: enough to recognise them in a directory or search result
-    id: r.id,
-    name: r.name,
-    photo: r.photo ?? undefined,
-    avatar: r.avatar,
-    bio: r.bio,
-    batchYear: r.batch_year,
-    course: r.course,
-    designation: r.designation,
-    company: r.company,
-    city: r.city,
-    domain: r.domain,
-    employmentType: r.employment_type,
-    connectionsCount: r.connections_count,
-    // Mentoring status is public by design — a mentee choosing whether to
-    // book is entitled to know an admin verified the credentials. The rate
-    // and session count travel with it: they are what a mentee decides on,
-    // and keeping isMentor without them rendered a private mentor as the
-    // literal "₹/hr ·  sessions" wherever those fields are printed.
-    isMentor: r.is_mentor,
-    mentorVerified: !!r.mentor_verified_at,
-    mentorRate: r.mentor_rate ?? undefined,
-    sessionsConducted: r.sessions_conducted ?? undefined,
-    // So the UI can explain why the rest is missing, and offer to connect.
-    isPrivate: true,
-
-    // --- withheld, but required by the client type
-    email: '',
-    expertise: [],
-    experienceYears: 0,
-    interestedInStartup: false,
-    willingToMentor: false,
-  }
-}
-
 export function mapUser(r: UserRow) {
   return {
     id: r.id,
@@ -242,9 +185,6 @@ export function mapUser(r: UserRow) {
     showAge: r.show_age,
     showSalary: r.show_salary,
     photo: r.photo ?? undefined,
-    // Whether this member restricts their posts and detail to connections.
-    // Public information: the UI needs it to show the right call to action.
-    isPrivate: !!r.is_private,
     profileTag: r.profile_tag ?? undefined,
     profileTags: r.profile_tags ?? [],
     emailVerified: !!r.email_verified_at,
@@ -853,6 +793,7 @@ export interface CareerResourceRow {
   owner_photo?: string | null
   session_topic?: string | null
   session_status?: string | null
+  session_ended_at?: Date | string | null
   share_id?: string | null
   share_sharer_name?: string | null
   assigned_to?: string | null
@@ -887,9 +828,13 @@ export function mapCareerResource(r: CareerResourceRow) {
     // Only 'past' locks a session's resources; a direct assignment (no
     // session) locks once the mentee has submitted against it — mirrors
     // isLocked in careerResources.routes.ts.
-    sessionLocked: r.session_id
-      ? r.session_status === 'past'
-      : !!r.assigned_to && !!r.submission_url,
+    // Mirrors isLocked in careerResources.routes.ts: submitted work is always
+    // a record; a completed session's resources from before it ended are its
+    // record; anything a mentor added after it ended stays editable.
+    sessionLocked:
+      (!!r.assigned_to && !!r.submission_url) ||
+      (!!r.session_id && r.session_status === 'past' &&
+        !(r.session_ended_at && new Date(r.created_at) > new Date(r.session_ended_at))),
     // Learning hub links — all optional, so every existing reader is unchanged.
     // This row is the member's saved copy of what an alum shared, and keeps
     // their name, so a saved list still says who recommended it.
@@ -932,6 +877,10 @@ export interface LearningShareRow {
   sharer_company: string | null
   sharer_is_mentor?: boolean | null
   // Per-viewer, joined by the query when it knows who is asking.
+  rating_sum?: number
+  rating_count?: number
+  my_rating?: number | null
+  audience?: string
   i_helped?: boolean | null
   my_saved_id?: string | null
 }
@@ -964,11 +913,24 @@ export function mapLearningShare(r: LearningShareRow) {
       company: r.sharer_company ?? '',
       isMentor: !!r.sharer_is_mentor,
     },
+    // "★ 4.6 (23)": the average from the two stored counters, and how many
+    // members rated — every "Helped me" press carries a rating.
+    rating: r.rating_count ? Math.round(((r.rating_sum ?? 0) / r.rating_count) * 10) / 10 : null,
+    ratingCount: r.rating_count ?? 0,
+    myRating: r.my_rating ?? null,
+    // Who it was shared with: 'everyone', or 'connections' (the sharer's).
+    audience: r.audience === 'connections' ? ('connections' as const) : ('everyone' as const),
     iHelped: !!r.i_helped,
     // The viewer's own saved copy, so the card can unsave without a lookup.
     mySavedResourceId: r.my_saved_id ?? null,
     createdAt: new Date(r.created_at).toISOString(),
   }
+}
+
+/** A share in a stage's list, marked by why it is there: filed under this
+ *  very stage, or Related — close to it in meaning, from another roadmap. */
+export function mapStageShare(r: LearningShareRow, stageTopicKey: string) {
+  return { ...mapLearningShare(r), match: r.topic_key === stageTopicKey ? ('stage' as const) : ('related' as const) }
 }
 
 /**

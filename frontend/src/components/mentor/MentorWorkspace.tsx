@@ -279,11 +279,12 @@ export function MentorWorkspace({
                   {declined && (
                     <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-500">Declined</span>
                   )}
-                  {/* Past is a read-only record, so there's nothing to open
-                      when nothing was assigned. */}
-                  {!declined && onResources && !!s.resourceCount && (
+                  {/* After a session the mentor can still add follow-ups for
+                      that mentee, so the button shows even with nothing
+                      assigned yet. A declined session never happened. */}
+                  {!declined && onResources && (
                     <Button variant="outline" className="!px-3 !py-1.5 !text-xs" icon={<BookOpen size={12} />} onClick={() => onResources(s)}>
-                      Resources · {s.resourceCount}
+                      {s.resourceCount ? `Resources · ${s.resourceCount}` : 'Add follow-up'}
                     </Button>
                   )}
                 </div>

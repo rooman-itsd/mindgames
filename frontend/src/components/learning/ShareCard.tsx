@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
-  Bookmark, BookmarkCheck, Clock, ExternalLink, FileText, Flag, HandHeart, Link2, MessageSquare, Trash2, X,
+  Bookmark, BookmarkCheck, Clock, ExternalLink, FileText, Flag, Globe, HandHeart, Link2, Star, Trash2, Users, X,
 } from 'lucide-react'
 import { api } from '../../lib/api'
 import { roleLine } from '../../lib/format'
-import { KIND_LABEL, displayLink, helpedByLabel } from '../../lib/learningHub'
+import { AUDIENCE_LABEL, KIND_LABEL, displayLink, helpedByLabel, ratingSummary } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
-import { useLayout } from '../layout/LayoutContext'
 import { Avatar } from '../ui'
 import type { LearningShare } from '../../types'
+import { AskOrConnect } from './AskOrConnect'
 import { KindBadge, KindIcon } from './KindIcon'
 
 const DIFFICULTY: Record<string, string> = {
@@ -25,7 +25,8 @@ const DIFFICULTY: Record<string, string> = {
  * The person comes first, because that is what makes this different from a
  * list of links: their name, what they do, and their own sentence on why it
  * helped them. Then the thing itself, then the two ways to act on it — keep it
- * (Save), tell them it landed (Helped me), or ask them about it (Ask).
+ * (Save), tell them it landed (Helped me), or ask them about it (Ask — or
+ * Connect first, since messages open between connections).
  *
  * Every button is one small write. The card updates at once and puts the old
  * values back if the request fails, so a click never waits on the network.
@@ -48,9 +49,9 @@ export function ShareCard({
   onSavedChange?: (delta: 1 | -1) => void
 }) {
   const { notify } = useApp()
-  const { openChatWith } = useLayout()
   const [busy, setBusy] = useState(false)
   const [reading, setReading] = useState(false)
+  const [rating, setRating] = useState(false)
   const saved = !!share.mySavedResourceId
   const isProject = share.kind === 'project'
 
@@ -81,19 +82,26 @@ export function ShareCard({
     setBusy(false)
   }
 
-  const toggleHelped = async () => {
-    if (busy) return
+  /** "Helped me" with how much: 1–5 stars, given once and final. The server
+   *  returns the share's new standing, which replaces the card's. */
+  const rated = share.iHelped && share.myRating !== null
+  const rate = async (stars: number) => {
+    if (busy || rated) return
+    setRating(false)
     setBusy(true)
     const before = share
-    onChange({
-      ...share,
-      iHelped: !share.iHelped,
-      helpedCount: Math.max(0, share.helpedCount + (share.iHelped ? -1 : 1)),
-    })
+    const firstTime = !share.iHelped
     try {
-      const r = share.iHelped ? await api.unmarkShareHelped(share.id) : await api.markShareHelped(share.id)
-      onChange({ ...before, iHelped: r.iHelped, helpedCount: r.helpedCount })
-      if (r.iHelped) notify(`${share.sharedBy.name} has been told it helped you.`)
+      const r = await api.markShareHelped(share.id, stars)
+      onChange({
+        ...before,
+        iHelped: r.iHelped,
+        helpedCount: r.helpedCount,
+        rating: r.rating,
+        ratingCount: r.ratingCount,
+        myRating: r.myRating,
+      })
+      if (r.iHelped && firstTime) notify(`${share.sharedBy.name} has been told it helped you.`)
     } catch (e) {
       onChange(before)
       notify(e instanceof Error ? e.message : 'Could not do that.', 'error')
@@ -141,6 +149,13 @@ export function ShareCard({
         <KindBadge kind={share.kind} label={KIND_LABEL[share.kind] ?? 'Link'} />
       </div>
 
+      {/* Your own share: who you shared it with. */}
+      {mine && (
+        <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#878a8c]">
+          {share.audience === 'connections' ? <Users size={11} /> : <Globe size={11} />}
+          Shared with {AUDIENCE_LABEL[share.audience]}
+        </p>
+      )}
       {share.hidden && (
         <p className="mt-2 rounded-md bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700">
           Hidden after members reported it — no longer shown to others.
@@ -183,7 +198,19 @@ export function ShareCard({
 
       <div className="mt-auto pt-3">
         <div className="flex items-center justify-between gap-2 text-[11px] text-[#878a8c]">
-          <span>{helpedByLabel(share.helpedCount)}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            {share.rating !== null && share.ratingCount > 0 ? (
+              <span
+                className="inline-flex min-w-0 items-center gap-1 truncate"
+                title={`Average of ${share.ratingCount} rating${share.ratingCount === 1 ? '' : 's'}`}
+              >
+                <Star size={12} className="shrink-0 fill-amber-400 text-amber-400" />
+                {ratingSummary(share.rating, share.helpedCount)}
+              </span>
+            ) : (
+              <span className="truncate">{helpedByLabel(share.helpedCount)}</span>
+            )}
+          </span>
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => void toggleSave()}
@@ -241,42 +268,75 @@ export function ShareCard({
           )}
           {!mine && (
             <>
-              <button
-                onClick={() => void toggleHelped()}
-                disabled={busy}
-                aria-pressed={share.iHelped}
-                title={share.iHelped ? 'You said this helped you' : `Tell ${share.sharedBy.name} this helped`}
-                className={`flex items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${
-                  share.iHelped
-                    ? 'border-green-200 bg-green-50 text-green-700'
-                    : 'border-[#edeff1] text-[#878a8c] hover:text-[#1c1c1c]'
-                }`}
-              >
-                <HandHeart size={13} /> {share.iHelped ? 'Helped' : 'Helped me'}
-              </button>
-              <button
-                onClick={() => openChatWith(share.sharedBy.id)}
-                title={`Ask ${share.sharedBy.name} about this`}
-                aria-label={`Ask ${share.sharedBy.name}`}
-                className="flex items-center justify-center rounded-lg border border-[#edeff1] px-2.5 py-1.5 text-xs font-semibold text-[#878a8c] hover:text-[#1c1c1c]"
-              >
-                <MessageSquare size={13} />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setRating((v) => !v)}
+                  disabled={busy || share.hidden || rated}
+                  aria-pressed={share.iHelped}
+                  aria-expanded={rating}
+                  title={
+                    rated
+                      ? `You rated this ${share.myRating} of 5 — ratings are final`
+                      : `Tell ${share.sharedBy.name} this helped, and how much`
+                  }
+                  className={`flex items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${
+                    share.iHelped
+                      ? 'border-green-200 bg-green-50 text-green-700'
+                      : 'border-[#edeff1] text-[#878a8c] hover:text-[#1c1c1c]'
+                  }`}
+                >
+                  <HandHeart size={13} />
+                  {share.iHelped && share.myRating ? (
+                    <>
+                      Helped · {share.myRating}
+                      <Star size={11} className="fill-current" />
+                    </>
+                  ) : share.iHelped ? (
+                    'Helped'
+                  ) : (
+                    'Helped me'
+                  )}
+                </button>
+                {rating && !rated && (
+                  <div
+                    role="dialog"
+                    aria-label="How much did it help?"
+                    className="absolute bottom-9 right-0 z-20 w-48 rounded-lg border border-[#edeff1] bg-white p-2 shadow-lg"
+                  >
+                    <p className="text-[11px] font-semibold text-[#1c1c1c]">How much did it help?</p>
+                    <p className="mb-1 text-[10px] text-[#878a8c]">Your rating is final once given.</p>
+                    <div className="flex justify-between">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => void rate(n)}
+                          aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                          className="rounded p-0.5 hover:bg-amber-50"
+                        >
+                          <Star
+                            size={20}
+                            className={n <= (share.myRating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-amber-300'}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <AskOrConnect userId={share.sharedBy.id} name={share.sharedBy.name} />
             </>
           )}
         </div>
       </div>
 
-      {reading && share.about && (
-        <BriefModal share={share} onClose={() => setReading(false)} onAsk={() => openChatWith(share.sharedBy.id)} />
-      )}
+      {reading && share.about && <BriefModal share={share} mine={!!mine} onClose={() => setReading(false)} />}
     </article>
   )
 }
 
 /** A project brief's full problem statement, readable in place — enough for a
  *  member to start building, with the link (if any) and the alum to ask. */
-function BriefModal({ share, onClose, onAsk }: { share: LearningShare; onClose: () => void; onAsk: () => void }) {
+function BriefModal({ share, mine, onClose }: { share: LearningShare; mine: boolean; onClose: () => void }) {
   // Escape closes it, as a dialog is expected to; the listener goes with it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -329,15 +389,8 @@ function BriefModal({ share, onClose, onAsk }: { share: LearningShare; onClose: 
               Open reference <ExternalLink size={13} />
             </a>
           )}
-          <button
-            onClick={() => {
-              onClose()
-              onAsk()
-            }}
-            className="inline-flex items-center gap-1 rounded-full bg-[#ff4500] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff6534]"
-          >
-            <MessageSquare size={13} /> Ask {share.sharedBy.name.split(' ')[0]}
-          </button>
+          {/* Not on your own brief — there is nobody to ask. */}
+          {!mine && <AskOrConnect userId={share.sharedBy.id} name={share.sharedBy.name} variant="pill" onAsk={onClose} />}
         </div>
       </div>
     </div>,

@@ -30,27 +30,28 @@ const POST_SELECT = `
          ), '[]'::json) AS comments
   FROM posts p`
 
-// A private member's posts are visible only to their connections. Enforced
-// here rather than in the client, so the posts never leave the server: the
-// Home feed's own network-first ordering is a preference, not a boundary.
+// Who sees a post is chosen per post, when it is written: 'All Alumni' (the
+// default) reaches everyone; 'My Network' only the author's connections.
+// Enforced here rather than in the client, so a connections-only post never
+// leaves the server: the Home feed's own network-first ordering is a
+// preference, not a boundary.
 //
 // A post survives this filter when any of these holds:
-//   - the author is a public account (the default, so nothing changes for
-//     the existing network)
+//   - it is not a 'My Network' post
 //   - the viewer is the author
 //   - the viewer and author have an accepted connection
 //   - it's pinned — official Rooman announcements reach everyone
 //   - it's an update on an event the viewer has RSVP'd to. Attending is its
 //     own relationship: a venue change has to reach the people who signed up
-//     regardless of whether the host later made their account private, and
-//     without this the notification would link to a post they can't open.
+//     even when the host posted it for their network only, and without this
+//     the notification would link to a post they can't open.
 //
-// $1 is the viewer (null when signed out, which then sees public accounts'
-// posts only, exactly as before for every account that hasn't opted in).
+// $1 is the viewer (null when signed out, which then sees everything except
+// connections-only posts).
 const VISIBLE_TO_VIEWER = `
   WHERE p.pinned
      OR p.author_id = $1
-     OR NOT EXISTS (SELECT 1 FROM users au WHERE au.id = p.author_id AND au.is_private)
+     OR p.visibility <> 'My Network'
      OR EXISTS (
           SELECT 1 FROM connections c
            WHERE c.status = 'accepted'
@@ -184,19 +185,19 @@ postsRouter.post(
       ],
     )
 
-    // A private author's post is only visible to their connections, so a
+    // A 'My Network' post is only visible to the author's connections, so a
     // notification quoting it must reach the same people — otherwise it
     // previews content the recipient's own feed filters out and links to a
-    // post they can't open.
+    // post they can't open. $3 is this post's visibility.
     //
     // This applies to the Hiring fan-out, whose recipients are same-domain
     // members with no relationship to the author. It must NOT be applied to
     // event updates: RSVP is itself the relationship, the feed grants
-    // attendees sight of the post above, and gating on the author's flag
-    // stopped a venue change reaching people who had signed up.
-    const CONNECTED_IF_PRIVATE = `
+    // attendees sight of the post above, and gating on the post's audience
+    // would stop a venue change reaching people who had signed up.
+    const CONNECTED_IF_NETWORK_ONLY = `
       AND (
-        NOT EXISTS (SELECT 1 FROM users au WHERE au.id = $2 AND au.is_private)
+        $3::text <> 'My Network'
         OR EXISTS (
              SELECT 1 FROM connections c
               WHERE c.status = 'accepted'
@@ -223,8 +224,8 @@ postsRouter.post(
         `SELECT id FROM (
            SELECT id, id AS recipient_id FROM users
             WHERE domain = $1 AND id <> $2 AND NOT is_admin
-         ) r WHERE TRUE ${CONNECTED_IF_PRIVATE}`,
-        [p.domain, req.user!.sub],
+         ) r WHERE TRUE ${CONNECTED_IF_NETWORK_ONLY}`,
+        [p.domain, req.user!.sub, p.visibility],
       )
       for (const m of matches.rows) {
         void pushNotification(
@@ -303,12 +304,28 @@ async function ensurePostExists(id: string): Promise<void> {
   if (!exists.rowCount) throw new ApiError(404, 'Post not found')
 }
 
+/** The post exists AND this viewer may see it — the feed's own rule
+ *  (VISIBLE_TO_VIEWER), so liking, reacting, saving, commenting on or applying
+ *  to a 'My Network' post needs the same connection as seeing it. A post the
+ *  viewer can't see is "not found", exactly as in the feed. Undoing your own
+ *  like or bookmark keeps using ensurePostExists: that takes nothing from
+ *  anyone. One indexed lookup of this post. */
+async function ensurePostVisible(id: string, viewerId: string): Promise<void> {
+  // Wrapped, not appended: VISIBLE_TO_VIEWER is a chain of ORs, and a bare
+  // "AND p.id = $2" after it would bind to the last OR only.
+  const r = await query(`SELECT 1 FROM (SELECT p.id FROM posts p ${VISIBLE_TO_VIEWER}) v WHERE v.id = $2`, [
+    viewerId,
+    id,
+  ])
+  if (!r.rowCount) throw new ApiError(404, 'Post not found')
+}
+
 // POST /api/posts/:id/like — like (idempotent). Keeps the denormalised counter in sync.
 postsRouter.post(
   '/:id/like',
   requireAuth,
   asyncHandler(async (req, res) => {
-    await ensurePostExists(req.params.id)
+    await ensurePostVisible(req.params.id, req.user!.sub)
     const { likes, isNew } = await withTransaction(async (client) => {
       const ins = await client.query(
         `INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
@@ -381,7 +398,7 @@ postsRouter.post(
   asyncHandler(async (req, res) => {
     const parsed = reactSchema.safeParse(req.body)
     if (!parsed.success) throw new ApiError(400, 'Unsupported reaction')
-    await ensurePostExists(req.params.id)
+    await ensurePostVisible(req.params.id, req.user!.sub)
     // A reaction is one unit of "like" engagement. We keep the denormalised
     // posts.likes counter in sync (a first-time reaction increments it; changing
     // emoji doesn't) so the Home "Top" sort, the leaderboard, and the weekly
@@ -446,7 +463,7 @@ postsRouter.post(
   '/:id/save',
   requireAuth,
   asyncHandler(async (req, res) => {
-    await ensurePostExists(req.params.id)
+    await ensurePostVisible(req.params.id, req.user!.sub)
     await query(`INSERT INTO post_saves (post_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [
       req.params.id,
       req.user!.sub,
@@ -476,7 +493,7 @@ postsRouter.post(
   '/:id/comments',
   requireAuth,
   asyncHandler(async (req, res) => {
-    await ensurePostExists(req.params.id)
+    await ensurePostVisible(req.params.id, req.user!.sub)
     const parsed = commentSchema.safeParse(req.body)
     if (!parsed.success) throw new ApiError(400, parsed.error.issues[0].message)
 
@@ -516,6 +533,8 @@ postsRouter.post(
       req.params.id,
     ])
     if (!post.rowCount) throw new ApiError(404, 'Post not found')
+    // A job posted for 'My Network' takes applications from those who can see it.
+    await ensurePostVisible(req.params.id, me)
     const { author_id, type, role, questions, wants_resume, active } = post.rows[0]
     if (type !== 'Hiring') throw new ApiError(400, 'You can only apply to Hiring posts')
     if (author_id === me) throw new ApiError(400, 'You cannot apply to your own job post')

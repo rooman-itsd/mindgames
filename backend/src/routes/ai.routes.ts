@@ -22,19 +22,18 @@ async function buildContext(): Promise<string> {
       mentor_rate: number | null
       batch_year: number
     }>(
-      // Private members are excluded: this context is assembled once and
-      // answers questions for any member, so it cannot respect who the
-      // asker is connected to. Including them would hand a non-connection
-      // the name, role and employer that the feed predicate and the digest
-      // exclusion both withhold — the same leak, one path further along.
+      // Profiles are visible network-wide, so any member may be named here.
+      // Only profile fields — never email or phone, which stay behind each
+      // member's own show-contact switch.
       `SELECT name, designation, company, college, employment_type, city, domain, is_mentor, mentor_rate, batch_year
-       FROM users WHERE NOT is_admin AND NOT is_private ORDER BY created_at LIMIT 200`,
+       FROM users WHERE NOT is_admin ORDER BY created_at LIMIT 200`,
     ),
     query<{ role: string | null; company: string | null; city: string | null; domain: string | null; poster: string; applicants: number }>(
       `SELECT p.role, p.company, p.city, p.domain, u.name AS poster,
               (SELECT count(*)::int FROM job_applications ja WHERE ja.post_id = p.id) AS applicants
        FROM posts p JOIN users u ON u.id = p.author_id
-       WHERE p.type = 'Hiring' AND p.active AND NOT u.is_private
+       -- This context answers any member, so connections-only posts stay out.
+       WHERE p.type = 'Hiring' AND p.active AND p.visibility <> 'My Network'
        ORDER BY p.created_at DESC LIMIT 25`,
     ),
     query<{ title: string; starts_at: Date; location: string; host: string; rsvps: number }>(

@@ -10,7 +10,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:migrate:prod": "node dist/db/migrate.js",
-    "db:seed:prod": "node dist/db/seed.js"
+    "db:seed:prod": "node dist/db/seed.js",
+    "learning:calibrate": "tsx src/calibrateEmbeddings.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",

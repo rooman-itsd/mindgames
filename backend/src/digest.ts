@@ -7,20 +7,20 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 /** Compose the weekly digest body from the last 7 days of activity. */
 // One digest body is built and mailed to every subscriber, so it cannot
 // respect who each recipient is connected to the way the feed query does.
-// Private members are therefore excluded outright: emailing their post
-// content and name to the whole network would leak exactly what the feed's
-// privacy predicate exists to withhold.
+// Connections-only ('My Network') posts are therefore left out: emailing
+// them to the whole network would leak exactly what the feed's visibility
+// rule exists to withhold.
 async function buildDigest(): Promise<string> {
   const topPosts = await query<{ content: string; likes: number; name: string }>(
     `SELECT p.content, p.likes, u.name FROM posts p JOIN users u ON u.id = p.author_id
      WHERE p.created_at > now() - interval '7 days'
-       AND NOT u.is_private
+       AND p.visibility <> 'My Network'
      ORDER BY p.likes DESC, p.created_at DESC LIMIT 5`,
   )
   const jobs = await query<{ role: string | null; company: string | null; name: string }>(
     `SELECT p.role, p.company, u.name FROM posts p JOIN users u ON u.id = p.author_id
      WHERE p.type = 'Hiring' AND p.active AND p.created_at > now() - interval '7 days'
-       AND NOT u.is_private
+       AND p.visibility <> 'My Network'
      ORDER BY p.created_at DESC LIMIT 5`,
   )
   const events = await query<{ title: string; starts_at: Date; location: string }>(

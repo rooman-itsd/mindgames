@@ -12,6 +12,13 @@ import {
 } from '../../types'
 
 const VISIBILITIES: Visibility[] = ['All Alumni', 'My Network', 'Specific Community']
+/** What each choice is called on screen. The stored values stay as they are
+ *  (posts.visibility); members only ever read "Everyone" / "My connections". */
+const VISIBILITY_LABEL: Record<Visibility, string> = {
+  'All Alumni': 'Everyone',
+  'My Network': 'My connections',
+  'Specific Community': 'Specific Community',
+}
 
 export function PostCreateModal({
   prefill,
@@ -416,7 +423,7 @@ export function PostCreateModal({
                   visibility === v ? 'bg-[#ff4500] text-white' : 'bg-gray-100 text-[#878a8c] hover:bg-gray-200'
                 }`}
               >
-                {v}
+                {VISIBILITY_LABEL[v]}
               </button>
             ))}
             {visibility === 'Specific Community' && (
@@ -432,6 +439,15 @@ export function PostCreateModal({
               </select>
             )}
           </div>
+          {/* Who will see it — the server enforces My Network (posts.routes.ts),
+              and a job post's alert follows the same choice. */}
+          {visibility !== 'Specific Community' && (
+            <p className="mt-1.5 text-[11px] text-[#878a8c]">
+              Who sees this post: {VISIBILITY_LABEL[visibility]}.
+              {type === 'Hiring' &&
+                ` Job alert goes to: ${VISIBILITY_LABEL[visibility]}${domain ? ` in ${domain}` : ' in the job’s domain'}.`}
+            </p>
+          )}
         </div>
 
         {/* Footer */}

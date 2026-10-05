@@ -283,13 +283,6 @@ export interface User {
   mustChangePassword?: boolean
   // Weekly digest email preference (Settings toggle).
   emailDigest?: boolean
-  /**
-   * Account privacy. When true, this member's posts and rich profile detail
-   * are visible only to their connections — their name, photo, bio, batch,
-   * course and role stay visible so they remain discoverable. Enforced
-   * server-side (posts.routes.ts / users.routes.ts), not in the client.
-   */
-  isPrivate?: boolean
   avatar: string // initials-based color seed; rendered by <Avatar>
   batchYear: number
   course: string
@@ -701,8 +694,6 @@ export interface CompanyRoadmaps {
   /** The viewer's own, when they work here — null otherwise. */
   mine: CompanyRoadmap | null
   canContribute: boolean
-  /** Viewer works here but is private — their roadmap reaches nobody else. */
-  viewerIsPrivate: boolean
   alreadyAsked: boolean
   /** How many alumni an ask would reach; 0 hides the button. */
   eligibleToAsk: number
@@ -1429,6 +1420,8 @@ export interface CareerResource {
 
 /** The Resource Type filter's five values. */
 export type ShareKind = 'course' | 'tutorial' | 'doc' | 'project' | 'article'
+/** Who a share is for: Everyone, or the sharer's connections ("My connections"). */
+export type ShareAudience = 'everyone' | 'connections'
 export type ProjectDifficulty = 'beginner' | 'intermediate' | 'advanced'
 
 /** Who shared something — enough to show them and open their profile or chat.
@@ -1464,6 +1457,16 @@ export interface LearningShare {
   /** How many members pressed "this helped me" — the only standing an item
    *  has on this page. */
   helpedCount: number
+  /** Average 1–5 to one decimal (null until rated) and how many members
+   *  rated — every "Helped me" carries a rating. Shown as ★ 4.6 (23). */
+  rating: number | null
+  ratingCount: number
+  /** The viewer's own rating, when they pressed Helped me. */
+  myRating: number | null
+  /** In a stage's list only: filed under this very stage, or Related — close
+   *  to it in meaning, shared for a similar stage on another roadmap. */
+  match?: 'stage' | 'related'
+  audience: ShareAudience
   savedCount: number
   /** Hidden after members reported it — only ever true in the sharer's own
    *  list, to tell them why it stopped appearing for others. */

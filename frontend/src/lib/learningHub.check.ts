@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import {
-  appendPage, assignmentOrigin, displayLink, helpedByLabel, isFiltering, monthsLabel, stepPosition,
+  appendPage, assignmentOrigin, displayLink, helpedByLabel, isFiltering, monthsLabel, ratingSummary, stepPosition,
   submissionState, supportLabel, toggleValue, waitingLabel, workable,
 } from './learningHub'
 import type { LearningStageLite } from '../types'
@@ -51,6 +51,8 @@ assert.equal(isFiltering({ q: '', tags: ['aws'], types: [], difficulty: [] }), t
 assert.equal(helpedByLabel(0), 'Be the first to say it helped')
 assert.equal(helpedByLabel(1), 'Helped 1 member')
 assert.equal(helpedByLabel(12), 'Helped 12 members')
+assert.equal(ratingSummary(4, 1), '4.0 · helped 1 member')
+assert.equal(ratingSummary(4.6, 23), '4.6 · helped 23 members')
 assert.equal(waitingLabel(0), 'No one here yet')
 assert.equal(waitingLabel(1), '1 member is on this step')
 assert.equal(waitingLabel(4), '4 members are on this step')

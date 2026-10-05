@@ -4,6 +4,7 @@ import {
   type CareerResource,
   type LearningStageLite,
   type ProjectDifficulty,
+  type ShareAudience,
   type ShareKind,
 } from '../types'
 
@@ -14,6 +15,12 @@ import {
  * agree on the same labels and the same "which stage am I on" answer, and so
  * the rules can be checked on their own (learningHub.check.ts).
  */
+
+/** Who a share is for, in the only two words the page uses for it. */
+export const AUDIENCE_LABEL: Record<ShareAudience, string> = {
+  everyone: 'Everyone',
+  connections: 'My connections',
+}
 
 /** Badge text for what an alum shared. */
 export const KIND_LABEL: Record<string, string> = {
@@ -121,6 +128,12 @@ export function monthsLabel(months: number): string {
 export function helpedByLabel(count: number): string {
   if (count === 0) return 'Be the first to say it helped'
   return count === 1 ? 'Helped 1 member' : `Helped ${count} members`
+}
+
+/** A rated share's one line, next to a star: "4.0 · helped 3 members". Every
+ *  "Helped me" carries a rating, so the members count IS how many rated. */
+export function ratingSummary(rating: number, helpedCount: number): string {
+  return `${rating.toFixed(1)} · helped ${helpedCount} member${helpedCount === 1 ? '' : 's'}`
 }
 
 /** "4 members are on this step" — why sharing here is worth an alum's time. */

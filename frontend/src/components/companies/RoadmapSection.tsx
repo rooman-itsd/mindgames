@@ -135,7 +135,6 @@ export function RoadmapSection({
                 companyName={companyName}
                 companyLogoUrl={companyLogoUrl}
                 isMine={isMine}
-                hiddenFromOthers={isMine && data?.viewerIsPrivate}
                 onOpen={() => setViewing(roadmap)}
               />
             ))}

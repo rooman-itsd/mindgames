@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CircleCheck, MessageSquare, Users } from 'lucide-react'
+import { CircleCheck, Users } from 'lucide-react'
 import { api } from '../../lib/api'
 import { roleLine } from '../../lib/format'
 import { appendPage, waitingLabel } from '../../lib/learningHub'
-import { useLayout } from '../layout/LayoutContext'
 import { Avatar } from '../ui'
 import type { LearningShare, LearningStageLite, StageHelper } from '../../types'
+import { AskOrConnect } from './AskOrConnect'
 import { ShareCard } from './ShareCard'
 import { CardGrid, LoadMore, SectionHeader } from './SectionHeader'
 
@@ -37,7 +37,6 @@ export function StageView({
   onShareHere: (stepKey: string) => void
   onSavedChange: (delta: 1 | -1) => void
 }) {
-  const { openChatWith } = useLayout()
   const [shares, setShares] = useState<LearningShare[]>([])
   const [alumni, setAlumni] = useState<StageHelper[]>([])
   const [memberCount, setMemberCount] = useState(0)
@@ -86,6 +85,10 @@ export function StageView({
 
   const update = (next: LearningShare) => setShares((prev) => prev.map((x) => (x.id === next.id ? next : x)))
   const drop = (id: string) => setShares((prev) => prev.filter((x) => x.id !== id))
+  // This stage's own shares, then Related ones (the server sends them in
+  // that order, so a loaded page only ever adds to the end of either list).
+  const sameStage = shares.filter((s) => s.match !== 'related')
+  const related = shares.filter((s) => s.match === 'related')
 
   return (
     <section>
@@ -149,14 +152,7 @@ export function StageView({
                     </Link>
                     <p className="truncate text-[11px] text-[#878a8c]">{roleLine(a)}</p>
                   </div>
-                  <button
-                    onClick={() => openChatWith(a.id)}
-                    aria-label={`Ask ${a.name}`}
-                    title={`Ask ${a.name}`}
-                    className="shrink-0 rounded-lg border border-[#edeff1] px-2 py-1.5 text-[#878a8c] hover:text-[#1c1c1c]"
-                  >
-                    <MessageSquare size={13} />
-                  </button>
+                  <AskOrConnect userId={a.id} name={a.name} />
                 </li>
               ))}
             </ul>
@@ -174,11 +170,32 @@ export function StageView({
 
       {shares.length > 0 && (
         <>
-          <CardGrid>
-            {shares.map((s) => (
-              <ShareCard key={s.id} share={s} onChange={update} onRemoved={drop} onSavedChange={onSavedChange} />
-            ))}
-          </CardGrid>
+          {/* The server sends this stage's own shares first, then Related —
+              close in meaning, shared for a similar stage on another roadmap. */}
+          {sameStage.length > 0 && (
+            <CardGrid>
+              {sameStage.map((s) => (
+                <ShareCard key={s.id} share={s} onChange={update} onRemoved={drop} onSavedChange={onSavedChange} />
+              ))}
+            </CardGrid>
+          )}
+          {related.length > 0 && (
+            <>
+              <h3 className={`${sameStage.length ? 'mt-5' : ''} mb-1 text-xs font-bold uppercase tracking-wide text-[#878a8c]`}>
+                Related
+              </h3>
+              <p className="mb-3 text-xs text-[#878a8c]">
+                {sameStage.length
+                  ? 'Shared for similar stages on other roadmaps.'
+                  : 'Nobody has shared for this exact stage yet — these were shared for similar ones.'}
+              </p>
+              <CardGrid>
+                {related.map((s) => (
+                  <ShareCard key={s.id} share={s} onChange={update} onRemoved={drop} onSavedChange={onSavedChange} />
+                ))}
+              </CardGrid>
+            </>
+          )}
           {more && stepKey && <LoadMore loading={loading} onClick={() => void loadPage(stepKey, shares.length)} />}
           {/* Anyone can add to a stage, not only fill an empty one. */}
           {stepKey && (

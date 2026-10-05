@@ -252,14 +252,13 @@ const signalsCols = (viewer: string): string => `
                     AND u.is_mentor) AS mentor_count,
 
                 -- Only contributions the roadmaps list will actually render:
-                -- someone who has since left the company or gone private is
-                -- filtered out there, so counting them here would advertise
-                -- "3 roadmaps" and open an empty page.
+                -- someone who has since left the company is filtered out
+                -- there, so counting them here would advertise "3 roadmaps"
+                -- and open an empty page.
                 (SELECT count(*)::int
                    FROM company_roadmap_contributions rc
                    JOIN users u2 ON u2.id = rc.user_id
                   WHERE rc.company_id = c.id
-                    AND NOT u2.is_private
                     AND ${matchesCompany('u2.company')}) AS roadmap_count,
 
                 (SELECT count(*)::int
@@ -489,12 +488,8 @@ const ROADMAP_COLS: string = `u.id, u.name, u.photo, u.designation, u.city, u.co
         rc.updated_at AS contrib_updated_at`
 
 // GET /api/companies/:id/roadmaps — one entry per alumnus, oldest career step
-// first, plus whatever advice they wrote on top of it.
-//
-// Private members are excluded outright. A roadmap lays out a member's full
-// career timeline, which is exactly the detail `is_private` exists to
-// withhold; a private member who wants to help can make their profile public
-// first. Showing less is the only safe default for a brand-new endpoint.
+// first, plus whatever advice they wrote on top of it. Built from profile
+// fields, which every member can see; contact details are never part of it.
 companiesRouter.get(
   '/:id/roadmaps',
   requireAuth,
@@ -520,7 +515,6 @@ companiesRouter.get(
                 ON rc.company_id = $3 AND rc.user_id = u.id
          WHERE ${WORKS_HERE}
            AND u.id <> $2
-           AND NOT u.is_private
            -- Somebody with neither a timeline nor a written contribution has
            -- no roadmap to show; listing them would render an empty card.
            AND (rc.user_id IS NOT NULL
@@ -540,12 +534,8 @@ companiesRouter.get(
     // the list above: they need it in order to edit it, and it belongs in its
     // own "your roadmap" card rather than among other people's.
     const mine = (
-      await query<CompanyRoadmapRow & { is_private: boolean }>(
-        // is_private comes along because the list above hides private members:
-        // a private contributor's roadmap is real and editable, but invisible
-        // to everyone else, and the UI has to say so rather than claim it is
-        // "visible to everyone viewing this company".
-        `SELECT ${ROADMAP_COLS}, u.is_private, 0 AS mutual_connections
+      await query<CompanyRoadmapRow>(
+        `SELECT ${ROADMAP_COLS}, 0 AS mutual_connections
          FROM users u
          LEFT JOIN company_roadmap_contributions rc
                 ON rc.company_id = $3 AND rc.user_id = u.id
@@ -562,7 +552,7 @@ companiesRouter.get(
       // the other 35 can never be reached — the number would be a promise the
       // endpoint cannot keep.
       `SELECT LEAST(count(*), $5)::int AS count FROM users u
-        WHERE ${WORKS_HERE} AND u.id <> $2 AND NOT u.is_private
+        WHERE ${WORKS_HERE} AND u.id <> $2
           AND u.experience_years >= $3
           AND NOT EXISTS (
             SELECT 1 FROM company_roadmap_contributions rc
@@ -596,9 +586,6 @@ companiesRouter.get(
       // they are allowed to contribute one.
       mine: mine.length ? mapCompanyRoadmap(mine[0], spellingsOf(company)) : null,
       canContribute: mine.length > 0,
-      // True when the viewer works here but their profile is private, so their
-      // own roadmap never reaches the list other members see.
-      viewerIsPrivate: mine.length ? !!mine[0].is_private : false,
       alreadyAsked: !!asked.rowCount,
       eligibleToAsk: eligible.rows[0]?.count ?? 0,
     })
@@ -672,7 +659,7 @@ companiesRouter.post(
     const recipients = (
       await query<{ id: string }>(
         `SELECT u.id FROM users u
-          WHERE ${WORKS_HERE} AND u.id <> $2 AND NOT u.is_private
+          WHERE ${WORKS_HERE} AND u.id <> $2
             AND u.experience_years >= $3
             AND NOT EXISTS (
               SELECT 1 FROM company_roadmap_contributions rc

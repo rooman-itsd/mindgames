@@ -394,10 +394,16 @@ export function Mentorship() {
           sessionId={resourcesFor.id}
           topic={resourcesFor.topic}
           iAmMentor={resourcesFor.mentorId === currentUser.id}
+          // Before, during and after a session that happened, the mentor can
+          // keep handing that mentee resources — private to the two of them,
+          // and also listed in the mentee's Learning Resources.
           canAdd={
             resourcesFor.mentorId === currentUser.id &&
-            (resourcesFor.status === 'upcoming' || resourcesFor.status === 'requested')
+            (resourcesFor.status === 'upcoming' ||
+              resourcesFor.status === 'requested' ||
+              resourcesFor.status === 'past')
           }
+          followUp={resourcesFor.status === 'past'}
           sessionAt={resourcesFor.scheduledAt}
           onClose={() => setResourcesFor(null)}
         />

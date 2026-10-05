@@ -112,29 +112,49 @@ function isSessionLocked(status: string | null | undefined): boolean {
   return status === 'past'
 }
 
-/** Whether an assigned resource is frozen against edit/delete: its session
- *  finished, or — for a direct assignment, which has no session to finish —
- *  the mentee has already submitted against it. Keep in step with
- *  sessionLocked in mappers.ts and the DELETE statement below. */
-function isLocked(r: Pick<CareerResourceRow, 'session_id' | 'session_status' | 'assigned_to' | 'submission_url'>): boolean {
-  if (r.session_id) return isSessionLocked(r.session_status)
-  return !!r.assigned_to && !!r.submission_url
+/** Whether an assigned resource is frozen against edit/delete. Once the mentee
+ *  has submitted against it, always — that is their evidence. Otherwise:
+ *    - a completed session's resources from BEFORE it ended (prep, and the
+ *      follow-up set at completion) are the record of that session: frozen;
+ *    - resources a mentor added AFTER it ended stay editable, so a mistaken
+ *      follow-up can be fixed or removed until the mentee answers it;
+ *    - a direct assignment (no session) locks only on submission.
+ *  Keep in step with sessionLocked in mappers.ts and the DELETE below. */
+function isLocked(
+  r: Pick<CareerResourceRow, 'session_id' | 'session_status' | 'assigned_to' | 'submission_url' | 'created_at' | 'session_ended_at'>,
+): boolean {
+  if (r.assigned_to && r.submission_url) return true
+  if (!r.session_id || !isSessionLocked(r.session_status)) return false
+  return !(r.session_ended_at && new Date(r.created_at) > new Date(r.session_ended_at))
 }
+
+/** isLocked as SQL, for the UPDATE and DELETE that must check and write in
+ *  one step (r = career_resources). One fragment, so the two can never apply
+ *  different rules. */
+const LOCKED_SQL = `
+  ((r.assigned_to IS NOT NULL AND r.submission_url IS NOT NULL)
+   OR EXISTS (SELECT 1 FROM mentorship_sessions s
+               WHERE s.id = r.session_id AND s.status = 'past'
+                 AND (s.ended_at IS NULL OR r.created_at <= s.ended_at)))`
 
 /** Attaching to a session is the mentor's job; the mentee's side is POST
  *  /:id/submit. Enforced here, not just by hiding the form in the UI, so a
- *  direct API call can't get around it. */
-async function assertMentorOfSession(sessionId: string, me: string) {
+ *  direct API call can't get around it. Returns the session's status, so the
+ *  caller can tell prep (before / during) from a follow-up (after). */
+async function assertMentorOfSession(sessionId: string, me: string): Promise<string> {
   const r = await query<{ status: string }>(
     `SELECT status FROM mentorship_sessions WHERE id = $1 AND mentor_id = $2`,
     [sessionId, me],
   )
   if (!r.rowCount) throw new ApiError(404, 'Session not found (or you are not its mentor)')
-  // A finished session's resources are a record of what was assigned while it
-  // was live; adding to it afterwards would rewrite that record.
-  if (isSessionOver(r.rows[0].status)) {
-    throw new ApiError(400, 'This session is over — resources can only be assigned before or during it')
+  // Before, during, or after a session that happened — a mentor can keep
+  // handing that mentee things. Only a session that never happened (declined)
+  // takes nothing.
+  const status = r.rows[0].status
+  if (isSessionOver(status) && status !== 'past') {
+    throw new ApiError(400, 'This session did not go ahead — assign it directly to the member instead')
   }
+  return status
 }
 
 /** Confirms the roadmap is the caller's own and really has that stage.
@@ -357,14 +377,15 @@ careerResourcesRouter.post(
     // the two of them has been agreed.
     let recipient: string | null = null
     let sessionTopic: string | null = null
+    let followUp = false
     if (d.sessionId) {
-      // Anything attached while a session is live is prep: read it, nothing
-      // to hand back. A task that needs evidence is created by the session's
-      // /complete route instead, once there's a session to follow up on.
-      if (d.requiresSubmission) {
-        throw new ApiError(400, 'Prep resources don’t take evidence — add a follow-up task when you complete the session')
+      const status = await assertMentorOfSession(d.sessionId, me)
+      // After the session it is a follow-up, which may ask for proof of work.
+      // Before or during it is prep: read it, nothing to hand back.
+      followUp = status === 'past'
+      if (d.requiresSubmission && !followUp) {
+        throw new ApiError(400, 'Prep resources don’t take evidence — ask for proof in a follow-up after the session')
       }
-      await assertMentorOfSession(d.sessionId, me)
       const s = await query<{ mentee_id: string; topic: string }>(
         `SELECT mentee_id, topic FROM mentorship_sessions WHERE id = $1`,
         [d.sessionId],
@@ -387,8 +408,9 @@ careerResourcesRouter.post(
       [
         me, d.title, d.url ?? null, d.note ?? null, d.kind ?? null, d.status ?? null,
         d.roadmapId ?? null, d.stepKey ?? null, d.sessionId ?? null, d.isPublic,
-        // Evidence only ever on a direct assignment (session prep refused above).
-        !!d.assignedTo && d.requiresSubmission,
+        // Evidence only on a direct assignment or a post-session follow-up
+        // (session prep is refused above).
+        (!!d.assignedTo || followUp) && d.requiresSubmission,
         recipient,
       ],
     )
@@ -402,7 +424,9 @@ careerResourcesRouter.post(
         void pushNotification(
           recipient,
           'mentorship',
-          `${name} shared "${d.title}" for your session "${sessionTopic}".`,
+          followUp
+            ? `${name} added a follow-up from your session "${sessionTopic}": "${d.title}".`
+            : `${name} shared "${d.title}" for your session "${sessionTopic}".`,
           me,
           { type: 'session', id: d.sessionId },
         )
@@ -434,7 +458,7 @@ careerResourcesRouter.patch(
     const d = parsed.data
 
     const cur = await query<CareerResourceRow>(
-      `SELECT r.*, s.status AS session_status
+      `SELECT r.*, s.status AS session_status, s.ended_at AS session_ended_at
          FROM career_resources r LEFT JOIN mentorship_sessions s ON s.id = r.session_id
         WHERE r.id = $1 AND r.user_id = $2`,
       [req.params.id, req.user!.sub],
@@ -464,11 +488,7 @@ careerResourcesRouter.patch(
       `UPDATE career_resources r
           SET title = $2, url = $3, note = $4, kind = $5, status = $6, is_public = $7, updated_at = now()
         WHERE r.id = $1
-          AND (NOT $8::boolean
-               OR CASE WHEN r.session_id IS NOT NULL
-                       THEN NOT EXISTS (SELECT 1 FROM mentorship_sessions s
-                                         WHERE s.id = r.session_id AND s.status = 'past')
-                       ELSE r.assigned_to IS NULL OR r.submission_url IS NULL END)`,
+          AND (NOT $8::boolean OR NOT ${LOCKED_SQL})`,
       [
         req.params.id,
         d.title ?? c.title,
@@ -552,11 +572,7 @@ careerResourcesRouter.delete(
     const r = await query<{ id: string }>(
       `WITH del AS (
          DELETE FROM career_resources r
-          WHERE r.id = $1 AND r.user_id = $2
-            AND (CASE WHEN r.session_id IS NOT NULL
-                      THEN EXISTS (SELECT 1 FROM mentorship_sessions s
-                                    WHERE s.id = r.session_id AND s.status <> 'past')
-                      ELSE r.assigned_to IS NULL OR r.submission_url IS NULL END)
+          WHERE r.id = $1 AND r.user_id = $2 AND NOT ${LOCKED_SQL}
           RETURNING r.id, r.share_id),
        unsaved AS (
          UPDATE learning_shares s SET saved_count = GREATEST(s.saved_count - 1, 0)
