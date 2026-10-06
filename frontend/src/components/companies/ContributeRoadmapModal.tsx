@@ -22,7 +22,7 @@ const STAGE_TITLE_MAX = 120
 const STAGE_DETAIL_MAX = 600
 
 const inputClass =
-  'w-full rounded-lg border border-[#edeff1] p-2.5 text-sm text-[#1c1c1c] placeholder-[#878a8c] focus:border-[#ff4500] focus:outline-none focus:ring-2 focus:ring-[#ff4500]/20'
+  'w-full rounded-lg border border-line p-2.5 text-sm text-ink placeholder-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20'
 
 export function ContributeRoadmapModal({
   companyId,
@@ -73,23 +73,23 @@ export function ContributeRoadmapModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-8">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-lg">
+      <div className="w-full max-w-lg rounded-2xl bg-surface p-6 shadow-lg">
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">
+          <h2 className="text-lg font-bold text-ink">
             How you got into {companyName}
           </h2>
-          <button onClick={onClose} className="text-[#878a8c] hover:text-[#1c1c1c]">
+          <button onClick={onClose} className="text-muted hover:text-ink">
             <X size={20} />
           </button>
         </div>
-        <p className="mb-5 text-sm text-[#6b6e70]">
+        <p className="mb-5 text-sm text-muted">
           Your job history and certifications are already taken from your profile — this is just
           the advice that goes with them.
         </p>
 
         <div className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[#1c1c1c]">The role this path led to</span>
+            <span className="text-xs font-semibold text-ink">The role this path led to</span>
             <input
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -100,7 +100,7 @@ export function ContributeRoadmapModal({
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[#1c1c1c]">Your route in, in one line</span>
+            <span className="text-xs font-semibold text-ink">Your route in, in one line</span>
             <input
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
@@ -108,19 +108,19 @@ export function ContributeRoadmapModal({
               placeholder="e.g. Two years at a services firm, then applied through a referral"
               className={inputClass}
             />
-            <span className="self-end text-[11px] text-[#878a8c]">
+            <span className="self-end text-[11px] text-muted">
               {headline.length}/{HEADLINE_MAX}
             </span>
           </label>
 
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold text-[#1c1c1c]">
+            <span className="text-xs font-semibold text-ink">
               Steps that actually mattered
             </span>
             {stages.map((stage, i) => (
-              <div key={i} className="flex flex-col gap-1.5 rounded-lg border border-[#edeff1] p-3">
+              <div key={i} className="flex flex-col gap-1.5 rounded-lg border border-line p-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fff1ec] text-[11px] font-bold text-[#ff4500]">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[11px] font-bold text-brand">
                     {i + 1}
                   </span>
                   <input
@@ -133,7 +133,7 @@ export function ContributeRoadmapModal({
                   <button
                     onClick={() => setStages((list) => list.filter((_, x) => x !== i))}
                     title="Remove this step"
-                    className="shrink-0 text-[#878a8c] hover:text-red-500"
+                    className="shrink-0 text-muted hover:text-red-500"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -151,7 +151,7 @@ export function ContributeRoadmapModal({
             {stages.length < MAX_STAGES && (
               <button
                 onClick={() => setStages((list) => [...list, { title: '', detail: '' }])}
-                className="flex items-center gap-1 self-start text-xs font-semibold text-[#ff4500] hover:underline"
+                className="flex items-center gap-1 self-start text-xs font-semibold text-brand hover:underline"
               >
                 <Plus size={13} /> Add a step
               </button>
@@ -159,7 +159,7 @@ export function ContributeRoadmapModal({
           </div>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[#1c1c1c]">
+            <span className="text-xs font-semibold text-ink">
               Anything you would tell someone trying to get in
             </span>
             <textarea
@@ -170,7 +170,7 @@ export function ContributeRoadmapModal({
               placeholder="What the interview was really like, what you wish you had known…"
               className={inputClass}
             />
-            <span className="self-end text-[11px] text-[#878a8c]">
+            <span className="self-end text-[11px] text-muted">
               {advice.length}/{ADVICE_MAX}
             </span>
           </label>

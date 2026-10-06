@@ -57,12 +57,12 @@ export function ResumeAutofill({ onParsed }: { onParsed: (r: ResumeParseResult) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-xl border border-dashed border-[#ff4500]/40 bg-orange-50/60 px-4 py-3 text-left hover:bg-orange-50"
+        className="flex items-center gap-2 rounded-xl border border-dashed border-brand/40 bg-brand-50/60 px-4 py-3 text-left hover:bg-brand-50"
       >
-        <Sparkles size={16} className="shrink-0 text-[#ff4500]" />
+        <Sparkles size={16} className="shrink-0 text-brand" />
         <span>
-          <span className="block text-sm font-semibold text-[#1c1c1c]">Autofill from your resume</span>
-          <span className="block text-xs text-[#878a8c]">
+          <span className="block text-sm font-semibold text-ink">Autofill from your resume</span>
+          <span className="block text-xs text-muted">
             Fills your experience, education, projects, skills and more. Only blank fields change.
           </span>
         </span>
@@ -71,14 +71,14 @@ export function ResumeAutofill({ onParsed }: { onParsed: (r: ResumeParseResult) 
   }
 
   return (
-    <div className="rounded-xl border border-[#edeff1] p-3">
+    <div className="rounded-xl border border-line p-3">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-semibold text-[#1c1c1c]">Autofill from your resume</p>
+        <p className="text-sm font-semibold text-ink">Autofill from your resume</p>
         {!parsing && (
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="text-xs font-medium text-[#878a8c] hover:text-[#1c1c1c]"
+            className="text-xs font-medium text-muted hover:text-ink"
           >
             Cancel
           </button>

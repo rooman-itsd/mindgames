@@ -98,14 +98,14 @@ export function EditRoadmapPanel({
     <Card className="p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          {!hideHeading && <h2 className="text-lg font-bold text-[#1c1c1c]">Edit your roadmap</h2>}
-          <p className="text-sm text-[#878a8c]">
+          {!hideHeading && <h2 className="text-lg font-bold text-ink">Edit your roadmap</h2>}
+          <p className="text-sm text-muted">
             Rename, reorder, pause or remove stages. To change your goal, timeline or hours, edit
             your assessment instead — that rebuilds the plan as a new version.
           </p>
         </div>
         {!hideHeading && (
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         )}
@@ -113,14 +113,14 @@ export function EditRoadmapPanel({
 
       <div className="flex flex-col gap-2">
         {stages.map((s, i) => (
-          <div key={s.stepKey} className="flex flex-wrap items-center gap-2 rounded-lg border border-[#edeff1] p-2.5">
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gray-100 text-xs font-bold text-[#878a8c]">
+          <div key={s.stepKey} className="flex flex-wrap items-center gap-2 rounded-lg border border-line p-2.5">
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gray-100 text-xs font-bold text-muted">
               {i + 1}
             </span>
             <input
               value={s.title}
               onChange={(e) => update(i, { title: e.target.value })}
-              className="min-w-[160px] flex-1 rounded-lg border border-[#edeff1] px-2.5 py-1.5 text-sm outline-none focus:border-[#ff4500]"
+              className="min-w-[160px] flex-1 rounded-lg border border-line px-2.5 py-1.5 text-sm outline-none focus:border-brand"
             />
             <input
               type="number"
@@ -130,7 +130,7 @@ export function EditRoadmapPanel({
               onChange={(e) =>
                 update(i, { durationWeeks: e.target.value === '' ? null : Number(e.target.value) })
               }
-              className="w-16 rounded-lg border border-[#edeff1] px-2 py-1.5 text-center text-sm outline-none focus:border-[#ff4500]"
+              className="w-16 rounded-lg border border-line px-2 py-1.5 text-center text-sm outline-none focus:border-brand"
               title="Weeks"
             />
             <IconBtn label="Move up" onClick={() => move(i, -1)} disabled={i === 0}>
@@ -164,7 +164,7 @@ export function EditRoadmapPanel({
         />
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#edeff1] pt-4">
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
         <Button variant="outline" icon={<Plus size={14} />} onClick={add}>
           Add a stage
         </Button>
@@ -198,7 +198,7 @@ function IconBtn({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#edeff1] text-[#878a8c] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line text-muted transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>

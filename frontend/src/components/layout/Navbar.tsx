@@ -13,6 +13,7 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 import { useApp } from '../../store/AppStore'
+import { OPEN_PALETTE_EVENT } from './CommandPalette'
 import { useLayout } from './LayoutContext'
 import { Avatar } from '../ui'
 import { NotificationsDropdown } from './NotificationsDropdown'
@@ -49,22 +50,23 @@ export function Navbar() {
   }, [])
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-[#edeff1] bg-white px-[calc(1rem+var(--shell-gutter))]">
+    <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-line bg-surface/85 px-[calc(1rem+var(--shell-gutter))] backdrop-blur-md">
       {/* Logo */}
       <Link to="/home" className="flex shrink-0 items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff4500] text-lg font-black text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-lg font-black text-white">
           R
         </span>
-        <span className="hidden text-[15px] font-bold text-[#1c1c1c] sm:block">
-          Root <span className="text-[#ff4500]">Connect</span>
-          <span className="ml-1.5 hidden text-xs font-medium text-[#878a8c] lg:inline">Alumni Network</span>
+        <span className="hidden text-[15px] font-bold text-ink sm:block">
+          Root <span className="text-brand">Connect</span>
+          <span className="ml-1.5 hidden text-xs font-medium text-muted lg:inline">Alumni Network</span>
         </span>
       </Link>
 
       {/* Search */}
       <div ref={searchRef} className="relative mx-auto flex w-full max-w-2xl items-center">
-        <div className="flex w-full items-center rounded-full border border-[#edeff1] bg-[#f6f7f8] pl-4 focus-within:border-[#ff4500] focus-within:ring-2 focus-within:ring-orange-100">
-          <Search size={18} className="text-[#878a8c]" />
+        {/* Soft emerald glow at rest, a little stronger while typing. */}
+        <div className="flex w-full items-center rounded-full border border-brand-100 bg-surface pl-4 shadow-[0_0_0_4px_rgb(15_90_71/0.05),0_6px_20px_-8px_rgb(15_90_71/0.35)] transition-shadow focus-within:border-brand focus-within:shadow-[0_0_0_4px_rgb(15_90_71/0.12),0_8px_26px_-8px_rgb(15_90_71/0.45)]">
+          <Search size={18} className="text-muted" />
           <input
             value={query}
             onChange={(e) => {
@@ -74,8 +76,17 @@ export function Navbar() {
             onFocus={() => setSearchOpen(true)}
             onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
             placeholder="Search alumni, jobs, mentors, posts..."
-            className="w-full bg-transparent px-3 py-2 text-sm text-[#1c1c1c] outline-none placeholder:text-[#878a8c]"
+            className="w-full border-0 bg-transparent px-3 py-2 text-sm text-ink shadow-none outline-none placeholder:text-muted focus:shadow-none"
           />
+          {/* Discoverable entry to the command palette (CommandPalette.tsx). */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
+            title="Quick jump to any page or person"
+            className="mr-2 hidden shrink-0 rounded-md border border-line bg-page px-1.5 py-0.5 text-[11px] font-semibold text-muted hover:text-ink lg:block"
+          >
+            Ctrl K
+          </button>
         </div>
         {searchOpen && query.trim() && <SearchDropdown onClose={() => setSearchOpen(false)} />}
       </div>
@@ -90,8 +101,8 @@ export function Navbar() {
           aria-label="Mentor plans"
           className={`mr-1 flex h-9 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold transition-colors ${
             planActive
-              ? 'bg-gradient-to-r from-[#ffd700] to-[#ff9500] text-[#1c1c1c] hover:brightness-105'
-              : 'border border-[#edeff1] text-[#878a8c] hover:bg-gray-100 hover:text-[#1c1c1c]'
+              ? 'bg-gradient-to-r from-[#ffd700] to-[#ff9500] text-on-gold hover:brightness-105'
+              : 'border border-line text-muted hover:bg-gray-100 hover:text-ink'
           }`}
         >
           <Crown size={18} />
@@ -113,12 +124,16 @@ export function Navbar() {
           {showNotifs && <NotificationsDropdown onClose={() => setShowNotifs(false)} />}
         </div>
 
-        <button
-          onClick={() => openComposer()}
-          className="ml-1 flex items-center gap-1.5 rounded-full bg-[#ff4500] px-3 py-2 text-sm font-semibold text-white hover:bg-[#ff6534]"
-        >
-          <Plus size={18} /> <span className="hidden md:inline">Create Post</span>
-        </button>
+        {/* The glow ring marks the one thing to press on every screen. */}
+        {/* Below lg the phone tab bar has its own centre Create button. */}
+        <span className="ring-glow ml-1 hidden lg:inline-flex">
+          <button
+            onClick={() => openComposer()}
+            className="flex items-center gap-1.5 rounded-full btn-primary px-3 py-2 text-sm font-semibold text-white"
+          >
+            <Plus size={18} /> <span className="hidden md:inline">Create Post</span>
+          </button>
+        </span>
 
         <div ref={profileRef} className="relative ml-1">
           <button
@@ -126,15 +141,15 @@ export function Navbar() {
             className="flex items-center gap-1 rounded-full p-0.5 hover:bg-gray-100"
           >
             <Avatar name={currentUser.name} src={currentUser.photo} size={32} />
-            <ChevronDown size={16} className="text-[#878a8c]" />
+            <ChevronDown size={16} className="text-muted" />
           </button>
           {showProfile && (
-            <div className="animate-fadein absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-[#edeff1] bg-white shadow-lg">
-              <div className="flex items-center gap-3 border-b border-[#edeff1] p-4">
+            <div className="animate-fadein absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
+              <div className="flex items-center gap-3 border-b border-line p-4">
                 <Avatar name={currentUser.name} src={currentUser.photo} size={44} />
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-[#1c1c1c]">{currentUser.name}</p>
-                  <p className="truncate text-xs text-[#878a8c]">{currentUser.designation}</p>
+                  <p className="truncate font-semibold text-ink">{currentUser.name}</p>
+                  <p className="truncate text-xs text-muted">{currentUser.designation}</p>
                 </div>
               </div>
               <MenuItem icon={<UserIcon size={16} />} label="View Profile" onClick={() => { setShowProfile(false); navigate('/profile') }} />
@@ -167,11 +182,11 @@ function IconButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="relative flex h-10 w-10 items-center justify-center rounded-full text-[#878a8c] hover:bg-gray-100 hover:text-[#1c1c1c]"
+      className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-gray-100 hover:text-ink"
     >
       {children}
       {badge > 0 && (
-        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff4500] px-1 text-[10px] font-bold text-white">
+        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-clay-600 px-1 text-[10px] font-bold text-white">
           {badge}
         </span>
       )}
@@ -191,9 +206,9 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#1c1c1c] hover:bg-gray-50"
+      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-gray-50"
     >
-      <span className="text-[#878a8c]">{icon}</span>
+      <span className="text-muted">{icon}</span>
       {label}
     </button>
   )

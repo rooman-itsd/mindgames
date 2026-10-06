@@ -45,7 +45,7 @@ export function CompanyPage() {
 
   if (notFound) return <Navigate to="/companies" replace />
   if (loading || !company) {
-    return <p className="text-sm text-[#878a8c]">Loading…</p>
+    return <p className="text-sm text-muted">Loading…</p>
   }
 
   return (
@@ -55,8 +55,8 @@ export function CompanyPage() {
           <div className="flex items-center gap-4">
             <CompanyLogo name={company.name} logoUrl={company.logoUrl} size={64} />
             <div>
-              <h1 className="text-xl font-bold text-[#1c1c1c]">{company.name}</h1>
-              <p className="flex items-center gap-1 text-sm text-[#878a8c]">
+              <h1 className="text-xl font-bold text-ink">{company.name}</h1>
+              <p className="flex items-center gap-1 text-sm text-muted">
                 <Users size={14} /> {company.industry} · {company.alumniCount} Rooman alumni here
               </p>
             </div>
@@ -64,7 +64,7 @@ export function CompanyPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant={company.savedByMe ? 'subtle' : 'outline'}
-              icon={<Bookmark size={15} className={company.savedByMe ? 'fill-[#ff4500] text-[#ff4500]' : ''} />}
+              icon={<Bookmark size={15} className={company.savedByMe ? 'fill-brand text-brand' : ''} />}
               onClick={toggleSave}
             >
               {company.savedByMe ? 'Saved' : 'Save'}
@@ -74,16 +74,16 @@ export function CompanyPage() {
       </Card>
 
       <div>
-        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-ink">
           Rooman alumni at {company.name}
           {company.alumni.length > 0 && (
-            <span className="rounded-full bg-[#f3f4f5] px-2 py-0.5 text-xs font-semibold text-[#878a8c]">
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-muted">
               {company.alumni.length}
             </span>
           )}
         </h2>
         {company.alumni.length === 0 ? (
-          <div className="rounded-xl border border-[#edeff1] bg-white py-12 text-center text-sm text-[#878a8c] shadow-sm">
+          <div className="rounded-xl border border-line bg-surface py-12 text-center text-sm text-muted shadow-sm">
             No Rooman alumni here yet.
           </div>
         ) : (
@@ -100,7 +100,7 @@ export function CompanyPage() {
             {company.alumni.length > ALUMNI_PREVIEW && (
               <button
                 onClick={() => setShowAllAlumni((v) => !v)}
-                className="self-start pt-3 text-sm font-semibold text-[#ff4500] hover:underline"
+                className="self-start pt-3 text-sm font-semibold text-brand hover:underline"
               >
                 {showAllAlumni ? 'Show fewer' : `Show all ${company.alumni.length} alumni →`}
               </button>

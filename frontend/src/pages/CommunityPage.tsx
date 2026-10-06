@@ -34,19 +34,19 @@ export function CommunityPage() {
         <div className={`h-24 bg-gradient-to-r ${community.color}`} />
         <div className="p-4">
           <div className="-mt-12 flex items-end gap-3">
-            <span className={`flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br ${community.color} text-3xl font-black text-white ring-4 ring-white`}>
+            <span className={`flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br ${community.color} text-3xl font-black text-white ring-4 ring-surface`}>
               {community.name[0]}
             </span>
           </div>
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-[#1c1c1c]">{community.name}</h1>
-              <p className="flex items-center gap-1 text-sm text-[#878a8c]">
+              <h1 className="text-xl font-bold text-ink">{community.name}</h1>
+              <p className="flex items-center gap-1 text-sm text-muted">
                 <Users size={14} /> {compact(community.memberCount)} members · {community.category}
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant={community.joined ? 'subtle' : 'primary'} onClick={() => toggleJoin(community.id)}>
+              <Button variant="social" aria-pressed={community.joined} onClick={() => toggleJoin(community.id)}>
                 {community.joined ? 'Joined' : 'Join'}
               </Button>
               {community.joined && (
@@ -54,7 +54,7 @@ export function CommunityPage() {
               )}
             </div>
           </div>
-          <p className="mt-3 text-sm text-[#1c1c1c]">{community.description}</p>
+          <p className="mt-3 text-sm text-ink">{community.description}</p>
         </div>
       </Card>
 
@@ -63,10 +63,10 @@ export function CommunityPage() {
         <PostCard key={p.id} post={p} />
       ))}
       {communityPosts.length === 0 && (
-        <div className="rounded-xl border border-[#edeff1] bg-white py-14 text-center text-sm text-[#878a8c] shadow-sm">
+        <div className="rounded-xl border border-line bg-surface py-14 text-center text-sm text-muted shadow-sm">
           No posts in this community yet.{' '}
           {community.joined && (
-            <button onClick={() => openComposer({ communityId: community.id })} className="font-semibold text-[#ff4500] hover:underline">
+            <button onClick={() => openComposer({ communityId: community.id })} className="font-semibold text-brand hover:underline">
               Be the first to post.
             </button>
           )}

@@ -30,7 +30,7 @@ export function AskOrConnect({
 
   const pill = 'inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold'
   const icon =
-    'flex shrink-0 items-center justify-center gap-1 rounded-lg border border-[#edeff1] px-2.5 py-1.5 text-xs font-semibold'
+    'flex shrink-0 items-center justify-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold'
 
   if (state === 'connected') {
     return (
@@ -43,8 +43,8 @@ export function AskOrConnect({
         aria-label={`Ask ${name}`}
         className={
           variant === 'pill'
-            ? `${pill} bg-[#ff4500] text-white hover:bg-[#ff6534]`
-            : `${icon} text-[#878a8c] hover:text-[#1c1c1c]`
+            ? `${pill} btn-primary text-white`
+            : `${icon} text-muted hover:text-ink`
         }
       >
         <MessageSquare size={13} />
@@ -61,8 +61,8 @@ export function AskOrConnect({
         aria-label={`Connection request sent to ${name}`}
         className={
           variant === 'pill'
-            ? `${pill} cursor-default bg-gray-100 text-[#878a8c]`
-            : `${icon} cursor-default text-[#878a8c]`
+            ? `${pill} cursor-default bg-gray-100 text-muted`
+            : `${icon} cursor-default text-muted`
         }
       >
         <Check size={13} /> Requested
@@ -77,8 +77,8 @@ export function AskOrConnect({
       aria-label={`Connect with ${name}`}
       className={
         variant === 'pill'
-          ? `${pill} border border-[#ff4500] text-[#ff4500] hover:bg-orange-50`
-          : `${icon} text-[#ff4500] hover:bg-orange-50`
+          ? `${pill} border border-brand text-brand hover:bg-brand-50`
+          : `${icon} text-brand hover:bg-brand-50`
       }
     >
       <UserPlus size={13} /> Connect

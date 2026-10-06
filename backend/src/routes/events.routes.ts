@@ -549,8 +549,8 @@ eventsRouter.get(
 <title>Certificate — ${esc(title)}</title>
 <style>
   body { font-family: Georgia, 'Times New Roman', serif; background: #f6f7f8; margin: 0; padding: 40px; }
-  .cert { max-width: 820px; margin: 0 auto; background: #fff; border: 10px solid #ff4500; border-radius: 8px; padding: 60px 70px; text-align: center; }
-  .brand { color: #ff4500; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; font-size: 14px; }
+  .cert { max-width: 820px; margin: 0 auto; background: #fff; border: 10px solid #0f5a47; border-radius: 8px; padding: 60px 70px; text-align: center; }
+  .brand { color: #0f5a47; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; font-size: 14px; }
   h1 { font-size: 34px; margin: 18px 0 6px; color: #1c1c1c; }
   .sub { color: #878a8c; font-size: 14px; margin-bottom: 36px; }
   .name { font-size: 30px; font-weight: bold; color: #1c1c1c; margin: 18px 0; border-bottom: 2px solid #edeff1; display: inline-block; padding-bottom: 8px; }

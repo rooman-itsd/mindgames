@@ -52,7 +52,7 @@ export function CompanyRoadmaps() {
   }
 
   if (notFound) return <Navigate to="/companies" replace />
-  if (!company) return <p className="text-sm text-[#878a8c]">Loading…</p>
+  if (!company) return <p className="text-sm text-muted">Loading…</p>
 
   const feed = roadmapFeed(data)
 
@@ -60,7 +60,7 @@ export function CompanyRoadmaps() {
     <div className="flex flex-col gap-4">
       <Link
         to={`/companies/${company.id}`}
-        className="flex items-center gap-1 self-start text-sm font-semibold text-[#878a8c] hover:text-[#ff4500]"
+        className="flex items-center gap-1 self-start text-sm font-semibold text-muted hover:text-brand"
       >
         <ArrowLeft size={15} /> Back to {company.name}
       </Link>
@@ -68,11 +68,11 @@ export function CompanyRoadmaps() {
       <Card className="flex flex-wrap items-center gap-4 p-5">
         <CompanyLogo name={company.name} logoUrl={company.logoUrl} size={52} />
         <div className="min-w-0 flex-1">
-          <h1 className="flex items-center gap-2 text-xl font-bold text-[#1c1c1c]">
-            <Route size={20} className="text-[#ff4500]" />
+          <h1 className="flex items-center gap-2 text-xl font-bold text-ink">
+            <Route size={20} className="text-brand" />
             Roadmaps into {company.name}
           </h1>
-          <p className="text-sm text-[#878a8c]">
+          <p className="text-sm text-muted">
             {feed.length > 0
               ? `${feed.length} path${feed.length > 1 ? 's' : ''} shared by people who work here`
               : 'No one here has shared their path yet'}
@@ -98,14 +98,14 @@ export function CompanyRoadmaps() {
       </Card>
 
       {failed ? (
-        <Card className="py-12 text-center text-sm text-[#878a8c]">
+        <Card className="py-12 text-center text-sm text-muted">
           Roadmaps could not be loaded right now.
         </Card>
       ) : !data ? (
-        <p className="text-sm text-[#878a8c]">Loading roadmaps…</p>
+        <p className="text-sm text-muted">Loading roadmaps…</p>
       ) : feed.length === 0 ? (
         <Card className="py-12 text-center">
-          <p className="text-sm text-[#878a8c]">
+          <p className="text-sm text-muted">
             No one here has shared their path yet.
             {data.eligibleToAsk > 0 && !data.alreadyAsked
               ? ' Ask the alumni above and they will be notified.'
@@ -128,7 +128,7 @@ export function CompanyRoadmaps() {
       )}
 
       {data?.alreadyAsked && (
-        <p className="text-xs text-[#878a8c]">
+        <p className="text-xs text-muted">
           You have already asked the alumni here — new roadmaps will appear as they respond.
         </p>
       )}

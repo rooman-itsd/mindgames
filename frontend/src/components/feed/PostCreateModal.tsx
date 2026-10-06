@@ -141,11 +141,11 @@ export function PostCreateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
-      <div className="animate-slidein my-auto w-full max-w-xl rounded-2xl bg-white shadow-2xl">
+      <div className="animate-slidein my-auto w-full max-w-xl rounded-2xl bg-surface shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Create a post</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 className="text-lg font-bold text-ink">Create a post</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={20} />
           </button>
         </div>
@@ -155,8 +155,8 @@ export function PostCreateModal({
           <div className="mb-4 flex items-center gap-3">
             <Avatar name={currentUser.name} src={currentUser.photo} size={44} />
             <div>
-              <p className="font-semibold text-[#1c1c1c]">{currentUser.name}</p>
-              <p className="text-xs text-[#878a8c]">{currentUser.designation}</p>
+              <p className="font-semibold text-ink">{currentUser.name}</p>
+              <p className="text-xs text-muted">{currentUser.designation}</p>
             </div>
           </div>
 
@@ -167,7 +167,7 @@ export function PostCreateModal({
                 key={t}
                 onClick={() => setType(t)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  type === t ? POST_TYPE_STYLES[t].classes + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-[#878a8c] hover:bg-gray-200'
+                  type === t ? POST_TYPE_STYLES[t].classes + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-muted hover:bg-gray-200'
                 }`}
               >
                 {POST_TYPE_STYLES[t].label}
@@ -177,18 +177,18 @@ export function PostCreateModal({
 
           {/* Employer verification (Hiring only) — inline, required before posting */}
           {type === 'Hiring' && !employerVerified && (
-            <div className="mb-3 rounded-xl border border-[#ff4500]/30 bg-orange-50 p-3">
-              <p className="flex items-center gap-2 text-sm font-semibold text-[#1c1c1c]">
-                <ShieldCheck size={16} className="text-[#ff4500]" /> Verify your work email to post this job
+            <div className="mb-3 rounded-xl border border-brand/30 bg-brand-50 p-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                <ShieldCheck size={16} className="text-brand" /> Verify your work email to post this job
               </p>
-              <p className="mt-1 text-xs text-[#878a8c]">
+              <p className="mt-1 text-xs text-muted">
                 Only people who work at a company can post jobs, so listings stay genuine. We email a
                 6-digit code — personal or temporary emails aren't accepted. You only do this once.
               </p>
               {!otpSent ? (
                 <div className="mt-2 flex gap-2">
-                  <label className="flex flex-1 items-center gap-2 rounded-lg border border-[#edeff1] bg-white px-3 py-2 focus-within:border-[#ff4500]">
-                    <Mail size={15} className="text-[#878a8c]" />
+                  <label className="flex flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 focus-within:border-brand">
+                    <Mail size={15} className="text-muted" />
                     <input
                       type="email"
                       value={workEmail}
@@ -201,14 +201,14 @@ export function PostCreateModal({
                   <button
                     onClick={sendWorkCode}
                     disabled={!workEmail.trim() || verifyBusy}
-                    className="rounded-lg bg-[#ff4500] px-3 py-2 text-sm font-semibold text-white hover:bg-[#ff6534] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg btn-primary px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {verifyBusy ? 'Sending…' : 'Send code'}
                   </button>
                 </div>
               ) : (
                 <>
-                  <p className="mt-2 text-xs text-[#878a8c]">Code sent to <strong className="text-[#1c1c1c]">{sentTo}</strong> — expires in 10 minutes.</p>
+                  <p className="mt-2 text-xs text-muted">Code sent to <strong className="text-ink">{sentTo}</strong> — expires in 10 minutes.</p>
                   <div className="mt-1.5 flex gap-2">
                     <input
                       inputMode="numeric"
@@ -216,19 +216,19 @@ export function PostCreateModal({
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       onKeyDown={(e) => { if (e.key === 'Enter' && otpCode.length === 6) { e.preventDefault(); verifyWorkCode() } }}
                       placeholder="Enter code"
-                      className="flex-1 rounded-lg border border-[#edeff1] bg-white px-3 py-2 text-center text-sm tracking-[0.3em] outline-none focus:border-[#ff4500]"
+                      className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-center text-sm tracking-[0.3em] outline-none focus:border-brand"
                     />
                     <button
                       onClick={verifyWorkCode}
                       disabled={otpCode.length !== 6 || verifyBusy}
-                      className="inline-flex items-center gap-1 rounded-lg bg-[#ff4500] px-3 py-2 text-sm font-semibold text-white hover:bg-[#ff6534] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg btn-primary px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Check size={14} /> {verifyBusy ? 'Verifying…' : 'Verify'}
                     </button>
                   </div>
                   <button
                     onClick={() => { setOtpSent(false); setOtpCode(''); setVerifyError(null) }}
-                    className="mt-1.5 text-xs font-medium text-[#ff4500] hover:underline"
+                    className="mt-1.5 text-xs font-medium text-brand hover:underline"
                   >
                     Change email / resend code
                   </button>
@@ -250,26 +250,26 @@ export function PostCreateModal({
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 placeholder={type === 'Hiring' ? 'Role you’re hiring for' : 'Role you’re seeking'}
-                className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
               <input
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Company"
-                className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
             </div>
           )}
 
           {/* Application questions (Hiring only) */}
           {type === 'Hiring' && (
-            <div className="mb-3 rounded-xl border border-dashed border-[#edeff1] bg-[#f6f7f8] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#878a8c]">
+            <div className="mb-3 rounded-xl border border-dashed border-line bg-page p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Questions for applicants{' '}
                 {questions.length > 0 && <span className="font-bold normal-case">({questions.length})</span>}{' '}
                 <span className="font-normal normal-case">(optional)</span>
               </p>
-              <p className="mt-1 text-xs text-[#878a8c]">
+              <p className="mt-1 text-xs text-muted">
                 Every applicant must answer these — their answers appear next to their name in
                 your applicant list.
               </p>
@@ -279,14 +279,14 @@ export function PostCreateModal({
                   {questions.map((q, i) => (
                     <li
                       key={q}
-                      className="flex items-center gap-2 rounded-lg border border-[#edeff1] bg-white px-3 py-1.5 text-sm text-[#1c1c1c]"
+                      className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink"
                     >
-                      <span className="text-xs font-bold text-[#ff4500]">{i + 1}.</span>
+                      <span className="text-xs font-bold text-brand">{i + 1}.</span>
                       <span className="flex-1">{q}</span>
                       <button
                         onClick={() => moveQuestion(i, -1)}
                         disabled={i === 0}
-                        className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100 hover:text-[#1c1c1c] disabled:cursor-not-allowed disabled:opacity-30"
+                        className="rounded-full p-1 text-muted hover:bg-gray-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
                         title="Move up"
                         aria-label={`Move question up: ${q}`}
                       >
@@ -295,7 +295,7 @@ export function PostCreateModal({
                       <button
                         onClick={() => moveQuestion(i, 1)}
                         disabled={i === questions.length - 1}
-                        className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100 hover:text-[#1c1c1c] disabled:cursor-not-allowed disabled:opacity-30"
+                        className="rounded-full p-1 text-muted hover:bg-gray-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
                         title="Move down"
                         aria-label={`Move question down: ${q}`}
                       >
@@ -303,7 +303,7 @@ export function PostCreateModal({
                       </button>
                       <button
                         onClick={() => setQuestions((list) => list.filter((x) => x !== q))}
-                        className="rounded-full p-1 text-[#878a8c] hover:bg-red-50 hover:text-red-500"
+                        className="rounded-full p-1 text-muted hover:bg-red-50 hover:text-red-500"
                         title="Delete this question"
                         aria-label={`Delete question: ${q}`}
                       >
@@ -325,12 +325,12 @@ export function PostCreateModal({
                     }
                   }}
                   placeholder="e.g. How many years of React experience?"
-                  className="flex-1 rounded-lg border border-[#edeff1] bg-white px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                  className="flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
                 />
                 <button
                   onClick={() => addQuestion(questionDraft)}
                   disabled={!questionDraft.trim()}
-                  className="flex items-center gap-1 rounded-lg bg-[#ff4500] px-3 py-2 text-sm font-semibold text-white hover:bg-[#ff6534] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center gap-1 rounded-lg btn-primary px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Plus size={15} /> Add
                 </button>
@@ -341,7 +341,7 @@ export function PostCreateModal({
                     <button
                       key={s}
                       onClick={() => addQuestion(s)}
-                      className="rounded-full border border-[#edeff1] bg-white px-2.5 py-1 text-xs text-[#878a8c] hover:border-[#ff4500]/40 hover:text-[#ff4500]"
+                      className="rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-muted hover:border-brand/40 hover:text-brand"
                     >
                       + {s}
                     </button>
@@ -350,16 +350,16 @@ export function PostCreateModal({
               )}
 
               {/* Resume collection toggle */}
-              <label className="mt-3 flex cursor-pointer items-center gap-2.5 border-t border-[#edeff1] pt-3">
+              <label className="mt-3 flex cursor-pointer items-center gap-2.5 border-t border-line pt-3">
                 <input
                   type="checkbox"
                   checked={wantsResume}
                   onChange={(e) => setWantsResume(e.target.checked)}
-                  className="h-4 w-4 accent-[#ff4500]"
+                  className="h-4 w-4 accent-brand"
                 />
-                <span className="text-sm text-[#1c1c1c]">
+                <span className="text-sm text-ink">
                   Ask applicants to attach their <strong>resume</strong>{' '}
-                  <span className="text-xs text-[#878a8c]">(PDF or .docx, downloadable from your applicant list)</span>
+                  <span className="text-xs text-muted">(PDF or .docx, downloadable from your applicant list)</span>
                 </span>
               </label>
             </div>
@@ -371,7 +371,7 @@ export function PostCreateModal({
             onChange={(e) => setContent(e.target.value)}
             rows={5}
             placeholder="What do you want to share with the network?"
-            className="w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
 
           {/* Image preview */}
@@ -392,7 +392,7 @@ export function PostCreateModal({
             <select
               value={domain}
               onChange={(e) => setDomain(e.target.value as Domain | '')}
-              className="rounded-lg border border-[#edeff1] px-2 py-2 text-sm text-[#1c1c1c] outline-none focus:border-[#ff4500]"
+              className="rounded-lg border border-line px-2 py-2 text-sm text-ink outline-none focus:border-brand"
             >
               <option value="">Domain</option>
               {DOMAINS.map((d) => (
@@ -403,13 +403,13 @@ export function PostCreateModal({
               value={city}
               onChange={(e) => setCity(e.target.value)}
               placeholder="City"
-              className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+              className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
             />
             <input
               value={batch}
               onChange={(e) => setBatch(e.target.value.replace(/\D/g, '').slice(0, 4))}
               placeholder="Batch"
-              className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+              className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
             />
           </div>
 
@@ -420,7 +420,7 @@ export function PostCreateModal({
                 key={v}
                 onClick={() => setVisibility(v)}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  visibility === v ? 'bg-[#ff4500] text-white' : 'bg-gray-100 text-[#878a8c] hover:bg-gray-200'
+                  visibility === v ? 'bg-brand text-white' : 'bg-gray-100 text-muted hover:bg-gray-200'
                 }`}
               >
                 {VISIBILITY_LABEL[v]}
@@ -430,7 +430,7 @@ export function PostCreateModal({
               <select
                 value={communityId}
                 onChange={(e) => setCommunityId(e.target.value)}
-                className="rounded-lg border border-[#edeff1] px-2 py-1.5 text-sm outline-none focus:border-[#ff4500]"
+                className="rounded-lg border border-line px-2 py-1.5 text-sm outline-none focus:border-brand"
               >
                 <option value="">Choose community…</option>
                 {communities.map((c) => (
@@ -442,7 +442,7 @@ export function PostCreateModal({
           {/* Who will see it — the server enforces My Network (posts.routes.ts),
               and a job post's alert follows the same choice. */}
           {visibility !== 'Specific Community' && (
-            <p className="mt-1.5 text-[11px] text-[#878a8c]">
+            <p className="mt-1.5 text-[11px] text-muted">
               Who sees this post: {VISIBILITY_LABEL[visibility]}.
               {type === 'Hiring' &&
                 ` Job alert goes to: ${VISIBILITY_LABEL[visibility]}${domain ? ` in ${domain}` : ' in the job’s domain'}.`}
@@ -451,10 +451,10 @@ export function PostCreateModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[#edeff1] px-5 py-3">
+        <div className="flex items-center justify-between border-t border-line px-5 py-3">
           <button
             onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#878a8c] hover:bg-gray-100"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-gray-100"
           >
             <ImageIcon size={18} /> Photo
           </button>

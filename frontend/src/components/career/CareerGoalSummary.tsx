@@ -14,7 +14,7 @@ export function CareerGoalSummary({
   const support = SUPPORT_PREFERENCES.find((s) => s.value === supportPreference)
 
   return (
-    <div className="rounded-xl border border-orange-100 bg-[#fff6f0] p-5">
+    <div className="rounded-xl border border-brand-100 bg-brand-50 p-5">
       {/* The facts strip is fixed-width and does not shrink; the goal column
           takes the rest and has a floor. Previously both sides were free to
           size themselves, so a long support label grew the strip until the
@@ -23,23 +23,23 @@ export function CareerGoalSummary({
           so a row here left the goal column too narrow to fit a job title. */}
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:gap-6">
         <div className="flex min-w-0 flex-1 items-start gap-3 xl:basis-[320px]">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-[#ff4500] shadow-sm">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface text-brand shadow-sm">
             <Target size={20} />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#878a8c]">Your goal</p>
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-lg leading-snug font-bold text-[#1c1c1c]">
+            <p className="text-xs font-semibold text-muted">Your goal</p>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-lg leading-snug font-bold text-ink">
               <span>{roadmap.goal.currentRole || 'Your current role'}</span>
-              <ArrowRight size={16} className="shrink-0 text-[#ff4500]" />
+              <ArrowRight size={16} className="shrink-0 text-brand" />
               <span>{roadmap.goal.targetRole || 'Still exploring'}</span>
             </p>
-            <p className="mt-0.5 text-sm text-[#878a8c]">
+            <p className="mt-0.5 text-sm text-muted">
               A plan built from your profile, skills and the time you have.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:shrink-0 xl:gap-6 xl:border-l xl:border-orange-100 xl:pl-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:shrink-0 xl:gap-6 xl:border-l xl:border-brand-100 xl:pl-6">
           <Fact icon={<CalendarDays size={16} />} label="Target" value={`${roadmap.timelineMonths} months`} />
           <Fact icon={<Clock size={16} />} label="Weekly time" value={`${roadmap.hoursPerWeek} hours/week`} />
           <Fact
@@ -68,10 +68,10 @@ function Fact({
 }) {
   return (
     <div className="flex items-start gap-2 xl:w-[150px]" title={title}>
-      <span className="mt-0.5 shrink-0 text-[#ff4500]">{icon}</span>
+      <span className="mt-0.5 shrink-0 text-brand">{icon}</span>
       <div className="min-w-0">
-        <p className="text-xs font-medium whitespace-nowrap text-[#878a8c]">{label}</p>
-        <p className="text-sm leading-snug font-bold text-[#1c1c1c]">{value}</p>
+        <p className="text-xs font-medium whitespace-nowrap text-muted">{label}</p>
+        <p className="text-sm leading-snug font-bold text-ink">{value}</p>
       </div>
     </div>
   )

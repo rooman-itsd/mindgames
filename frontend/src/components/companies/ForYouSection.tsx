@@ -119,25 +119,25 @@ export function ForYouSection() {
         className="flex items-center gap-2 text-left"
         aria-expanded={open}
       >
-        <Sparkles size={18} className="text-[#ff4500]" />
-        <h2 className="text-lg font-bold text-[#1c1c1c]">Companies for you</h2>
+        <Sparkles size={18} className="text-brand" />
+        <h2 className="text-lg font-bold text-ink">Companies for you</h2>
         <ChevronDown
           size={16}
-          className={cx('text-[#878a8c] transition-transform', open && 'rotate-180')}
+          className={cx('text-muted transition-transform', open && 'rotate-180')}
         />
       </button>
 
       {open && (
         <>
-          <p className="-mt-1 text-sm text-[#878a8c]">
+          <p className="-mt-1 text-sm text-muted">
             Ranked against your profile and resume — skills, domain, seniority, and who you already
             know inside. Pick up to {MAX_COMPARE} to compare.
           </p>
 
           {!companies ? (
-            <p className="text-sm text-[#878a8c]">Scoring companies against your profile…</p>
+            <p className="text-sm text-muted">Scoring companies against your profile…</p>
           ) : ranked.length === 0 ? (
-            <p className="rounded-xl border border-[#edeff1] bg-white px-4 py-8 text-center text-sm text-[#878a8c]">
+            <p className="rounded-xl border border-line bg-surface px-4 py-8 text-center text-sm text-muted">
               No company has Rooman alumni yet, so there is nothing to rank against your profile.
             </p>
           ) : (
@@ -159,13 +159,13 @@ export function ForYouSection() {
             {companies && ranked.length > TOP_N && (
               <button
                 onClick={() => setShowAll((v) => !v)}
-                className="text-xs font-semibold text-[#ff4500] hover:underline"
+                className="text-xs font-semibold text-brand hover:underline"
               >
                 {showAll ? 'Show top matches only' : `Show all ${ranked.length} ranked`}
               </button>
             )}
             {hidden > 0 && (
-              <span className="text-xs text-[#878a8c]">
+              <span className="text-xs text-muted">
                 {hidden} more compan{hidden === 1 ? 'y has' : 'ies have'} no Rooman alumni yet, so
                 {hidden === 1 ? " it isn't" : " they aren't"} ranked here.
               </span>
@@ -176,15 +176,15 @@ export function ForYouSection() {
               popup now, so the strip keeps its grid rhythm and nothing below it
               jumps down when companies are picked. */}
           {comparedRows.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#edeff1] bg-[#fff8f6] px-4 py-2.5">
-              <span className="text-sm text-[#1c1c1c]">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-brand-50 px-4 py-2.5">
+              <span className="text-sm text-ink">
                 <span className="font-bold">{comparedRows.length}</span> selected —{' '}
                 {comparedRows.map((r) => r.company.name).join(', ')}
               </span>
               <div className="ml-auto flex gap-2">
                 <button
                   onClick={() => setComparing([])}
-                  className="text-xs font-semibold text-[#878a8c] hover:text-[#1c1c1c]"
+                  className="text-xs font-semibold text-muted hover:text-ink"
                 >
                   Clear
                 </button>

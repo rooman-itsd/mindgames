@@ -87,13 +87,13 @@ export function BrowseView({
         }
       />
       {failed && <p className="mb-3 text-sm text-red-600">Could not load resources.</p>}
-      {items === null && !failed && <p className="text-sm text-[#878a8c]">Loading…</p>}
+      {items === null && !failed && <p className="text-sm text-muted">Loading…</p>}
       {items && items.length === 0 && !loading && (
-        <div className="rounded-xl border border-dashed border-[#edeff1] bg-white p-4 text-sm text-[#878a8c]">
+        <div className="rounded-xl border border-dashed border-line bg-surface p-4 text-sm text-muted">
           {filtering ? (
             <>
               Nothing matches these filters yet.{' '}
-              <button onClick={onClearFilters} className="font-semibold text-[#ff4500] hover:underline">
+              <button onClick={onClearFilters} className="font-semibold text-brand hover:underline">
                 Clear filters
               </button>
             </>

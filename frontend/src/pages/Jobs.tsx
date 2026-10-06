@@ -54,20 +54,20 @@ export function Jobs() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-[#1c1c1c]">Jobs & Opportunities</h1>
+        <h1 className="text-2xl font-bold text-ink">Jobs & Opportunities</h1>
         <Button onClick={() => setShowCreate(true)}>
           <Plus size={16} /> {tab === 'Hiring' ? 'Post a job' : "I'm open to work"}
         </Button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-[#edeff1] bg-white p-1 shadow-sm">
+      <div className="flex gap-1 rounded-xl border border-line bg-surface p-1 shadow-sm">
         {(['Hiring', 'Open to Work'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
-              tab === t ? 'bg-[#ff4500] text-white' : 'text-[#878a8c] hover:bg-gray-100'
+              tab === t ? 'bg-brand text-white' : 'text-muted hover:bg-gray-100'
             }`}
           >
             {t}
@@ -103,21 +103,22 @@ export function Jobs() {
               <div className="flex items-center gap-3">
                 <Avatar name={u.name} src={u.photo} size={52} to={`/profile/${u.id}`} />
                 <div className="min-w-0">
-                  <Link to={`/profile/${u.id}`} className="font-semibold text-[#1c1c1c] hover:underline">{u.name}</Link>
-                  {roleLine(u) && <p className="truncate text-xs text-[#878a8c]">{roleLine(u)}</p>}
+                  <Link to={`/profile/${u.id}`} className="font-semibold text-ink hover:underline">{u.name}</Link>
+                  {roleLine(u) && <p className="truncate text-xs text-muted">{roleLine(u)}</p>}
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">Open to Work</span>
-                <span className="rounded-full bg-[#f6f7f8] px-2.5 py-0.5 text-xs text-[#878a8c]">{u.domain}</span>
+                <span className="rounded-full bg-page px-2.5 py-0.5 text-xs text-muted">{u.domain}</span>
                 {u.experienceYears > 0 && (
-                  <span className="rounded-full bg-[#f6f7f8] px-2.5 py-0.5 text-xs text-[#878a8c]">{u.experienceYears} yrs</span>
+                  <span className="rounded-full bg-page px-2.5 py-0.5 text-xs text-muted">{u.experienceYears} yrs</span>
                 )}
-                <span className="rounded-full bg-[#f6f7f8] px-2.5 py-0.5 text-xs text-[#878a8c]">{u.city}</span>
+                <span className="rounded-full bg-page px-2.5 py-0.5 text-xs text-muted">{u.city}</span>
               </div>
-              <p className="mt-3 line-clamp-2 text-sm text-[#878a8c]">{u.bio}</p>
+              <p className="mt-3 line-clamp-2 text-sm text-muted">{u.bio}</p>
               <Button
-                variant="outline"
+                variant="social"
+                aria-pressed={connectionState(u.id) !== 'none'}
                 className="mt-4 w-full"
                 disabled={connectionState(u.id) !== 'none'}
                 onClick={() => {
@@ -140,17 +141,17 @@ export function Jobs() {
       {/* Connection note modal */}
       {noteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-lg">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#1c1c1c]">Add a note to your invitation</h2>
+              <h2 className="text-lg font-bold text-ink">Add a note to your invitation</h2>
               <button
                 onClick={() => setNoteModal(null)}
-                className="text-[#878a8c] hover:text-[#1c1c1c]"
+                className="text-muted hover:text-ink"
               >
                 <X size={20} />
               </button>
             </div>
-            <p className="mb-4 text-sm text-[#6b6e70]">
+            <p className="mb-4 text-sm text-muted">
               Write a personal note (minimum 25 words). Root Connect members are more likely to accept connection requests that include a thoughtful message.
             </p>
             <textarea
@@ -158,19 +159,19 @@ export function Jobs() {
               onChange={(e) => setNote(e.target.value)}
               placeholder={`Hi ${noteModal.name.split(' ')[0]}, I'd love to connect with you because…`}
               maxLength={500}
-              className="mb-2 w-full rounded-lg border border-[#edeff1] p-3 text-sm text-[#1c1c1c] placeholder-[#878a8c] focus:border-[#ff4500] focus:outline-none focus:ring-2 focus:ring-[#ff4500]/20"
+              className="mb-2 w-full rounded-lg border border-line p-3 text-sm text-ink placeholder-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
               rows={5}
             />
             <div className="mb-4 flex justify-between">
               <span className={`text-xs font-medium ${note.split(/\s+/).filter(Boolean).length < 25 ? 'text-red-500' : 'text-green-600'}`}>
                 {note.split(/\s+/).filter(Boolean).length} / 25 words
               </span>
-              <span className="text-xs text-[#878a8c]">{note.length}/500</span>
+              <span className="text-xs text-muted">{note.length}/500</span>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setNoteModal(null)}
-                className="flex-1 rounded-full border border-[#edeff1] px-4 py-2.5 font-medium text-[#1c1c1c] transition-colors hover:bg-[#f6f7f8]"
+                className="flex-1 rounded-full border border-line px-4 py-2.5 font-medium text-ink transition-colors hover:bg-page"
               >
                 Cancel
               </button>
@@ -184,7 +185,7 @@ export function Jobs() {
                   }
                 }}
                 disabled={note.split(/\s+/).filter(Boolean).length < 25}
-                className="flex-1 rounded-full bg-[#ff4500] px-4 py-2.5 font-medium text-white transition-colors hover:bg-[#d13a00] disabled:bg-[#c2c2c2] disabled:cursor-not-allowed"
+                className="flex-1 rounded-full btn-primary px-4 py-2.5 font-medium text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Send
               </button>
@@ -252,8 +253,8 @@ function HiringCard({
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-[#1c1c1c]">{p.role ?? 'Open Role'}</h3>
-          <p className="flex flex-wrap items-center gap-x-2 text-sm text-[#878a8c]">
+          <h3 className="text-lg font-semibold text-ink">{p.role ?? 'Open Role'}</h3>
+          <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
             <span className="flex items-center gap-1"><Briefcase size={14} /> {p.company ?? author?.company}</span>
             {p.city && <span className="flex items-center gap-1"><MapPin size={14} /> {p.city}</span>}
             {p.domain && <span>· {p.domain}</span>}
@@ -272,11 +273,11 @@ function HiringCard({
           {closed ? 'Closed' : 'Hiring'}
         </span>
       </div>
-      <p className="mt-3 text-sm text-[#1c1c1c]">{p.content}</p>
+      <p className="mt-3 text-sm text-ink">{p.content}</p>
       <div className="mt-4 flex items-center justify-between gap-3">
         <Link to={`/profile/${author?.id}`} className="flex items-center gap-2 text-sm hover:underline">
           <Avatar name={author?.name ?? '?'} src={author?.photo} size={32} />
-          <span className="text-[#878a8c]">Posted by <span className="font-medium text-[#1c1c1c]">{author?.name}</span> · {timeAgo(p.createdAt)}</span>
+          <span className="text-muted">Posted by <span className="font-medium text-ink">{author?.name}</span> · {timeAgo(p.createdAt)}</span>
         </Link>
 
         {isMine ? (
@@ -334,22 +335,22 @@ function HiringCard({
 
       {/* Applicant list — visible only to the poster */}
       {isMine && showApplicants && (
-        <div className="mt-4 border-t border-[#edeff1] pt-3">
+        <div className="mt-4 border-t border-line pt-3">
           {applicants === null ? (
-            <p className="text-sm text-[#878a8c]">Loading applicants…</p>
+            <p className="text-sm text-muted">Loading applicants…</p>
           ) : applicants.length === 0 ? (
-            <p className="text-sm text-[#878a8c]">No applications yet. Share the post to reach more alumni.</p>
+            <p className="text-sm text-muted">No applications yet. Share the post to reach more alumni.</p>
           ) : (
             <div className="flex flex-col gap-2">
               {applicants.map((a) => (
-                <div key={a.id} className="rounded-lg border border-[#edeff1] p-2.5">
+                <div key={a.id} className="rounded-lg border border-line p-2.5">
                   <div className="flex items-center gap-3">
                     <Avatar name={a.name} src={a.photo} size={36} to={`/profile/${a.id}`} />
                     <div className="min-w-0 flex-1">
-                      <Link to={`/profile/${a.id}`} className="text-sm font-semibold text-[#1c1c1c] hover:underline">
+                      <Link to={`/profile/${a.id}`} className="text-sm font-semibold text-ink hover:underline">
                         {a.name}
                       </Link>
-                      <p className="truncate text-xs text-[#878a8c]">
+                      <p className="truncate text-xs text-muted">
                         {a.designation}{a.company ? ` · ${a.company}` : ''}{a.city ? ` · ${a.city}` : ''} · applied {timeAgo(a.appliedAt)}
                       </p>
                     </div>
@@ -372,7 +373,8 @@ function HiringCard({
                       </Button>
                     ) : (
                       <Button
-                        variant="outline"
+                        variant="social"
+                        aria-pressed={connectionState(a.id) === 'pending'}
                         className="!px-3 !py-1.5 text-xs"
                         disabled={connectionState(a.id) === 'pending'}
                         onClick={() => sendConnect(a.id)}
@@ -383,11 +385,11 @@ function HiringCard({
                   </div>
                   {/* Answers snapshotted at apply time (survive later edits) */}
                   {a.answers.length > 0 && (
-                    <dl className="mt-2.5 space-y-1.5 border-t border-[#edeff1] pt-2.5">
+                    <dl className="mt-2.5 space-y-1.5 border-t border-line pt-2.5">
                       {a.answers.map((pair) => (
                         <div key={pair.q} className="text-sm">
-                          <dt className="text-xs text-[#878a8c]">{pair.q}</dt>
-                          <dd className="text-[#1c1c1c]">{pair.a}</dd>
+                          <dt className="text-xs text-muted">{pair.q}</dt>
+                          <dd className="text-ink">{pair.a}</dd>
                         </div>
                       ))}
                     </dl>
@@ -440,20 +442,20 @@ function EditJobModal({
   }
 
   const field =
-    'w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
+    'w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center" onClick={onCancel}>
       <div
-        className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-white shadow-2xl"
+        className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">
-            <Pencil size={17} className="text-[#ff4500]" />
-            <h2 className="font-bold text-[#1c1c1c]">Edit job post</h2>
+            <Pencil size={17} className="text-brand" />
+            <h2 className="font-bold text-ink">Edit job post</h2>
           </div>
-          <button onClick={onCancel} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onCancel} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -472,21 +474,21 @@ function EditJobModal({
             className={`${field} resize-none`}
           />
 
-          <div className="rounded-xl border border-dashed border-[#edeff1] bg-[#f6f7f8] p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#878a8c]">
+          <div className="rounded-xl border border-dashed border-line bg-page p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               Questions for applicants{' '}
               {questions.length > 0 && <span className="font-bold normal-case">({questions.length})</span>}
             </p>
             {questions.length > 0 && (
               <ul className="mt-2 space-y-1.5">
                 {questions.map((q, i) => (
-                  <li key={q} className="flex items-center gap-2 rounded-lg border border-[#edeff1] bg-white px-3 py-1.5 text-sm text-[#1c1c1c]">
-                    <span className="text-xs font-bold text-[#ff4500]">{i + 1}.</span>
+                  <li key={q} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink">
+                    <span className="text-xs font-bold text-brand">{i + 1}.</span>
                     <span className="flex-1">{q}</span>
                     <button
                       onClick={() => moveQuestion(i, -1)}
                       disabled={i === 0}
-                      className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100 hover:text-[#1c1c1c] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="rounded-full p-1 text-muted hover:bg-gray-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
                       title="Move up"
                       aria-label={`Move question up: ${q}`}
                     >
@@ -495,7 +497,7 @@ function EditJobModal({
                     <button
                       onClick={() => moveQuestion(i, 1)}
                       disabled={i === questions.length - 1}
-                      className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100 hover:text-[#1c1c1c] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="rounded-full p-1 text-muted hover:bg-gray-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
                       title="Move down"
                       aria-label={`Move question down: ${q}`}
                     >
@@ -503,7 +505,7 @@ function EditJobModal({
                     </button>
                     <button
                       onClick={() => setQuestions((list) => list.filter((x) => x !== q))}
-                      className="rounded-full p-1 text-[#878a8c] hover:bg-red-50 hover:text-red-500"
+                      className="rounded-full p-1 text-muted hover:bg-red-50 hover:text-red-500"
                       title="Delete this question"
                       aria-label={`Delete question: ${q}`}
                     >
@@ -524,33 +526,33 @@ function EditJobModal({
                   }
                 }}
                 placeholder="Add a question…"
-                className={`${field} flex-1 bg-white`}
+                className={`${field} flex-1 bg-surface`}
               />
               <button
                 onClick={() => addQuestion(questionDraft)}
                 disabled={!questionDraft.trim()}
-                className="flex items-center gap-1 rounded-lg bg-[#ff4500] px-3 py-2 text-sm font-semibold text-white hover:bg-[#ff6534] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-1 rounded-lg btn-primary px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus size={15} /> Add
               </button>
             </div>
-            <p className="mt-2 text-xs text-[#878a8c]">
+            <p className="mt-2 text-xs text-muted">
               Changing questions only affects new applications — existing ones keep the
               questions they answered.
             </p>
-            <label className="mt-2 flex cursor-pointer items-center gap-2.5 border-t border-[#edeff1] pt-2.5">
+            <label className="mt-2 flex cursor-pointer items-center gap-2.5 border-t border-line pt-2.5">
               <input
                 type="checkbox"
                 checked={wantsResume}
                 onChange={(e) => setWantsResume(e.target.checked)}
-                className="h-4 w-4 accent-[#ff4500]"
+                className="h-4 w-4 accent-brand"
               />
-              <span className="text-sm text-[#1c1c1c]">Require a resume from applicants</span>
+              <span className="text-sm text-ink">Require a resume from applicants</span>
             </label>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[#edeff1] px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
           <Button variant="ghost" onClick={onCancel}>Cancel</Button>
           <Button
             disabled={!content.trim()}
@@ -615,28 +617,28 @@ function ApplyForm({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center" onClick={onCancel}>
       <div
-        className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-white shadow-2xl"
+        className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">
-            <ClipboardList size={18} className="text-[#ff4500]" />
-            <h2 className="font-bold text-[#1c1c1c]">Apply{role ? ` — ${role}` : ''}</h2>
+            <ClipboardList size={18} className="text-brand" />
+            <h2 className="font-bold text-ink">Apply{role ? ` — ${role}` : ''}</h2>
           </div>
-          <button onClick={onCancel} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onCancel} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
 
         <div className="max-h-[60vh] space-y-3 overflow-y-auto px-5 py-4">
           {questions.length > 0 && (
-            <p className="text-sm text-[#878a8c]">
+            <p className="text-sm text-muted">
               The poster asks every applicant to answer these questions:
             </p>
           )}
           {questions.map((q, i) => (
             <div key={q}>
-              <label className="mb-1 block text-sm font-medium text-[#1c1c1c]">
+              <label className="mb-1 block text-sm font-medium text-ink">
                 {i + 1}. {q}
               </label>
               <textarea
@@ -646,27 +648,27 @@ function ApplyForm({
                 }
                 rows={2}
                 placeholder="Your answer…"
-                className="w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                className="w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
             </div>
           ))}
 
           {wantsResume && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#1c1c1c]">
-                Resume <span className="text-[#ff4500]">*</span>
+              <label className="mb-1 block text-sm font-medium text-ink">
+                Resume <span className="text-brand">*</span>
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[#edeff1] bg-[#f6f7f8] px-3 py-2.5 text-sm hover:border-[#ff6534]">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-line bg-page px-3 py-2.5 text-sm hover:border-brand-400">
                 {file ? (
                   <>
-                    <FileText size={16} className="shrink-0 text-[#ff4500]" />
-                    <span className="min-w-0 flex-1 truncate text-[#1c1c1c]">{file.name}</span>
-                    <span className="text-xs text-[#878a8c]">change</span>
+                    <FileText size={16} className="shrink-0 text-brand" />
+                    <span className="min-w-0 flex-1 truncate text-ink">{file.name}</span>
+                    <span className="text-xs text-muted">change</span>
                   </>
                 ) : (
                   <>
-                    <Paperclip size={16} className="shrink-0 text-[#878a8c]" />
-                    <span className="text-[#878a8c]">Attach your resume (PDF or .docx)</span>
+                    <Paperclip size={16} className="shrink-0 text-muted" />
+                    <span className="text-muted">Attach your resume (PDF or .docx)</span>
                   </>
                 )}
                 <input
@@ -684,7 +686,7 @@ function ApplyForm({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[#edeff1] px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
           <Button variant="ghost" onClick={onCancel}>Cancel</Button>
           <Button disabled={!complete || sending} onClick={submit}>
             <Send size={15} /> {sending ? 'Submitting…' : 'Submit application'}
@@ -697,7 +699,7 @@ function ApplyForm({
 
 function Empty({ label }: { label: string }) {
   return (
-    <div className="rounded-xl border border-[#edeff1] bg-white py-12 text-center text-sm text-[#878a8c] shadow-sm">
+    <div className="rounded-xl border border-line bg-surface py-12 text-center text-sm text-muted shadow-sm">
       {label}
     </div>
   )

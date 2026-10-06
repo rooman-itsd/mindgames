@@ -81,12 +81,12 @@ export function MentorshipRecord({ userId }: { userId: string }) {
 
 function RecordTile({ icon, value, label }: { icon: React.ReactNode; value: string | number; label: string }) {
   return (
-    <div className="rounded-lg bg-[#f6f7f8] px-3 py-2 text-center">
-      <span className="flex items-center justify-center gap-1 text-lg font-bold leading-tight text-[#1c1c1c]">
-        <span className="text-[#ff4500]">{icon}</span>
+    <div className="rounded-lg bg-page px-3 py-2 text-center">
+      <span className="flex items-center justify-center gap-1 text-lg font-bold leading-tight text-ink">
+        <span className="text-brand">{icon}</span>
         {value}
       </span>
-      <span className="text-[11px] font-medium tracking-wide text-[#878a8c] uppercase">{label}</span>
+      <span className="text-[11px] font-medium tracking-wide text-muted uppercase">{label}</span>
     </div>
   )
 }

@@ -99,14 +99,14 @@ export function Mentorship() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#1c1c1c]">Mentorship</h1>
+        <h1 className="text-2xl font-bold text-ink">Mentorship</h1>
         {!currentUser.isMentor && (
           // Links to the real verification flow on the profile. It used to
           // call updateProfile({isMentor:true}), which the backend rejects
           // with 403 unless already verified — so every unverified member who
           // pressed it got an error and no way forward.
           <Link to="/profile#mentor-verification">
-            <Button variant="outline">
+            <Button variant="cta">
               <Award size={16} /> Become a Mentor
             </Button>
           </Link>
@@ -114,13 +114,13 @@ export function Mentorship() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-[#edeff1] bg-white p-1 shadow-sm">
+      <div className="flex gap-1 rounded-xl border border-line bg-surface p-1 shadow-sm">
         {(['Find a Mentor', 'My Sessions', 'Mentor Space', 'Group Sessions'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
-              tab === t ? 'bg-[#ff4500] text-white' : 'text-[#878a8c] hover:bg-gray-100'
+              tab === t ? 'bg-brand text-white' : 'text-muted hover:bg-gray-100'
             }`}
           >
             {t}
@@ -129,7 +129,7 @@ export function Mentorship() {
       </div>
 
       {/* Free-session allowance */}
-      <div className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${freeRemaining > 0 ? 'border-green-200 bg-green-50 text-green-800' : 'border-[#edeff1] bg-white text-[#878a8c]'}`}>
+      <div className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${freeRemaining > 0 ? 'border-green-200 bg-green-50 text-green-800' : 'border-line bg-surface text-muted'}`}>
         {freeRemaining > 0 ? (
           <>🎁 You have <strong>{freeRemaining}</strong> of {FREE_MENTORSHIP_SESSIONS} free mentorship {freeRemaining === 1 ? 'session' : 'sessions'} left — book any mentor you like, free.</>
         ) : (
@@ -144,27 +144,27 @@ export function Mentorship() {
               <div className="flex items-center gap-3">
                 <Avatar name={m.name} src={m.photo} size={56} to={`/profile/${m.id}`} />
                 <div className="min-w-0">
-                  <Link to={`/profile/${m.id}`} className="font-semibold text-[#1c1c1c] hover:underline">{m.name}</Link>
-                  {roleLine(m) && <p className="truncate text-xs text-[#878a8c]">{roleLine(m)}</p>}
+                  <Link to={`/profile/${m.id}`} className="font-semibold text-ink hover:underline">{m.name}</Link>
+                  {roleLine(m) && <p className="truncate text-xs text-muted">{roleLine(m)}</p>}
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-[#ff4500]">{m.domain}</span>
+                <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand">{m.domain}</span>
                 {m.expertise.slice(0, 2).map((e) => (
-                  <span key={e} className="rounded-full bg-[#f6f7f8] px-2.5 py-0.5 text-xs text-[#878a8c]">{e}</span>
+                  <span key={e} className="rounded-full bg-page px-2.5 py-0.5 text-xs text-muted">{e}</span>
                 ))}
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1 text-[#878a8c]">
+                <span className="flex items-center gap-1 text-muted">
                   <Star size={14} className="fill-amber-400 text-amber-400" />
                   {ratings.has(m.id)
                     ? `${ratings.get(m.id)!.avg} (${ratings.get(m.id)!.count}) · ${m.sessionsConducted ?? 0} sessions`
                     : `${m.sessionsConducted ?? 0} sessions`}
                 </span>
                 {m.mentorRate ? (
-                  <span className="font-bold text-[#1c1c1c]">₹{m.mentorRate.toLocaleString('en-IN')}<span className="text-xs font-normal text-[#878a8c]">/hr</span></span>
+                  <span className="font-bold text-ink">₹{m.mentorRate.toLocaleString('en-IN')}<span className="text-xs font-normal text-muted">/hr</span></span>
                 ) : (
-                  <span className="text-xs text-[#878a8c]">Rate on request</span>
+                  <span className="text-xs text-muted">Rate on request</span>
                 )}
               </div>
               {pendingMentorRequestIds.has(m.id) ? (
@@ -189,7 +189,7 @@ export function Mentorship() {
           {/* Requests: mentor decides; mentee awaits */}
           {requested.length > 0 && (
             <section>
-              <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">Requests</h2>
+              <h2 className="mb-3 text-lg font-bold text-ink">Requests</h2>
               <div className="flex flex-col gap-3">
                 {requested.map((s) => {
                   const iAmMentor = s.mentorId === currentUser.id
@@ -203,14 +203,14 @@ export function Mentorship() {
                         <GraduationCap size={20} />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[#1c1c1c]">{s.topic}</p>
-                        <p className="text-xs text-[#878a8c]">
+                        <p className="font-semibold text-ink">{s.topic}</p>
+                        <p className="text-xs text-muted">
                           {iAmMentor
                             ? `${other} requested this session`
                             : offeredToMe
                               ? `${other} offered you this session`
                               : `with ${other}`} · {s.date} · {s.time}
-                          {sessionPriceLabel(s) && <span className="font-semibold text-[#ff4500]"> · {sessionPriceLabel(s)}</span>}
+                          {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
                         </p>
                       </div>
                       {iAmMentor ? (
@@ -251,21 +251,21 @@ export function Mentorship() {
           )}
 
           <section>
-            <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">Upcoming</h2>
+            <h2 className="mb-3 text-lg font-bold text-ink">Upcoming</h2>
             <div className="flex flex-col gap-3">
               {upcoming.map((s) => {
                 const iAmMentor = s.mentorId === currentUser.id
                 const other = iAmMentor ? s.menteeName : userById(s.mentorId)?.name
                 return (
                   <Card key={s.id} className="flex flex-wrap items-center gap-3 p-4">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 text-[#ff4500]">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-brand">
                       <GraduationCap size={20} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-[#1c1c1c]">{s.topic}</p>
-                      <p className="text-xs text-[#878a8c]">
+                      <p className="font-semibold text-ink">{s.topic}</p>
+                      <p className="text-xs text-muted">
                         {iAmMentor ? 'mentoring' : 'with'} {other} · {s.date} · {s.time}
-                        {sessionPriceLabel(s) && <span className="font-semibold text-[#ff4500]"> · {sessionPriceLabel(s)}</span>}
+                        {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
                       </p>
                     </div>
                     {s.meetingLink ? (
@@ -281,7 +281,7 @@ export function Mentorship() {
                       // Previously this rendered nothing at all, so a session
                       // with no link looked identical to one you simply
                       // couldn't see the link for.
-                      <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-[#878a8c]">
+                      <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-muted">
                         No link yet
                       </span>
                     )}
@@ -312,7 +312,7 @@ export function Mentorship() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">Past</h2>
+            <h2 className="mb-3 text-lg font-bold text-ink">Past</h2>
             <div className="flex flex-col gap-3">
               {finished.map((s) => {
                 const iAmMentor = s.mentorId === currentUser.id
@@ -320,14 +320,14 @@ export function Mentorship() {
                 const declined = s.status === 'declined'
                 return (
                   <Card key={s.id} className="flex items-center gap-3 p-4 opacity-80">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-[#878a8c]">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-muted">
                       <GraduationCap size={20} />
                     </span>
                     <div className="flex-1">
-                      <p className="font-semibold text-[#1c1c1c]">{s.topic}</p>
-                      <p className="text-xs text-[#878a8c]">
+                      <p className="font-semibold text-ink">{s.topic}</p>
+                      <p className="text-xs text-muted">
                         {iAmMentor ? 'mentored' : 'with'} {other} · {s.date}
-                        {sessionPriceLabel(s) && <span className="font-semibold text-[#ff4500]"> · {sessionPriceLabel(s)}</span>}
+                        {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
                       </p>
                     </div>
                     {/* The mentee's half of mutual confirmation. Without this
@@ -514,7 +514,7 @@ function BookModal({
   const isPaid = freeRemaining <= 0
 
   const field =
-    'mt-1 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
+    'mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
 
   function submit() {
     if (!topic.trim()) return setError('Tell the mentor what you want to discuss.')
@@ -528,12 +528,12 @@ function BookModal({
 
   return (
     <Overlay onClose={onClose} title={`Book a session with ${mentor.name}`}>
-      <p className="text-sm text-[#878a8c]">
+      <p className="text-sm text-muted">
         {mentor.designation}
         {mentor.mentorRate ? ` · ₹${mentor.mentorRate.toLocaleString('en-IN')}/hr` : ' · rate on request'}
       </p>
       {isPaid ? (
-        <div className="mt-3 rounded-lg bg-orange-50 px-3 py-2 text-sm text-[#1c1c1c]">
+        <div className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-sm text-ink">
           💳 This is a <strong>paid session</strong>
           {mentor.mentorRate ? ` · ₹${mentor.mentorRate.toLocaleString('en-IN')}/hr` : ''}. You've used your {FREE_MENTORSHIP_SESSIONS} free sessions — arrange payment directly with the mentor.
         </div>
@@ -542,7 +542,7 @@ function BookModal({
           🎁 <strong>Free session</strong> — {freeRemaining} of {FREE_MENTORSHIP_SESSIONS} left.
         </div>
       )}
-      <label className="mt-4 block text-sm font-medium text-[#1c1c1c]">What would you like to discuss? *</label>
+      <label className="mt-4 block text-sm font-medium text-ink">What would you like to discuss? *</label>
       <textarea
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
@@ -552,7 +552,7 @@ function BookModal({
       />
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-[#1c1c1c]">Date *</label>
+          <label className="block text-sm font-medium text-ink">Date *</label>
           <input
             type="date"
             value={date}
@@ -562,7 +562,7 @@ function BookModal({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-[#1c1c1c]">Time *</label>
+          <label className="block text-sm font-medium text-ink">Time *</label>
           <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
         </div>
       </div>
@@ -577,10 +577,10 @@ function BookModal({
 function Overlay({ children, title, onClose }: { children: React.ReactNode; title: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="animate-slidein w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="animate-slidein w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">{title}</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100"><X size={20} /></button>
+          <h2 className="text-lg font-bold text-ink">{title}</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-gray-100"><X size={20} /></button>
         </div>
         {children}
       </div>
@@ -589,7 +589,7 @@ function Overlay({ children, title, onClose }: { children: React.ReactNode; titl
 }
 
 function Empty({ label }: { label: string }) {
-  return <div className="rounded-xl border border-[#edeff1] bg-white py-10 text-center text-sm text-[#878a8c] shadow-sm">{label}</div>
+  return <div className="rounded-xl border border-line bg-surface py-10 text-center text-sm text-muted shadow-sm">{label}</div>
 }
 
 // Mentor confirms a request; the meeting link is required, so a confirmed
@@ -617,27 +617,27 @@ function AcceptModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="animate-slidein w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-bold text-[#1c1c1c]">Confirm this session</h2>
-        <p className="mt-1 text-sm text-[#878a8c]">
+      <div className="animate-slidein w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-bold text-ink">Confirm this session</h2>
+        <p className="mt-1 text-sm text-muted">
           Add a meeting link (Google Meet, Zoom…) so your mentee knows where to join.
         </p>
-        <label className="mt-3 block text-sm font-medium text-[#1c1c1c]">
+        <label className="mt-3 block text-sm font-medium text-ink">
           Meeting link <span className="text-red-500">*</span>
         </label>
         <input
           value={link}
           onChange={(e) => { setLink(e.target.value); setError('') }}
           placeholder="https://meet.google.com/…"
-          className="mt-1 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
         {error && <p className="mt-1.5 text-xs font-semibold text-red-600">{error}</p>}
-        <label className="mt-3 block text-sm font-medium text-[#1c1c1c]">Prep for them (optional)</label>
+        <label className="mt-3 block text-sm font-medium text-ink">Prep for them (optional)</label>
         <input
           value={resourceLink}
           onChange={(e) => setResourceLink(e.target.value)}
           placeholder="A link for them to go through before you meet"
-          className="mt-1 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
         {/* Only once there's a link — a title on its own has nothing to name. */}
         {resourceLink.trim() && (
@@ -647,7 +647,7 @@ function AcceptModal({
             placeholder="What is it? e.g. Read chapter 4 on rate limiters (optional)"
             maxLength={160}
             aria-label="Prep title"
-            className="mt-2 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="mt-2 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
         )}
         <div className="mt-4 flex items-center justify-end gap-2">
@@ -676,9 +676,9 @@ function RateModal({
   const [review, setReview] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="animate-slidein w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-bold text-[#1c1c1c]">How was "{session.topic}"?</h2>
-        <p className="mt-1 text-sm text-[#878a8c]">Your rating shows on the mentor's card and helps other alumni choose.</p>
+      <div className="animate-slidein w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-bold text-ink">How was "{session.topic}"?</h2>
+        <p className="mt-1 text-sm text-muted">Your rating shows on the mentor's card and helps other alumni choose.</p>
         <div className="mt-4 flex justify-center gap-1.5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -691,7 +691,7 @@ function RateModal({
               <Star
                 size={30}
                 className={
-                  n <= (hover || stars) ? 'fill-amber-400 text-amber-400' : 'text-[#d6d7d8]'
+                  n <= (hover || stars) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
                 }
               />
             </button>
@@ -702,7 +702,7 @@ function RateModal({
           onChange={(e) => setReview(e.target.value.slice(0, 500))}
           rows={2}
           placeholder="A short review (optional)"
-          className="mt-4 w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mt-4 w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>

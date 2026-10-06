@@ -68,11 +68,11 @@ function InviteCell({ a }: { a: Alumni }) {
       </span>
     )
   }
-  return <span className="text-xs text-[#878a8c]">—</span>
+  return <span className="text-xs text-muted">—</span>
 }
 
 function ArrivalCell({ a }: { a: Alumni }) {
-  if (!a.hasAccount) return <span className="text-xs text-[#878a8c]">—</span>
+  if (!a.hasAccount) return <span className="text-xs text-muted">—</span>
   if (a.lastLoginAt) {
     return (
       <span
@@ -94,7 +94,7 @@ function ArrivalCell({ a }: { a: Alumni }) {
     )
   }
   return (
-    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-[#ff4500]">
+    <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand">
       Not yet
     </span>
   )
@@ -240,10 +240,10 @@ export function AlumniTable({
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#edeff1] px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div>
-          <h3 className="text-sm font-bold text-[#1c1c1c]">Multi-Channel Invitations</h3>
-          <p className="text-xs text-[#878a8c]">
+          <h3 className="text-sm font-bold text-ink">Multi-Channel Invitations</h3>
+          <p className="text-xs text-muted">
             {someOn
               ? `${counts.email} email · ${counts.whatsapp} WhatsApp selected`
               : `${alumni.length} contact${alumni.length === 1 ? '' : 's'} · ${batches.length} batch${
@@ -253,7 +253,7 @@ export function AlumniTable({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {/* layout toggle */}
-          <div className="flex rounded-full border border-[#edeff1] p-0.5">
+          <div className="flex rounded-full border border-line p-0.5">
             {(
               [
                 { key: 'table', label: 'Table', icon: <Rows3 size={14} /> },
@@ -266,7 +266,7 @@ export function AlumniTable({
                 onClick={() => setLayout(l.key)}
                 className={cx(
                   'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                  layout === l.key ? 'bg-[#ff4500] text-white' : 'text-[#878a8c] hover:text-[#1c1c1c]',
+                  layout === l.key ? 'bg-brand text-white' : 'text-muted hover:text-ink',
                 )}
               >
                 {l.icon} {l.label}
@@ -291,7 +291,7 @@ export function AlumniTable({
         </div>
       </div>
 
-      <p className="border-b border-[#edeff1] bg-orange-50/60 px-4 py-2.5 text-xs text-[#1c1c1c]">
+      <p className="border-b border-line bg-brand-50/60 px-4 py-2.5 text-xs text-ink">
         <span className="font-semibold">Sending an email invitation creates the account.</span>{' '}
         Each recipient gets a generated password and a sign-in link. Re-sending to someone who
         hasn&rsquo;t signed in yet issues a fresh password; anyone who has already signed in or set
@@ -299,7 +299,7 @@ export function AlumniTable({
       </p>
 
       {/* filters */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-[#edeff1] px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
         <div className="flex flex-wrap gap-1.5">
           {FILTER_LABELS.map((f) => (
             <button
@@ -309,8 +309,8 @@ export function AlumniTable({
               className={cx(
                 'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                 status === f.key
-                  ? 'bg-[#ff4500] text-white'
-                  : 'bg-[#f6f7f8] text-[#878a8c] hover:text-[#1c1c1c]',
+                  ? 'bg-brand text-white'
+                  : 'bg-page text-muted hover:text-ink',
               )}
             >
               {f.label} ({statusCounts[f.key]})
@@ -321,7 +321,7 @@ export function AlumniTable({
           <select
             value={batch}
             onChange={(e) => setBatch(e.target.value)}
-            className="rounded-lg border border-[#edeff1] px-2 py-1.5 text-xs outline-none focus:border-[#ff4500]"
+            className="rounded-lg border border-line px-2 py-1.5 text-xs outline-none focus:border-brand"
           >
             <option value="all">All batches ({alumni.length})</option>
             {batches.map((b) => (
@@ -331,12 +331,12 @@ export function AlumniTable({
             ))}
           </select>
           <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#878a8c]" />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search name or email"
-              className="w-52 rounded-lg border border-[#edeff1] py-1.5 pl-8 pr-3 text-xs outline-none focus:border-[#ff4500]"
+              className="w-52 rounded-lg border border-line py-1.5 pl-8 pr-3 text-xs outline-none focus:border-brand"
             />
           </div>
         </div>
@@ -346,7 +346,7 @@ export function AlumniTable({
         /* ---- grouped by import ---- */
         <div className="space-y-4 p-4">
           {batches.length === 0 && (
-            <p className="py-8 text-center text-[#878a8c]">
+            <p className="py-8 text-center text-muted">
               No alumni yet. Upload a CSV or add one manually to get started.
             </p>
           )}
@@ -362,14 +362,14 @@ export function AlumniTable({
                 )
               })
               return (
-                <div key={b.label} className="rounded-xl border border-[#edeff1]">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edeff1] bg-[#f6f7f8] px-4 py-2.5">
+                <div key={b.label} className="rounded-xl border border-line">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-page px-4 py-2.5">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#1c1c1c]">{b.label}</p>
-                      <p className="text-xs text-[#878a8c]">
+                      <p className="truncate text-sm font-semibold text-ink">{b.label}</p>
+                      <p className="text-xs text-muted">
                         {b.total} contact{b.total === 1 ? '' : 's'} · {b.invited} invited ·{' '}
                         <span className="text-green-700">{b.signedIn} signed in</span> ·{' '}
-                        <span className="text-[#ff4500]">{b.pending} waiting</span>
+                        <span className="text-brand">{b.pending} waiting</span>
                         {b.failed > 0 && <span className="text-red-600"> · {b.failed} failed</span>}
                       </p>
                     </div>
@@ -383,11 +383,11 @@ export function AlumniTable({
                     </Button>
                   </div>
                   {rows.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-xs text-[#878a8c]">
+                    <p className="px-4 py-6 text-center text-xs text-muted">
                       Nothing in this batch matches the current filter.
                     </p>
                   ) : (
-                    <div className="divide-y divide-[#edeff1]">
+                    <div className="divide-y divide-line">
                       {rows.map((a) => {
                         const c = get(a.id)
                         return (
@@ -395,7 +395,7 @@ export function AlumniTable({
                             key={a.id}
                             className={cx(
                               'flex flex-wrap items-center gap-3 px-4 py-2.5',
-                              (c.email || c.whatsapp) && 'bg-orange-50/60',
+                              (c.email || c.whatsapp) && 'bg-brand-50/60',
                             )}
                           >
                             <Checkbox
@@ -409,10 +409,10 @@ export function AlumniTable({
                               className="min-w-0 flex-1 text-left"
                               title="View the invite email sent to this person"
                             >
-                              <p className="truncate text-sm font-medium text-[#1c1c1c] hover:text-[#ff4500] hover:underline">
+                              <p className="truncate text-sm font-medium text-ink hover:text-brand hover:underline">
                                 {a.name}
                               </p>
-                              <p className="truncate text-xs text-[#878a8c]">{a.email}</p>
+                              <p className="truncate text-xs text-muted">{a.email}</p>
                             </button>
                             <InviteCell a={a} />
                             <ArrivalCell a={a} />
@@ -430,7 +430,7 @@ export function AlumniTable({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead>
-              <tr className="border-b border-[#edeff1] text-xs uppercase tracking-wide text-[#878a8c]">
+              <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
                 <th className="w-10 px-4 py-3">
                   <Checkbox
                     aria-label="Select all shown recipients and channels"
@@ -457,7 +457,7 @@ export function AlumniTable({
             <tbody>
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-[#878a8c]">
+                  <td colSpan={10} className="px-4 py-10 text-center text-muted">
                     {alumni.length === 0
                       ? 'No alumni yet. Upload a CSV or add one manually to get started.'
                       : 'Nothing matches these filters.'}
@@ -470,8 +470,8 @@ export function AlumniTable({
                     <tr
                       key={a.id}
                       className={cx(
-                        'border-b border-[#edeff1] transition-colors hover:bg-gray-50',
-                        (c.email || c.whatsapp) && 'bg-orange-50/60',
+                        'border-b border-line transition-colors hover:bg-gray-50',
+                        (c.email || c.whatsapp) && 'bg-brand-50/60',
                       )}
                     >
                       <td className="px-4 py-3">
@@ -487,26 +487,26 @@ export function AlumniTable({
                         <button
                           type="button"
                           onClick={() => setViewing(a.id)}
-                          className="text-left font-medium text-[#1c1c1c] hover:text-[#ff4500] hover:underline"
+                          className="text-left font-medium text-ink hover:text-brand hover:underline"
                           title="View the invite email sent to this person"
                         >
                           {a.name}
                         </button>
-                        <p className="text-xs text-[#878a8c]">{a.role}</p>
+                        <p className="text-xs text-muted">{a.role}</p>
                       </td>
                       <td className="max-w-[150px] px-4 py-3">
-                        <span className="block truncate text-xs text-[#878a8c]" title={a.batch || UNGROUPED}>
+                        <span className="block truncate text-xs text-muted" title={a.batch || UNGROUPED}>
                           {a.batch || '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[#878a8c]">{a.phone || '—'}</td>
-                      <td className="max-w-[200px] truncate px-4 py-3 text-[#878a8c]">{a.email}</td>
+                      <td className="px-4 py-3 text-muted">{a.phone || '—'}</td>
+                      <td className="max-w-[200px] truncate px-4 py-3 text-muted">{a.email}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {a.statusTags.length ? (
                             a.statusTags.map((t) => <StatusBadge key={t} tag={t} />)
                           ) : (
-                            <span className="text-xs text-[#878a8c]">—</span>
+                            <span className="text-xs text-muted">—</span>
                           )}
                         </div>
                       </td>

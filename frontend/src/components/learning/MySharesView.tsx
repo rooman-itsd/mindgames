@@ -60,19 +60,19 @@ export function MySharesView({
         sub={helped > 0 ? `Your shares have helped ${helped} ${helped === 1 ? 'member' : 'members'}.` : 'What you have given back to the network.'}
       />
       {failed && <p className="mb-3 text-sm text-red-600">Could not load what you shared.</p>}
-      {rows === null && !failed && <p className="text-sm text-[#878a8c]">Loading…</p>}
+      {rows === null && !failed && <p className="text-sm text-muted">Loading…</p>}
       {rows && rows.length === 0 && (
-        <div className="rounded-xl border border-dashed border-[#edeff1] bg-white p-4">
-          <p className="text-sm font-semibold text-[#1c1c1c]">You haven't shared anything yet.</p>
-          <p className="mt-0.5 text-xs text-[#878a8c]">
+        <div className="rounded-xl border border-dashed border-line bg-surface p-4">
+          <p className="text-sm font-semibold text-ink">You haven't shared anything yet.</p>
+          <p className="mt-0.5 text-xs text-muted">
             One link and a sentence on why it helped is enough to save someone behind you a week.
           </p>
           {canShare ? (
-            <button onClick={onShare} className="mt-2 text-xs font-semibold text-[#ff4500] hover:underline">
+            <button onClick={onShare} className="mt-2 text-xs font-semibold text-brand hover:underline">
               Share what helped you →
             </button>
           ) : (
-            <p className="mt-2 text-xs text-[#878a8c]">
+            <p className="mt-2 text-xs text-muted">
               Build your career roadmap to share for its stages.
             </p>
           )}

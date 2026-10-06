@@ -195,19 +195,19 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
   }
 
   const field =
-    'w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
-  const label = 'mb-1 block text-sm font-medium text-[#1c1c1c]'
+    'w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
+  const label = 'mb-1 block text-sm font-medium text-ink'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Edit Profile</h2>
+          <h2 className="text-lg font-bold text-ink">Edit Profile</h2>
           <button onClick={onClose} className="rounded-full p-1.5 hover:bg-gray-100">
-            <X size={18} className="text-[#878a8c]" />
+            <X size={18} className="text-muted" />
           </button>
         </div>
 
@@ -276,8 +276,8 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
                   onClick={() => pickStatus(s)}
                   className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                     status === s
-                      ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                      : 'border-[#edeff1] text-[#1c1c1c] hover:bg-gray-50'
+                      ? 'border-brand bg-brand-50 text-brand'
+                      : 'border-line text-ink hover:bg-gray-50'
                   }`}
                 >
                   {s}
@@ -368,11 +368,11 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
               in that case, so the control read as editable while the save
               forced it to false regardless. */}
           <label
-            className={`flex items-center gap-2 text-sm ${mentor.eligible ? 'text-[#1c1c1c]' : 'text-[#878a8c]'}`}
+            className={`flex items-center gap-2 text-sm ${mentor.eligible ? 'text-ink' : 'text-muted'}`}
           >
             <input
               type="checkbox"
-              className="h-4 w-4 accent-[#ff4500] disabled:cursor-not-allowed"
+              className="h-4 w-4 accent-brand disabled:cursor-not-allowed"
               checked={form.willingToMentor}
               disabled={!mentor.eligible}
               onChange={(e) => set('willingToMentor', e.target.checked)}
@@ -380,7 +380,7 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
             Willing to mentor juniors
           </label>
           {!mentor.eligible && (
-            <div className="ml-6 rounded-lg border border-[#edeff1] bg-[#f6f7f8] p-3">
+            <div className="ml-6 rounded-lg border border-line bg-page p-3">
               <MentorVerification user={currentUser} />
             </div>
           )}
@@ -395,27 +395,27 @@ export function EditProfileModal({ onClose }: { onClose: () => void }) {
                 value={form.mentorRate}
                 onChange={(e) => set('mentorRate', e.target.value.replace(/\D/g, '').slice(0, 6))}
               />
-              <p className="mt-1 text-xs text-[#878a8c]">Shown on your mentor card. Leave empty for "Rate on request".</p>
+              <p className="mt-1 text-xs text-muted">Shown on your mentor card. Leave empty for "Rate on request".</p>
             </div>
           )}
           {/* Private accounts are retired: profiles are visible to the
               network. What a member keeps back is per field (Contact details
               on the profile page) and per post (My connections). */}
-          <p className="rounded-lg border border-[#edeff1] p-3 text-xs text-[#878a8c]">
+          <p className="rounded-lg border border-line p-3 text-xs text-muted">
             Your profile is visible to everyone in the network, so people can find and help you. Your
             email and phone stay hidden unless you switch them on under Contact details, and you can post
             to your connections only by choosing <span className="font-semibold">My connections</span>.
           </p>
-          <label className="flex items-center gap-2 text-sm text-[#1c1c1c]">
-            <input type="checkbox" className="h-4 w-4 accent-[#ff4500]" checked={form.interestedInStartup} onChange={(e) => set('interestedInStartup', e.target.checked)} />
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input type="checkbox" className="h-4 w-4 accent-brand" checked={form.interestedInStartup} onChange={(e) => set('interestedInStartup', e.target.checked)} />
             Interested in StartupVarsity
           </label>
 
           {/* Everything below is optional detail, shared verbatim with the
               onboarding wizard. Mentorship/StartupVarsity questions appear
               only while the two checkboxes above are ticked. */}
-          <div className="mt-2 border-t border-[#edeff1] pt-3">
-            <p className="mb-2 text-sm font-semibold text-[#1c1c1c]">More about you</p>
+          <div className="mt-2 border-t border-line pt-3">
+            <p className="mb-2 text-sm font-semibold text-ink">More about you</p>
             <ProfileDetailSections
               value={detail}
               onChange={setDetailPatch}

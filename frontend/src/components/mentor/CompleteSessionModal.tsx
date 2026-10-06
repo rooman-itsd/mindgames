@@ -55,19 +55,19 @@ export function CompleteSessionModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Mark session completed</h2>
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <h2 className="text-lg font-bold text-ink">Mark session completed</h2>
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         </div>
-        <p className="mb-4 text-sm text-[#878a8c]">
+        <p className="mb-4 text-sm text-muted">
           “{topic}” with {who}. They'll be asked to confirm it — once they do,
           it counts towards both your records.
         </p>
 
-        <label className="mb-1.5 block text-xs font-semibold text-[#878a8c]">How long did it run?</label>
+        <label className="mb-1.5 block text-xs font-semibold text-muted">How long did it run?</label>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {PRESETS.map((m) => (
             <button
@@ -75,8 +75,8 @@ export function CompleteSessionModal({
               onClick={() => setMinutes(m)}
               className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
                 minutes === m
-                  ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                  : 'border-[#edeff1] text-[#1c1c1c] hover:bg-gray-50'
+                  ? 'border-brand bg-brand-50 text-brand'
+                  : 'border-line text-ink hover:bg-gray-50'
               }`}
             >
               {m} min
@@ -89,17 +89,17 @@ export function CompleteSessionModal({
               max={600}
               value={minutes}
               onChange={(e) => setMinutes(Math.max(1, Math.min(600, Number(e.target.value) || 0)))}
-              className="w-20 rounded-lg border border-[#edeff1] px-2 py-1.5 text-center text-sm outline-none focus:border-[#ff4500]"
+              className="w-20 rounded-lg border border-line px-2 py-1.5 text-center text-sm outline-none focus:border-brand"
             />
-            <span className="text-xs text-[#878a8c]">min</span>
+            <span className="text-xs text-muted">min</span>
           </span>
         </div>
 
-        <label className="mb-1.5 block text-xs font-semibold text-[#878a8c]">What was it about? (optional)</label>
+        <label className="mb-1.5 block text-xs font-semibold text-muted">What was it about? (optional)</label>
         <select
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-4 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         >
           <option value="">Not specified</option>
           {DOMAINS.map((d) => (
@@ -110,9 +110,9 @@ export function CompleteSessionModal({
         </select>
 
         {allowFollowUp && (
-          <div className="mb-4 rounded-lg border border-[#edeff1] p-3">
-            <p className="text-xs font-semibold text-[#1c1c1c]">Follow-up task (optional)</p>
-            <p className="mb-2 text-xs text-[#878a8c]">
+          <div className="mb-4 rounded-lg border border-line p-3">
+            <p className="text-xs font-semibold text-ink">Follow-up task (optional)</p>
+            <p className="mb-2 text-xs text-muted">
               Something for {who} to do after the session. They'll submit a link as evidence.
             </p>
             <input
@@ -120,19 +120,19 @@ export function CompleteSessionModal({
               onChange={(e) => { setTaskTitle(e.target.value); setTaskError('') }}
               placeholder="Task — e.g. Build a small RAG demo"
               maxLength={160}
-              className="mb-2 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+              className="mb-2 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
             />
             <input
               value={taskUrl}
               onChange={(e) => { setTaskUrl(e.target.value); setTaskError('') }}
               placeholder="Link to the brief — https://…"
-              className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
             />
             {taskError && <p className="mt-1.5 text-xs font-semibold text-red-600">{taskError}</p>}
           </div>
         )}
 
-        <p className="mb-4 flex items-center gap-1.5 rounded-lg bg-gray-50 px-3 py-2 text-xs text-[#878a8c]">
+        <p className="mb-4 flex items-center gap-1.5 rounded-lg bg-gray-50 px-3 py-2 text-xs text-muted">
           <Clock size={13} className="shrink-0" />
           {minutes} minutes will be added to your mentoring hours once {who} confirms.
         </p>

@@ -1003,8 +1003,10 @@ export interface MentorApplication {
 export const STATUS_STYLES: Record<StatusTag, string> = {
   'Ready to work': 'bg-green-100 text-green-700',
   Working: 'bg-blue-100 text-blue-700',
-  'Can mentor': 'bg-orange-100 text-[#ff4500]',
-  'Need mentoring': 'bg-amber-100 text-amber-700',
+  // Mentoring reads in marigold so it never blurs into the green "Ready to work";
+  // the amber that used to sit next to it moved to violet for the same reason.
+  'Can mentor': 'bg-marigold-100 text-marigold-800',
+  'Need mentoring': 'bg-violet-100 text-violet-700',
 }
 
 // --- Shared styling maps ----------------------------------------------------
@@ -1017,9 +1019,10 @@ export const POST_TYPE_STYLES: Record<PostType, { label: string; classes: string
   Update: { label: 'Update', classes: 'bg-gray-100 text-gray-600' },
   Hiring: { label: 'Hiring', classes: 'bg-green-100 text-green-700' },
   'Open to Work': { label: 'Open to Work', classes: 'bg-blue-100 text-blue-700' },
-  Mentorship: { label: 'Mentorship', classes: 'bg-orange-100 text-[#ff4500]' },
+  // Marigold, not the forest brand: green already means Hiring.
+  Mentorship: { label: 'Mentorship', classes: 'bg-marigold-100 text-marigold-800' },
   StartupVarsity: { label: 'StartupVarsity', classes: 'bg-purple-100 text-purple-700' },
-  Achievement: { label: 'Achievement', classes: 'bg-amber-100 text-amber-700' },
+  Achievement: { label: 'Achievement', classes: 'bg-pink-100 text-pink-700' },
   Project: { label: 'Project', classes: 'bg-indigo-100 text-indigo-700' },
   Article: { label: 'Article', classes: 'bg-sky-100 text-sky-700' },
   Meetup: { label: 'Meetup', classes: 'bg-rose-100 text-rose-700' },

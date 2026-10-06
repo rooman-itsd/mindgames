@@ -59,13 +59,13 @@ export function RoadmapProgressBanner({
   return (
     <Card className="p-4">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-bold text-[#1c1c1c]">
+        <p className="text-sm font-bold text-ink">
           Your progress
-          <span className="ml-2 font-medium text-[#878a8c]">
+          <span className="ml-2 font-medium text-muted">
             {done} of {total} stages complete
           </span>
         </p>
-        <span className="text-sm font-bold text-[#ff4500]">{percent}%</span>
+        <span className="text-sm font-bold text-brand">{percent}%</span>
       </div>
       <div
         className="h-2 w-full overflow-hidden rounded-full bg-gray-100"
@@ -76,7 +76,7 @@ export function RoadmapProgressBanner({
         aria-label="Roadmap progress"
       >
         <div
-          className="h-full rounded-full bg-[#ff4500] transition-all duration-500"
+          className="h-full rounded-full bg-brand transition-all duration-500"
           style={{ width: `${percent}%` }}
         />
       </div>

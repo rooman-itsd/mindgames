@@ -6,8 +6,8 @@ import { useState, type ReactNode } from 'react'
 import { ChevronDown, Lock, Plus, Unlock, X } from 'lucide-react'
 
 export const fieldCx =
-  'w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
-export const labelCx = 'mb-1 block text-sm font-medium text-[#1c1c1c]'
+  'w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
+export const labelCx = 'mb-1 block text-sm font-medium text-ink'
 
 /** A collapsible group. Everything new is optional, so nothing starts open
  *  except sections the caller wants to draw attention to. */
@@ -27,7 +27,7 @@ export function DetailSection({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="rounded-xl border border-[#edeff1]">
+    <div className="rounded-xl border border-line">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -35,21 +35,21 @@ export function DetailSection({
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
       >
         <span className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-[#1c1c1c]">{title}</span>
+          <span className="text-sm font-semibold text-ink">{title}</span>
           {!!count && (
-            <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-bold text-[#ff4500]">
+            <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-bold text-brand">
               {count}
             </span>
           )}
         </span>
         <ChevronDown
           size={16}
-          className={`shrink-0 text-[#878a8c] transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
-        <div className="flex flex-col gap-3 border-t border-[#edeff1] px-4 py-3">
-          {hint && <p className="text-xs text-[#878a8c]">{hint}</p>}
+        <div className="flex flex-col gap-3 border-t border-line px-4 py-3">
+          {hint && <p className="text-xs text-muted">{hint}</p>}
           {children}
         </div>
       )}
@@ -60,7 +60,7 @@ export function DetailSection({
 /** Marks a field that is stored but shown to nobody but the owner. */
 export function PrivateHint({ children }: { children: ReactNode }) {
   return (
-    <p className="flex items-center gap-1 text-xs text-[#878a8c]">
+    <p className="flex items-center gap-1 text-xs text-muted">
       <Lock size={11} /> {children}
     </p>
   )
@@ -128,10 +128,10 @@ export function CheckboxField({
   onChange: (v: boolean) => void
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-[#1c1c1c]">
+    <label className="flex items-center gap-2 text-sm text-ink">
       <input
         type="checkbox"
-        className="h-4 w-4 accent-[#ff4500]"
+        className="h-4 w-4 accent-brand"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
@@ -161,13 +161,13 @@ export function LockRow({
       aria-pressed={!locked}
       className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors ${
         locked
-          ? 'border-[#edeff1] bg-[#f6f7f8] text-[#878a8c]'
-          : 'border-[#ff4500]/30 bg-orange-50 text-[#1c1c1c]'
+          ? 'border-line bg-page text-muted'
+          : 'border-brand/30 bg-brand-50 text-ink'
       }`}
     >
-      {locked ? <Lock size={13} className="shrink-0" /> : <Unlock size={13} className="shrink-0 text-[#ff4500]" />}
+      {locked ? <Lock size={13} className="shrink-0" /> : <Unlock size={13} className="shrink-0 text-brand" />}
       <span className="flex-1">{label}</span>
-      <span className={locked ? 'text-[#878a8c]' : 'font-bold text-[#ff4500]'}>
+      <span className={locked ? 'text-muted' : 'font-bold text-brand'}>
         {locked ? 'Locked' : 'Visible'}
       </span>
     </button>
@@ -213,18 +213,18 @@ export function TagField({
   return (
     <div>
       <label className={labelCx}>{label}</label>
-      <div className="flex flex-wrap gap-1.5 rounded-lg border border-[#edeff1] p-2 focus-within:border-[#ff4500]">
+      <div className="flex flex-wrap gap-1.5 rounded-lg border border-line p-2 focus-within:border-brand">
         {values.map((v) => (
           <span
             key={v}
-            className="flex items-center gap-1 rounded-full bg-[#f6f7f8] px-2.5 py-1 text-xs font-medium text-[#1c1c1c]"
+            className="flex items-center gap-1 rounded-full bg-page px-2.5 py-1 text-xs font-medium text-ink"
           >
             {v}
             <button
               type="button"
               onClick={() => onChange(values.filter((x) => x !== v))}
               aria-label={`Remove ${v}`}
-              className="text-[#878a8c] hover:text-red-500"
+              className="text-muted hover:text-red-500"
             >
               <X size={12} />
             </button>
@@ -251,7 +251,7 @@ export function TagField({
         />
       </div>
       {values.length >= max && (
-        <p className="mt-1 text-xs text-[#878a8c]">That's the maximum of {max}.</p>
+        <p className="mt-1 text-xs text-muted">That's the maximum of {max}.</p>
       )}
     </div>
   )
@@ -302,21 +302,21 @@ export function EntryListEditor<T>({
       {entries.map((entry, i) => {
         const open = openIndex === i
         return (
-          <div key={i} className="rounded-lg border border-[#edeff1] bg-[#f6f7f8]/50">
+          <div key={i} className="rounded-lg border border-line bg-page/50">
             <div className="flex items-center gap-1 px-3 py-2">
               <button
                 type="button"
                 onClick={() => setOpenIndex(open ? null : i)}
-                className="flex-1 truncate text-left text-sm font-medium text-[#1c1c1c]"
+                className="flex-1 truncate text-left text-sm font-medium text-ink"
               >
-                {summary(entry) || <span className="text-[#878a8c]">Untitled</span>}
+                {summary(entry) || <span className="text-muted">Untitled</span>}
               </button>
               <button
                 type="button"
                 onClick={() => move(i, -1)}
                 disabled={i === 0}
                 aria-label="Move up"
-                className="px-1 text-xs text-[#878a8c] disabled:opacity-30 hover:text-[#1c1c1c]"
+                className="px-1 text-xs text-muted disabled:opacity-30 hover:text-ink"
               >
                 ↑
               </button>
@@ -325,7 +325,7 @@ export function EntryListEditor<T>({
                 onClick={() => move(i, 1)}
                 disabled={i === entries.length - 1}
                 aria-label="Move down"
-                className="px-1 text-xs text-[#878a8c] disabled:opacity-30 hover:text-[#1c1c1c]"
+                className="px-1 text-xs text-muted disabled:opacity-30 hover:text-ink"
               >
                 ↓
               </button>
@@ -336,13 +336,13 @@ export function EntryListEditor<T>({
                   setOpenIndex(null)
                 }}
                 aria-label="Remove"
-                className="rounded p-1 text-[#878a8c] hover:bg-red-50 hover:text-red-500"
+                className="rounded p-1 text-muted hover:bg-red-50 hover:text-red-500"
               >
                 <X size={14} />
               </button>
             </div>
             {open && (
-              <div className="flex flex-col gap-2 border-t border-[#edeff1] bg-white px-3 py-3">
+              <div className="flex flex-col gap-2 border-t border-line bg-surface px-3 py-3">
                 {fields(entry, (patch) => update(i, patch))}
               </div>
             )}
@@ -357,12 +357,12 @@ export function EntryListEditor<T>({
             onChange([...entries, blank()])
             setOpenIndex(entries.length)
           }}
-          className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#edeff1] py-2 text-sm font-medium text-[#ff4500] hover:bg-orange-50"
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-line py-2 text-sm font-medium text-brand hover:bg-brand-50"
         >
           <Plus size={14} /> {addLabel}
         </button>
       ) : (
-        <p className="text-xs text-[#878a8c]">That's the maximum of {max} entries.</p>
+        <p className="text-xs text-muted">That's the maximum of {max} entries.</p>
       )}
     </div>
   )

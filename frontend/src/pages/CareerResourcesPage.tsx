@@ -131,8 +131,8 @@ export function CareerResourcesPage() {
         <LearningHero onBack={back} />
 
         {/* The search box drives All Resources, together with the filters. */}
-        <label className="flex items-center gap-2 rounded-xl border border-[#edeff1] bg-white px-3 py-2.5 shadow-sm focus-within:border-[#ff4500]/50">
-          <Search size={16} className="shrink-0 text-[#878a8c]" />
+        <label className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 shadow-sm focus-within:border-brand/50">
+          <Search size={16} className="shrink-0 text-muted" />
           <input
             value={filters.q}
             onChange={(e) => changeFilters({ ...filters, q: e.target.value })}
@@ -144,7 +144,7 @@ export function CareerResourcesPage() {
             <button
               onClick={() => setFilters({ ...filters, q: '' })}
               aria-label="Clear search"
-              className="text-[#878a8c] hover:text-[#1c1c1c]"
+              className="text-muted hover:text-ink"
             >
               <X size={14} />
             </button>
@@ -152,7 +152,7 @@ export function CareerResourcesPage() {
         </label>
 
         {!overview ? (
-          <p className="rounded-xl border border-[#edeff1] bg-white p-5 text-sm text-[#878a8c]">
+          <p className="rounded-xl border border-line bg-surface p-5 text-sm text-muted">
             Loading your learning plan…
           </p>
         ) : (
@@ -164,9 +164,9 @@ export function CareerResourcesPage() {
             />
 
 
-            <div className="rounded-xl border border-[#edeff1] bg-white shadow-sm">
+            <div className="rounded-xl border border-line bg-surface shadow-sm">
               <nav
-                className="flex gap-1 overflow-x-auto border-b border-[#edeff1] px-2"
+                className="flex gap-1 overflow-x-auto border-b border-line px-2"
                 aria-label="Learning sections"
               >
                 {tabs.map((t) => (
@@ -176,13 +176,13 @@ export function CareerResourcesPage() {
                     aria-current={view === t.id ? 'page' : undefined}
                     className={`shrink-0 border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${
                       view === t.id
-                        ? 'border-[#ff4500] text-[#ff4500]'
-                        : 'border-transparent text-[#878a8c] hover:text-[#1c1c1c]'
+                        ? 'border-brand text-brand'
+                        : 'border-transparent text-muted hover:text-ink'
                     }`}
                   >
                     {t.label}
                     {!!t.count && (
-                      <span className="ml-1.5 rounded-full bg-orange-50 px-1.5 text-[10px] text-[#ff4500]">
+                      <span className="ml-1.5 rounded-full bg-brand-50 px-1.5 text-[10px] text-brand">
                         {t.count}
                       </span>
                     )}

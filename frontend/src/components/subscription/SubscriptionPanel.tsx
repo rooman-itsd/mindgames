@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, CalendarClock, Check, Crown, Gauge, Loader2, X } from 'lucide-react'
+import { AlertTriangle, CalendarClock, Check, Crown, Gauge, X } from 'lucide-react'
 import { Button } from '../ui'
 import { api } from '../../lib/api'
 import { useApp } from '../../store/AppStore'
 import { SubscriptionPlans } from './SubscriptionPlans'
 import type { SubscriptionState } from '../../types'
+import { SkeletonRows } from '../ui/Skeleton'
 
 /**
  * What the crown opens.
@@ -70,12 +71,12 @@ export function SubscriptionPanel({ onClose }: { onClose: () => void }) {
   // painted over by the sidebar.
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 p-4 py-16" onClick={onClose}>
-      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div
           className={`relative px-6 py-6 text-center ${
             active
-              ? 'bg-gradient-to-br from-[#1c1c1c] via-[#2a1a10] to-[#3d2410]'
-              : 'bg-gradient-to-br from-[#1c1c1c] to-[#2a2a2a]'
+              ? 'bg-gradient-to-br from-ink via-night to-brand-900'
+              : 'bg-gradient-to-br from-ink to-gray-800'
           }`}
         >
           <button
@@ -87,7 +88,7 @@ export function SubscriptionPanel({ onClose }: { onClose: () => void }) {
           </button>
           <span
             className={`mx-auto mb-2 grid h-11 w-11 place-items-center rounded-full ${
-              active ? 'bg-gradient-to-br from-[#ffd700] to-[#ff9500] text-[#1c1c1c]' : 'bg-white/10 text-white/70'
+              active ? 'bg-gradient-to-br from-[#ffd700] to-[#ff9500] text-on-gold' : 'bg-white/10 text-white/70'
             }`}
           >
             <Crown size={22} />
@@ -103,13 +104,11 @@ export function SubscriptionPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {loading ? (
-          <div className="grid place-items-center py-14">
-            <Loader2 size={24} className="animate-spin text-[#ff4500]" />
-          </div>
+          <SkeletonRows count={3} className="px-6 py-8" />
         ) : !currentUser.isMentor ? (
           <div className="px-6 py-8 text-center">
-            <p className="text-sm font-semibold text-[#1c1c1c]">Plans are for mentors</p>
-            <p className="mx-auto mt-1 max-w-xs text-sm text-[#878a8c]">
+            <p className="text-sm font-semibold text-ink">Plans are for mentors</p>
+            <p className="mx-auto mt-1 max-w-xs text-sm text-muted">
               You only need a plan to accept mentorship sessions or charge for events. Taking
               sessions, chatting and your career roadmap are all free.
             </p>
@@ -190,14 +189,14 @@ function Fact({
   good?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-[#edeff1] px-3 py-2.5">
-      <span className="flex items-center gap-2 text-sm text-[#878a8c]">
-        <span className="text-[#878a8c]">{icon}</span>
+    <div className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5">
+      <span className="flex items-center gap-2 text-sm text-muted">
+        <span className="text-muted">{icon}</span>
         {label}
       </span>
       <span
         className={`text-sm font-bold ${
-          good === undefined ? 'text-[#1c1c1c]' : good ? 'text-green-600' : 'text-[#ff4500]'
+          good === undefined ? 'text-ink' : good ? 'text-green-600' : 'text-brand'
         }`}
       >
         {value}

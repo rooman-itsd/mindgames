@@ -4,6 +4,8 @@ import { useApp } from '../../store/AppStore'
 import { Card, Button } from '../ui'
 import { roleLine } from '../../lib/format'
 import type { User } from '../../types'
+import { EmptyState } from '../ui/EmptyState'
+import { PartyPopper } from 'lucide-react'
 
 type Tab = 'whatsnew' | 'catchup'
 
@@ -99,22 +101,25 @@ export function GrowCatchupSection() {
 
   if (displayItems.length === 0) {
     return (
-      <Card className="p-6 text-center">
-        <p className="text-sm text-[#878a8c]">No updates right now. Check back soon!</p>
-      </Card>
+      <EmptyState
+        icon={<PartyPopper size={28} />}
+        title="You're all caught up 🎉"
+        body="New posts and wins from your network will show up here."
+        action={{ label: 'Explore communities', to: '/explore' }}
+      />
     )
   }
 
   return (
     <div className="space-y-4">
       {/* Tabs */}
-      <div className="flex gap-2 rounded-lg border border-[#edeff1] bg-white p-2">
+      <div className="flex gap-2 rounded-lg border border-line bg-surface p-2">
         <button
           onClick={() => setActiveTab('whatsnew')}
           className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
             activeTab === 'whatsnew'
-              ? 'bg-[#ff4500] text-white'
-              : 'text-[#878a8c] hover:text-[#1c1c1c]'
+              ? 'bg-brand text-white'
+              : 'text-muted hover:text-ink'
           }`}
         >
           <span className="flex items-center justify-center gap-1.5">
@@ -126,8 +131,8 @@ export function GrowCatchupSection() {
           onClick={() => setActiveTab('catchup')}
           className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
             activeTab === 'catchup'
-              ? 'bg-[#ff4500] text-white'
-              : 'text-[#878a8c] hover:text-[#1c1c1c]'
+              ? 'bg-brand text-white'
+              : 'text-muted hover:text-ink'
           }`}
         >
           <span className="flex items-center justify-center gap-1.5">
@@ -146,9 +151,9 @@ export function GrowCatchupSection() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-semibold text-[#1c1c1c]">{item.user.name}</h3>
-                    <p className="text-xs text-[#878a8c] mt-0.5">{roleLine(item.user)}</p>
-                    <p className="text-xs text-[#1c1c1c] font-medium mt-1">{item.description}</p>
+                    <h3 className="font-semibold text-ink">{item.user.name}</h3>
+                    <p className="text-xs text-muted mt-0.5">{roleLine(item.user)}</p>
+                    <p className="text-xs text-ink font-medium mt-1">{item.description}</p>
                   </div>
                   <Button variant="outline" className="!px-3 !py-1 text-xs">
                     {item.action}
@@ -161,12 +166,12 @@ export function GrowCatchupSection() {
       </div>
 
       {/* Sync Contacts CTA */}
-      <Card className="border-2 border-dashed border-[#ff4500]/30 bg-orange-50 p-4">
+      <Card className="border-2 border-dashed border-brand/30 bg-brand-50 p-4">
         <div className="flex items-start gap-3">
           <div className="text-2xl">📱</div>
           <div className="flex-1">
-            <h4 className="font-semibold text-[#1c1c1c]">Find More Connections</h4>
-            <p className="text-xs text-[#878a8c] mt-1">
+            <h4 className="font-semibold text-ink">Find More Connections</h4>
+            <p className="text-xs text-muted mt-1">
               Add your phone number to match with people from your contacts.
             </p>
           </div>

@@ -49,10 +49,10 @@ const FACTOR_ORDER: CompanyFactorKey[] = [
 
 /** Strong / moderate / weak / unknown. */
 function tintFor(ratio: number | null) {
-  if (ratio === null) return { ring: 'bg-[#f3f4f5] text-[#b8bbbd]', text: 'text-[#b8bbbd]' }
-  if (ratio >= 0.66) return { ring: 'bg-[#ff4500] text-white', text: 'text-[#1c1c1c]' }
-  if (ratio >= 0.33) return { ring: 'bg-[#ffd9cc] text-[#c2410c]', text: 'text-[#6b6e70]' }
-  return { ring: 'bg-[#f3f4f5] text-[#878a8c]', text: 'text-[#878a8c]' }
+  if (ratio === null) return { ring: 'bg-gray-100 text-gray-300', text: 'text-gray-300' }
+  if (ratio >= 0.66) return { ring: 'bg-brand text-white', text: 'text-ink' }
+  if (ratio >= 0.33) return { ring: 'bg-brand-100 text-brand', text: 'text-muted' }
+  return { ring: 'bg-gray-100 text-muted', text: 'text-muted' }
 }
 
 function FactorTile({
@@ -81,7 +81,7 @@ function FactorTile({
           tint.ring,
           // The row leader gets a ring rather than a different colour, so the
           // tint keeps meaning "how good" and never doubles as "who won".
-          leads && 'ring-2 ring-[#ff4500] ring-offset-2',
+          leads && 'ring-2 ring-brand ring-offset-2',
         )}
       >
         <Icon size={16} />
@@ -121,31 +121,31 @@ export function CompareModal({
       role="presentation"
     >
       <div
-        className="w-full max-w-3xl rounded-2xl bg-white shadow-lg"
+        className="w-full max-w-3xl rounded-2xl bg-surface shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-[#edeff1] p-5">
+        <div className="flex items-start justify-between gap-3 border-b border-line p-5">
           <div>
-            <h2 className="text-lg font-bold text-[#1c1c1c]">
+            <h2 className="text-lg font-bold text-ink">
               Comparing {ranked.length} compan{ranked.length === 1 ? 'y' : 'ies'}
             </h2>
-            <p className="text-xs text-[#878a8c]">
+            <p className="text-xs text-muted">
               Scored against your profile. Hover a tile for the detail behind it.
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Close comparison"
-            className="shrink-0 rounded-full p-1 text-[#878a8c] transition-colors hover:bg-gray-100 hover:text-[#1c1c1c]"
+            className="shrink-0 rounded-full p-1 text-muted transition-colors hover:bg-gray-100 hover:text-ink"
           >
             <X size={20} />
           </button>
         </div>
 
         {verdict && (
-          <div className="flex items-start gap-2 border-b border-[#edeff1] bg-[#fff8f6] px-5 py-3">
-            <Trophy size={15} className="mt-0.5 shrink-0 text-[#ff4500]" />
-            <p className="text-sm text-[#1c1c1c]">
+          <div className="flex items-start gap-2 border-b border-line bg-brand-50 px-5 py-3">
+            <Trophy size={15} className="mt-0.5 shrink-0 text-brand" />
+            <p className="text-sm text-ink">
               <span className="font-bold">{verdict.winner.company.name}</span> suits your profile
               best — biggest lead on {verdict.because}.
             </p>
@@ -154,12 +154,12 @@ export function CompareModal({
 
         <div className="flex flex-col gap-3 p-5">
           {ranked.map(({ company, match }) => (
-            <div key={company.id} className="rounded-xl border border-[#edeff1] p-4">
+            <div key={company.id} className="rounded-xl border border-line p-4">
               <div className="mb-4 flex items-center gap-3">
                 <CompanyLogo name={company.name} logoUrl={company.logoUrl} size={36} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold text-[#1c1c1c]">{company.name}</p>
-                  <p className="truncate text-xs text-[#878a8c]">
+                  <p className="truncate font-bold text-ink">{company.name}</p>
+                  <p className="truncate text-xs text-muted">
                     {company.industry} · {alumniCount(company.alumniCount)} · {match.confidence} confidence
                   </p>
                 </div>
@@ -167,7 +167,7 @@ export function CompareModal({
                 <button
                   onClick={() => onRemove(company.id)}
                   aria-label={`Remove ${company.name} from the comparison`}
-                  className="shrink-0 rounded-full p-1 text-[#878a8c] transition-colors hover:bg-gray-100 hover:text-[#1c1c1c]"
+                  className="shrink-0 rounded-full p-1 text-muted transition-colors hover:bg-gray-100 hover:text-ink"
                 >
                   <X size={15} />
                 </button>

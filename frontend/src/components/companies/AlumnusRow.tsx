@@ -30,7 +30,7 @@ export function AlumnusRow({
     <div
       className={cx(
         'flex items-start gap-3 py-3',
-        !last && 'border-b border-[#edeff1]',
+        !last && 'border-b border-line',
       )}
     >
       <Avatar name={alum.name} src={alum.photo} size={40} to={`/profile/${alum.id}`} />
@@ -38,14 +38,14 @@ export function AlumnusRow({
       <div className="min-w-0 flex-1">
         <Link
           to={`/profile/${alum.id}`}
-          className="font-bold text-[#1c1c1c] hover:text-[#ff4500] hover:underline"
+          className="font-bold text-ink hover:text-brand hover:underline"
         >
           {alum.name}
         </Link>
 
         {/* Role and location share one line — they never needed two. */}
         {(alum.role || alum.location) && (
-          <p className="flex flex-wrap items-center gap-x-3 text-xs text-[#878a8c]">
+          <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted">
             {alum.role && (
               <span className="flex items-center gap-1">
                 <Briefcase size={11} /> {alum.role}
@@ -60,11 +60,11 @@ export function AlumnusRow({
         )}
 
         {alum.journey && (
-          <p className="mt-1 line-clamp-1 text-xs text-[#6b6e70]">{alum.journey}</p>
+          <p className="mt-1 line-clamp-1 text-xs text-muted">{alum.journey}</p>
         )}
 
         {alum.mutualConnections > 0 && (
-          <p className="mt-1 text-xs font-semibold text-[#ff4500]">
+          <p className="mt-1 text-xs font-semibold text-brand">
             {alum.mutualConnections} mutual connection{alum.mutualConnections > 1 ? 's' : ''}
           </p>
         )}

@@ -2,8 +2,12 @@ import { useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useApp } from '../store/AppStore'
 import { CreatePostBox } from '../components/feed/CreatePostBox'
+import { HomeGreeting } from '../components/feed/HomeGreeting'
 import { PostCard } from '../components/feed/PostCard'
 import { matchesPostQuery } from '../lib/search'
+import { EmptyState } from '../components/ui/EmptyState'
+import { useLayout } from '../components/layout/LayoutContext'
+import { SearchX, Sprout } from 'lucide-react'
 
 /** Feed window: posts from your network published in the last 48 hours. */
 const FEED_WINDOW_MS = 48 * 60 * 60 * 1000
@@ -16,6 +20,7 @@ function focusedPostId(hash: string): string | null {
 
 export function Home() {
   const { posts, users, query, connectionIds } = useApp()
+  const { openComposer } = useLayout()
 
   // `key` changes on every navigation, including a repeat click on a link to
   // the hash we are already at — without it, clicking the same sidebar preview
@@ -72,27 +77,34 @@ export function Home() {
     const el = document.getElementById(hash.slice(1))
     if (!el) return
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    el.classList.add('ring-2', 'ring-[#ff4500]')
-    const timer = setTimeout(() => el.classList.remove('ring-2', 'ring-[#ff4500]'), 2500)
+    el.classList.add('ring-2', 'ring-brand')
+    const timer = setTimeout(() => el.classList.remove('ring-2', 'ring-brand'), 2500)
     return () => {
       clearTimeout(timer)
-      el.classList.remove('ring-2', 'ring-[#ff4500]')
+      el.classList.remove('ring-2', 'ring-brand')
     }
   }, [hash, locationKey, visible.length])
 
   return (
     <div className="flex flex-col gap-2">
+      <HomeGreeting />
       <CreatePostBox />
 
       {visible.map((p) => (
         <PostCard key={p.id} post={p} />
       ))}
 
-      {visible.length === 0 && (
-        <div className="rounded-xl border border-[#edeff1] bg-white py-16 text-center text-[#878a8c] shadow-sm">
-          {query.trim() ? <>No posts match “{query}”.</> : 'No posts yet.'}
-        </div>
-      )}
+      {visible.length === 0 &&
+        (query.trim() ? (
+          <EmptyState icon={<SearchX size={28} />} title={`No posts match “${query.trim()}”`} body="Try a different word, or clear the search to see the whole feed." />
+        ) : (
+          <EmptyState
+            icon={<Sprout size={28} />}
+            title="Your feed is quiet"
+            body="Be the first to share: an update, a job opening, or a question for the network."
+            action={{ label: 'Create a post', onClick: () => openComposer() }}
+          />
+        ))}
     </div>
   )
 }

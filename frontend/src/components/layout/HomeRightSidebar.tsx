@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../../store/AppStore'
 import { Avatar } from '../ui'
+import { CountUp } from '../ui/CountUp'
 import { timeAgo } from '../../lib/format'
 import { useLeaderboard } from '../../hooks/useLeaderboard'
 import { useUpcomingEvents } from '../../hooks/useUpcomingEvents'
@@ -15,13 +16,13 @@ function PostCard({ p, author }: { p: Post; author: User | undefined }) {
     // hash by scrolling to it and briefly highlighting it.
     <Link
       to={`/home#post-${p.id}`}
-      className="flex items-start gap-2.5 bg-white border border-[#e0e0e0] p-2.5 hover:border-[#ff4500] transition-all duration-300 group"
+      className="flex items-start gap-2.5 bg-surface border border-line p-2.5 hover:border-brand transition-all duration-300 group"
     >
       <Avatar name={author?.name ?? '?'} src={author?.photo} size={28} />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-black">{author?.name}</p>
-        <p className="mt-0.5 line-clamp-2 text-xs text-[#333] leading-snug">{p.content}</p>
-        <div className="mt-1.5 flex gap-3 text-[10px] text-[#666]">
+        <p className="text-xs font-semibold text-ink">{author?.name}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs text-gray-800 leading-snug">{p.content}</p>
+        <div className="mt-1.5 flex gap-3 text-[10px] text-gray-600">
           <span>❤️ {p.likes || 0}</span>
           <span>💬 {p.comments?.length || 0}</span>
           <span>{timeAgo(p.createdAt)}</span>
@@ -92,19 +93,19 @@ export function HomeRightSidebar() {
   const nextEvents = useUpcomingEvents(2)
 
   return (
-    <aside className="fixed bottom-0 right-[var(--shell-gutter)] top-14 hidden w-[300px] overflow-y-auto px-4 py-4 xl:block bg-[#f5f5f5]">
+    <aside className="fixed bottom-0 right-[calc(var(--shell-gutter)+14px)] top-14 hidden w-[288px] overflow-y-auto py-3.5 xl:block">
       <div className="flex flex-col gap-3.5">
         {/* Sort filter */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="w-full flex items-center justify-between bg-[#ff4500] border border-[#ff4500] px-3 py-2 text-sm font-bold text-white hover:bg-[#ff6534] transition-all duration-200"
+            className="w-full flex items-center justify-between bg-clay-600 border border-clay-600 px-3 py-2 text-sm font-bold text-white hover:bg-clay-700 transition-all duration-200"
           >
             <span>{sort}</span>
             <ChevronDown size={14} className={`transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
           </button>
           {showDropdown && (
-            <div className="absolute top-10 left-0 right-0 z-10 border border-[#e0e0e0] bg-white shadow-lg">
+            <div className="absolute top-10 left-0 right-0 z-10 border border-line bg-surface shadow-lg">
               {SORT_MODES.map((mode) => (
                 <button
                   key={mode}
@@ -112,10 +113,10 @@ export function HomeRightSidebar() {
                     setSort(mode)
                     setShowDropdown(false)
                   }}
-                  className={`w-full text-left px-3 py-2 text-sm font-medium transition-all duration-200 text-black ${
+                  className={`w-full text-left px-3 py-2 text-sm font-medium transition-all duration-200 text-ink ${
                     sort === mode
-                      ? 'bg-orange-100 font-bold border-l-2 border-[#ff4500]'
-                      : 'hover:bg-[#f9f9f9]'
+                      ? 'bg-brand-100 font-bold border-l-2 border-brand'
+                      : 'hover:bg-gray-50'
                   }`}
                 >
                   {mode}
@@ -128,7 +129,7 @@ export function HomeRightSidebar() {
         {/* Top posts */}
         {topPosts.length > 0 && (
           <div>
-            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-black">{sort}</h3>
+            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-ink">{sort}</h3>
             <div className="flex flex-col gap-2">
               {topPosts.map((p) => (
                 <PostCard key={p.id} p={p} author={userById(p.authorId)} />
@@ -140,7 +141,7 @@ export function HomeRightSidebar() {
         {/* Trending posts */}
         {trendingPostsData.length > 0 && sort !== 'Hot' && (
           <div>
-            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-black">🔥 Trending Now</h3>
+            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-ink">🔥 Trending Now</h3>
             <div className="flex flex-col gap-2">
               {trendingPostsData.map((p) => (
                 <PostCard key={p.id} p={p} author={userById(p.authorId)} />
@@ -152,12 +153,12 @@ export function HomeRightSidebar() {
         {/* Trending topics */}
         {trendingTopics.length > 0 && (
           <div>
-            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-black">Trending Topics</h3>
+            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-ink">Trending Topics</h3>
             <div className="flex flex-wrap gap-1.5">
               {trendingTopics.map(([topic]) => (
                 <div
                   key={topic}
-                  className="bg-white border border-[#e0e0e0] px-2.5 py-1.5 text-[10px] font-semibold text-black cursor-default transition-all duration-300"
+                  className="bg-surface border border-line px-2.5 py-1.5 text-[10px] font-semibold text-ink cursor-default transition-all duration-300"
                 >
                   {topic}
                 </div>
@@ -169,7 +170,7 @@ export function HomeRightSidebar() {
         {/* Posts for you */}
         {postsForYou.length > 0 && (
           <div>
-            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-black">For You</h3>
+            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-ink">For You</h3>
             <div className="flex flex-col gap-2">
               {postsForYou.map((p) => (
                 <PostCard key={p.id} p={p} author={userById(p.authorId)} />
@@ -181,27 +182,27 @@ export function HomeRightSidebar() {
         {/* Top contributors */}
         {leaders.length > 0 && (
           <div>
-            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-black">Top Contributors</h3>
+            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-ink">Top Contributors</h3>
             <div className="flex flex-col gap-1.5">
               {leaders.slice(0, 4).map((l, i) => (
                 <Link
                   key={l.id}
                   to={`/profile/${l.id}`}
-                  className="group flex items-center gap-2.5 bg-white border border-[#e0e0e0] px-2.5 py-2 hover:border-[#ff4500] transition-all duration-300"
+                  className="group flex items-center gap-2.5 bg-surface border border-line px-2.5 py-2 hover:border-brand transition-all duration-300"
                 >
                   <div
                     className={`flex h-6 w-6 items-center justify-center text-xs font-bold text-white ${
-                      i === 0 ? 'bg-[#ffa500]' : i === 1 ? 'bg-[#c0c0c0]' : i === 2 ? 'bg-[#cd7f32]' : 'bg-[#999]'
+                      i === 0 ? 'bg-[#ffa500]' : i === 1 ? 'bg-[#c0c0c0]' : i === 2 ? 'bg-[#cd7f32]' : 'bg-gray-400'
                     }`}
                   >
                     {i + 1}
                   </div>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-black">
+                    <span className="block truncate text-xs font-semibold text-ink">
                       {l.name}
                     </span>
                   </span>
-                  <span className="shrink-0 text-xs font-bold text-[#ff4500]">{l.points}</span>
+                  <span className="shrink-0 text-xs font-bold text-brand"><CountUp value={l.points} /></span>
                 </Link>
               ))}
             </div>
@@ -211,16 +212,16 @@ export function HomeRightSidebar() {
         {/* Upcoming events */}
         {nextEvents.length > 0 && (
           <div>
-            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-black">Events</h3>
+            <h3 className="mb-2.5 text-xs font-black uppercase tracking-wider text-ink">Events</h3>
             <div className="flex flex-col gap-1.5">
               {nextEvents.map((e) => (
                 <Link
                   key={e.id}
                   to="/events"
-                  className="group bg-white border border-[#e0e0e0] p-2.5 text-xs hover:border-[#ff4500] transition-all duration-300"
+                  className="group bg-surface border border-line p-2.5 text-xs hover:border-brand transition-all duration-300"
                 >
-                  <p className="font-semibold text-black">{e.title}</p>
-                  <p className="mt-0.5 text-[10px] text-[#666]">
+                  <p className="font-semibold text-ink">{e.title}</p>
+                  <p className="mt-0.5 text-[10px] text-gray-600">
                     {new Date(e.startsAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </p>
                 </Link>
@@ -229,7 +230,7 @@ export function HomeRightSidebar() {
           </div>
         )}
 
-        <div className="mt-3 px-1 text-[10px] text-[#999]">
+        <div className="mt-3 px-1 text-[10px] text-gray-400">
           Root Connect · Alumni Network
         </div>
       </div>

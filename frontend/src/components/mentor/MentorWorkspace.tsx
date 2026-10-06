@@ -93,8 +93,8 @@ export function MentorWorkspace({
       {/* Offer a 1:1 session, rather than only ever waiting for someone to
           request one. Restricted to connections, and they accept or decline
           it the same way a mentor accepts a request today. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#edeff1] bg-white p-4">
-        <p className="text-sm text-[#878a8c]">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
+        <p className="text-sm text-muted">
           Offer one of your connections a 1:1 session instead of waiting to be asked.
         </p>
         <Button icon={<Plus size={15} />} onClick={() => setShowOfferSession(true)}>
@@ -123,28 +123,28 @@ export function MentorWorkspace({
       {/* Requests waiting on this mentor */}
       <Card className="p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
-            <CalendarClock size={18} className="text-[#ff4500]" />
+          <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
+            <CalendarClock size={18} className="text-brand" />
             Requests
             {requests.length > 0 && (
-              <span className="rounded-full bg-[#ff4500] px-2 py-0.5 text-xs font-bold text-white">
+              <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">
                 {requests.length}
               </span>
             )}
           </h2>
         </div>
         {requests.length === 0 ? (
-          <p className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-[#878a8c]">
+          <p className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-muted">
             No one is waiting on you right now.
           </p>
         ) : (
           <div className="flex flex-col gap-2">
             {requests.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#edeff1] p-3">
+              <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">
                 <Avatar name={s.menteeName} size={38} to={`/profile/${s.menteeId}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#1c1c1c]">{s.topic}</p>
-                  <p className="text-xs text-[#878a8c]">
+                  <p className="truncate text-sm font-semibold text-ink">{s.topic}</p>
+                  <p className="text-xs text-muted">
                     {s.menteeName} · {s.date} at {s.time}
                     {s.isPaid && (s.price ?? 0) > 0 && ` · ₹${(s.price ?? 0).toLocaleString('en-IN')}`}
                   </p>
@@ -180,17 +180,17 @@ export function MentorWorkspace({
       {/* Confirmed, still to happen */}
       {upcoming.length > 0 && (
         <Card className="p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-ink">
             <CalendarClock size={18} className="text-green-600" />
             Upcoming
           </h2>
           <div className="flex flex-col gap-2">
             {upcoming.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#edeff1] p-3">
+              <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">
                 <Avatar name={s.menteeName} size={38} to={`/profile/${s.menteeId}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#1c1c1c]">{s.topic}</p>
-                  <p className="text-xs text-[#878a8c]">
+                  <p className="truncate text-sm font-semibold text-ink">{s.topic}</p>
+                  <p className="text-xs text-muted">
                     {s.menteeName} · {s.date} at {s.time}
                   </p>
                 </div>
@@ -206,7 +206,7 @@ export function MentorWorkspace({
                       Join
                     </a>
                   ) : (
-                    <span title="Add a meeting link with Edit" className="px-1 text-xs text-[#878a8c]">
+                    <span title="Add a meeting link with Edit" className="px-1 text-xs text-muted">
                       No link
                     </span>
                   )}
@@ -235,19 +235,19 @@ export function MentorWorkspace({
           Sessions → Past" only shows the mentee side of the history. */}
       {finished.length > 0 && (
         <Card className="p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
-            <GraduationCap size={18} className="text-[#878a8c]" />
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-ink">
+            <GraduationCap size={18} className="text-muted" />
             Past
           </h2>
           <div className="flex flex-col gap-2">
             {finished.map((s) => {
               const declined = s.status === 'declined'
               return (
-                <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#edeff1] p-3 opacity-80">
+                <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3 opacity-80">
                   <Avatar name={s.menteeName} size={38} to={`/profile/${s.menteeId}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#1c1c1c]">{s.topic}</p>
-                    <p className="text-xs text-[#878a8c]">{s.menteeName} · {s.date}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{s.topic}</p>
+                    <p className="text-xs text-muted">{s.menteeName} · {s.date}</p>
                   </div>
                   {/* Why a completed session isn't in the stats yet: it counts
                       once the mentee confirms too. Neutral grey, not amber —
@@ -256,7 +256,7 @@ export function MentorWorkspace({
                   {!declined && s.mentorConfirmed && !s.menteeConfirmed && (
                     <span
                       title={`Counts toward your hours and badges once ${s.menteeName} confirms it happened.`}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-[#5f6368]"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600"
                     >
                       <Clock size={11} /> {s.menteeName} to confirm
                     </span>
@@ -296,37 +296,37 @@ export function MentorWorkspace({
 
       {/* People being helped */}
       <Card className="p-5">
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
-          <Users size={18} className="text-[#ff4500]" />
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-ink">
+          <Users size={18} className="text-brand" />
           My mentees
         </h2>
         {mentees.length === 0 ? (
-          <p className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-[#878a8c]">
+          <p className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-muted">
             Once you accept a session, that member appears here with what they're working towards.
           </p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {mentees.map((m) => (
-              <div key={m.id} className="flex flex-col gap-2 rounded-xl border border-[#edeff1] p-3">
+              <div key={m.id} className="flex flex-col gap-2 rounded-xl border border-line p-3">
                 <div className="flex items-center gap-2.5">
                   <Avatar name={m.name} src={m.photo} size={38} to={`/profile/${m.id}`} />
                   <div className="min-w-0 flex-1">
-                    <Link to={`/profile/${m.id}`} className="block truncate text-sm font-bold text-[#1c1c1c] hover:underline">
+                    <Link to={`/profile/${m.id}`} className="block truncate text-sm font-bold text-ink hover:underline">
                       {m.name}
                     </Link>
-                    <p className="truncate text-xs text-[#878a8c]">
+                    <p className="truncate text-xs text-muted">
                       {[m.designation, m.company].filter(Boolean).join(' · ')}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-[#878a8c]">
+                  <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-muted">
                     {m.sessions} {m.sessions === 1 ? 'session' : 'sessions'}
                   </span>
                 </div>
 
                 {m.goal?.targetRole && (
-                  <p className="flex items-center gap-1.5 text-xs text-[#878a8c]">
-                    <MapIcon size={12} className="shrink-0 text-[#ff4500]" />
-                    Working towards <strong className="text-[#1c1c1c]">{m.goal.targetRole}</strong>
+                  <p className="flex items-center gap-1.5 text-xs text-muted">
+                    <MapIcon size={12} className="shrink-0 text-brand" />
+                    Working towards <strong className="text-ink">{m.goal.targetRole}</strong>
                   </p>
                 )}
 
@@ -340,7 +340,7 @@ export function MentorWorkspace({
                     View their roadmap
                   </Button>
                 ) : (
-                  <span className="rounded-lg bg-gray-50 py-1.5 text-center text-xs text-[#878a8c]">
+                  <span className="rounded-lg bg-gray-50 py-1.5 text-center text-xs text-muted">
                     No roadmap yet
                   </span>
                 )}
@@ -363,11 +363,11 @@ export function MentorWorkspace({
       {/* What they offer + what they've earned */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
-          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
-            <Wrench size={18} className="text-[#ff4500]" />
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-ink">
+            <Wrench size={18} className="text-brand" />
             My services
           </h2>
-          <p className="mb-3 text-sm text-[#878a8c]">
+          <p className="mb-3 text-sm text-muted">
             What you offer, and what you charge. Shown to members whose roadmap matches.
           </p>
           <Button variant="outline" onClick={() => setShowServices((v) => !v)}>
@@ -376,12 +376,12 @@ export function MentorWorkspace({
         </Card>
 
         <Card className="p-5">
-          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
-            <Award size={18} className="text-[#ff4500]" />
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-ink">
+            <Award size={18} className="text-brand" />
             Badges
           </h2>
           {!stats || stats.badges.length === 0 ? (
-            <p className="text-sm text-[#878a8c]">
+            <p className="text-sm text-muted">
               Complete a session and have your mentee confirm it to earn your first badge.
             </p>
           ) : (
@@ -434,7 +434,7 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
   const [saving, setSaving] = useState(false)
 
   const connections = users.filter((u) => u.id !== currentUser.id && connectionState(u.id) === 'connected')
-  const field = 'mt-1 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
+  const field = 'mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
 
   async function submit() {
     if (!menteeId) return notify('Pick who the session is for.', 'error')
@@ -473,32 +473,32 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-[#1c1c1c]">Host a session</h2>
-            <p className="text-sm text-[#878a8c]">They'll get it as a request to accept or decline.</p>
+            <h2 className="text-lg font-bold text-ink">Host a session</h2>
+            <p className="text-sm text-muted">They'll get it as a request to accept or decline.</p>
           </div>
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
-        <label className="block text-sm font-medium text-[#1c1c1c]">Who is it for?</label>
+        <label className="block text-sm font-medium text-ink">Who is it for?</label>
         {connections.length === 0 ? (
-          <p className="mt-1 rounded-lg bg-gray-50 px-3 py-4 text-center text-xs text-[#878a8c]">
+          <p className="mt-1 rounded-lg bg-gray-50 px-3 py-4 text-center text-xs text-muted">
             You have no connections yet to offer a session to.
           </p>
         ) : (
           // A plain <select> can only show names, and duplicate names are
           // common in an alumni network — the photo and role are what tell
           // two "Chandana S"s apart.
-          <div className="mt-1 max-h-44 overflow-y-auto rounded-lg border border-[#edeff1]">
+          <div className="mt-1 max-h-44 overflow-y-auto rounded-lg border border-line">
             {connections.map((u) => (
               <label
                 key={u.id}
-                className={`flex cursor-pointer items-center gap-2.5 border-b border-[#edeff1] px-3 py-2 last:border-b-0 hover:bg-gray-50 ${
-                  menteeId === u.id ? 'bg-orange-50' : ''
+                className={`flex cursor-pointer items-center gap-2.5 border-b border-line px-3 py-2 last:border-b-0 hover:bg-gray-50 ${
+                  menteeId === u.id ? 'bg-brand-50' : ''
                 }`}
               >
                 <input
@@ -506,12 +506,12 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
                   name="offer-mentee"
                   checked={menteeId === u.id}
                   onChange={() => setMenteeId(u.id)}
-                  className="h-4 w-4 shrink-0 accent-[#ff4500]"
+                  className="h-4 w-4 shrink-0 accent-brand"
                 />
                 <Avatar name={u.name} src={u.photo} size={30} />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#1c1c1c]">{u.name}</span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{u.name}</span>
                 {roleLine(u) && (
-                  <span className="max-w-[45%] shrink-0 truncate text-right text-[11px] text-[#878a8c]">
+                  <span className="max-w-[45%] shrink-0 truncate text-right text-[11px] text-muted">
                     {roleLine(u)}
                   </span>
                 )}
@@ -520,7 +520,7 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
           </div>
         )}
 
-        <label className="mt-3 block text-sm font-medium text-[#1c1c1c]">What will you cover?</label>
+        <label className="mt-3 block text-sm font-medium text-ink">What will you cover?</label>
         <textarea
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
@@ -531,7 +531,7 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
 
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-[#1c1c1c]">Date</label>
+            <label className="block text-sm font-medium text-ink">Date</label>
             <input
               type="date"
               value={date}
@@ -541,12 +541,12 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1c1c1c]">Time</label>
+            <label className="block text-sm font-medium text-ink">Time</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
           </div>
         </div>
 
-        <label className="mt-3 block text-sm font-medium text-[#1c1c1c]">
+        <label className="mt-3 block text-sm font-medium text-ink">
           Meeting link <span className="text-red-500">*</span>
         </label>
         <input
@@ -556,7 +556,7 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
           className={field}
         />
 
-        <label className="mt-3 block text-sm font-medium text-[#1c1c1c]">Prep for them (optional)</label>
+        <label className="mt-3 block text-sm font-medium text-ink">Prep for them (optional)</label>
         <input
           value={resourceLink}
           onChange={(e) => setResourceLink(e.target.value)}
@@ -598,12 +598,12 @@ function Stat({
 }) {
   return (
     <Card className="p-4">
-      <span className="flex items-center gap-1.5 text-xs font-medium text-[#878a8c]">
-        <span className="text-[#ff4500]">{icon}</span>
+      <span className="flex items-center gap-1.5 text-xs font-medium text-muted">
+        <span className="text-brand">{icon}</span>
         {label}
       </span>
-      <p className="mt-1 text-2xl font-bold text-[#1c1c1c]">{value}</p>
-      {sub && <p className="text-xs text-[#878a8c]">{sub}</p>}
+      <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </Card>
   )
 }
@@ -613,11 +613,11 @@ function Stat({
 function LockedState() {
   return (
     <Card className="px-6 py-12 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-[#878a8c]">
+      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-muted">
         <Lock size={26} />
       </span>
-      <h2 className="text-xl font-bold text-[#1c1c1c]">Your mentor space is locked</h2>
-      <p className="mx-auto mt-1.5 max-w-md text-sm text-[#878a8c]">
+      <h2 className="text-xl font-bold text-ink">Your mentor space is locked</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-muted">
         Once an admin verifies you as a mentor, this is where you'll handle session requests,
         see who you're helping and what they're working towards, and manage what you offer.
       </p>
@@ -629,7 +629,7 @@ function LockedState() {
           'List services and set your own price',
           'Track sessions, hours, ratings and badges',
         ].map((f) => (
-          <p key={f} className="flex items-center gap-2 rounded-lg border border-[#edeff1] px-3 py-2 text-sm text-[#878a8c]">
+          <p key={f} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted">
             <Lock size={12} className="shrink-0" />
             {f}
           </p>
@@ -641,7 +641,7 @@ function LockedState() {
           Apply to become a mentor
         </Button>
       </Link>
-      <p className="mt-2 text-xs text-[#878a8c]">
+      <p className="mt-2 text-xs text-muted">
         Applications are submitted from your profile, with proof of your experience.
       </p>
     </Card>

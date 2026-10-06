@@ -10,8 +10,8 @@ import type { AlumniHelper, AlumniService, CareerRoadmap, CareerStage, CareerSta
 
 const BADGE: Record<CareerStageStatus, string> = {
   completed: 'bg-green-500 text-white',
-  in_progress: 'bg-[#ff4500] text-white',
-  upcoming: 'bg-gray-200 text-[#878a8c]',
+  in_progress: 'bg-brand text-white',
+  upcoming: 'bg-gray-200 text-muted',
   paused: 'bg-amber-400 text-white',
 }
 
@@ -78,19 +78,19 @@ export function CareerRoadmapTimeline({
     <Card className="p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-orange-50 text-[#ff4500]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand">
             <Map size={20} />
           </span>
           <div>
-            <h2 className="text-lg font-bold text-[#1c1c1c]">Your Personalized Roadmap</h2>
-            <p className="text-sm text-[#878a8c]">
+            <h2 className="text-lg font-bold text-ink">Your Personalized Roadmap</h2>
+            <p className="text-sm text-muted">
               A step-by-step plan to reach your goal, with support from the Rooman alumni network.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-xs font-medium text-[#878a8c]">
+        <div className="flex items-center gap-4 text-xs font-medium text-muted">
           <Legend className="bg-green-500" label="Completed" />
-          <Legend className="bg-[#ff4500]" label="In Progress" />
+          <Legend className="bg-brand" label="In Progress" />
           <Legend className="bg-gray-300" label="Upcoming" />
         </div>
       </div>
@@ -192,7 +192,7 @@ function NextUpStrip({
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-green-500 text-white">
         <Check size={14} />
       </span>
-      <p className="min-w-0 flex-1 text-sm text-[#1c1c1c]">
+      <p className="min-w-0 flex-1 text-sm text-ink">
         <span className="font-semibold">“{doneTitle}” done.</span> Next up:{' '}
         <span className="font-semibold">{next.title}</span>
         {helpers > 0 ? ` — ${alumniCount(helpers)} can help.` : '.'}
@@ -211,7 +211,7 @@ function NextUpStrip({
       <button
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="rounded-full p-1 text-[#878a8c] hover:bg-white hover:text-[#1c1c1c]"
+        className="rounded-full p-1 text-muted hover:bg-surface hover:text-ink"
       >
         <X size={16} />
       </button>
@@ -255,8 +255,8 @@ function StageCard({
         isLast
           ? 'border-indigo-100 bg-indigo-50/40'
           : stage.status === 'in_progress'
-            ? 'border-[#ff4500]/30 bg-orange-50/40'
-            : 'border-[#edeff1] bg-white'
+            ? 'border-brand/30 bg-brand-50/40'
+            : 'border-line bg-surface'
       }`}
     >
       <div className="mb-2 flex w-full items-center justify-between">
@@ -264,20 +264,20 @@ function StageCard({
           {stage.status === 'completed' ? <Check size={13} /> : index + 1}
         </span>
         {(isFirst || isLast) && (
-          <span className={`text-[10px] font-semibold ${isLast ? 'text-indigo-600' : 'text-[#878a8c]'}`}>
+          <span className={`text-[10px] font-semibold ${isLast ? 'text-indigo-600' : 'text-muted'}`}>
             {isFirst ? 'Current' : 'Target'}
           </span>
         )}
       </div>
 
-      <span className={`mb-2 grid h-9 w-9 place-items-center rounded-lg ${isLast ? 'bg-white text-indigo-600' : 'bg-gray-50 text-[#878a8c]'}`}>
+      <span className={`mb-2 grid h-9 w-9 place-items-center rounded-lg ${isLast ? 'bg-surface text-indigo-600' : 'bg-gray-50 text-muted'}`}>
         <Icon size={18} />
       </span>
 
-      <p className="text-[13px] leading-tight font-semibold text-[#1c1c1c]">{stage.title}</p>
+      <p className="text-[13px] leading-tight font-semibold text-ink">{stage.title}</p>
 
       {stage.durationWeeks ? (
-        <p className="mt-1 text-xs text-[#878a8c]">{stage.durationWeeks} weeks</p>
+        <p className="mt-1 text-xs text-muted">{stage.durationWeeks} weeks</p>
       ) : null}
 
       {stage.status === 'completed' ? (
@@ -290,7 +290,7 @@ function StageCard({
           {helpers > 0 && (
             <button
               onClick={onShowPeople}
-              className="flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-[#878a8c] transition-colors hover:bg-orange-50 hover:text-[#ff4500]"
+              className="flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:bg-brand-50 hover:text-brand"
               title={`See who: ${stage.title}`}
             >
               <Users size={11} />
@@ -300,7 +300,7 @@ function StageCard({
           {serviceCount > 0 && (
             <button
               onClick={onShowServices}
-              className="flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-[#878a8c] transition-colors hover:bg-orange-50 hover:text-[#ff4500]"
+              className="flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:bg-brand-50 hover:text-brand"
               title={`Services for: ${stage.title}`}
             >
               <Briefcase size={11} />
@@ -319,7 +319,7 @@ function StageCard({
         locked ? (
           <span
             title={`Finish "${blockedBy}" first — stages are completed in order.`}
-            className="mt-2 flex cursor-not-allowed items-center gap-1 text-[11px] font-semibold text-[#c9ccce]"
+            className="mt-2 flex cursor-not-allowed items-center gap-1 text-[11px] font-semibold text-gray-300"
           >
             <Lock size={11} />
             Locked
@@ -327,7 +327,7 @@ function StageCard({
         ) : (
           <button
             onClick={() => onStepStatus(stage.status === 'completed' ? 'upcoming' : 'completed')}
-            className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-[#ff4500] hover:underline"
+            className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-brand hover:underline"
           >
             {stage.status === 'completed' ? <CircleDashed size={11} /> : <Check size={11} />}
             {stage.status === 'completed' ? 'Reopen' : 'Mark done'}
@@ -335,7 +335,7 @@ function StageCard({
         )
       )}
 
-      {isFirst && <p className="mt-1.5 text-[11px] text-[#878a8c]">You’re here</p>}
+      {isFirst && <p className="mt-1.5 text-[11px] text-muted">You’re here</p>}
     </div>
   )
 }
@@ -357,17 +357,17 @@ function StageServicesModal({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-[#edeff1] px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-[#1c1c1c]">Services for “{stage.title}”</h2>
-            <p className="text-xs text-[#878a8c]">
+            <h2 className="text-base font-bold text-ink">Services for “{stage.title}”</h2>
+            <p className="text-xs text-muted">
               {services.length} {services.length === 1 ? 'alumnus offers' : 'alumni offer'} help with this stage
             </p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -376,13 +376,13 @@ function StageServicesModal({
           {services.map((s) => {
             const { icon: Icon, classes } = SERVICE_ICONS[s.serviceType] ?? SERVICE_ICONS.career_guidance
             return (
-              <div key={s.id} className="flex items-center gap-3 rounded-xl border border-[#edeff1] p-3">
+              <div key={s.id} className="flex items-center gap-3 rounded-xl border border-line p-3">
                 <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${classes}`}>
                   <Icon size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#1c1c1c]">{serviceName(s)}</p>
-                  <p className="truncate text-xs text-[#878a8c]">
+                  <p className="truncate text-sm font-semibold text-ink">{serviceName(s)}</p>
+                  <p className="truncate text-xs text-muted">
                     by {s.providerName ?? 'an alumnus'} · {servicePrice(s)}
                   </p>
                 </div>

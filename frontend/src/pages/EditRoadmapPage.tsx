@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import { useApp } from '../store/AppStore'
 import { EditRoadmapPanel } from '../components/career/EditRoadmapPanel'
 import type { CareerRoadmap } from '../types'
+import { SkeletonPage } from '../components/ui/Skeleton'
 
 /**
  * Roadmap editing on its own route (/career-guidance/roadmap/edit).
@@ -51,9 +52,7 @@ export function EditRoadmapPage() {
 
   if (loading || !roadmap) {
     return (
-      <div className="grid place-items-center py-24">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#ff4500] border-t-transparent" />
-      </div>
+      <SkeletonPage />
     )
   }
 
@@ -62,18 +61,18 @@ export function EditRoadmapPage() {
       <div className="flex items-start gap-2">
         <button
           onClick={back}
-          className="mt-1 rounded-full p-1 text-[#878a8c] hover:bg-gray-100"
+          className="mt-1 rounded-full p-1 text-muted hover:bg-gray-100"
           aria-label="Back to your roadmap"
         >
           <ArrowLeft size={20} />
         </button>
-        <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#ff4500]">
+        <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand">
           <SlidersHorizontal size={20} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1c1c]">Edit your roadmap</h1>
-          <p className="text-sm text-[#878a8c]">
-            Working on <span className="font-semibold text-[#1c1c1c]">{roadmap.goal.targetRole || 'your goal'}</span> ·{' '}
+          <h1 className="text-2xl font-bold text-ink">Edit your roadmap</h1>
+          <p className="text-sm text-muted">
+            Working on <span className="font-semibold text-ink">{roadmap.goal.targetRole || 'your goal'}</span> ·{' '}
             {roadmap.stages.length} {roadmap.stages.length === 1 ? 'stage' : 'stages'}
           </p>
         </div>

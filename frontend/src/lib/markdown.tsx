@@ -18,10 +18,10 @@ function inline(text: string, keyBase: string): ReactNode[] {
     const key = `${keyBase}-${i++}`
     if (m[2] != null) nodes.push(<strong key={key}>{m[2]}</strong>)
     else if (m[3] != null) nodes.push(<em key={key}>{m[3]}</em>)
-    else if (m[4] != null) nodes.push(<code key={key} className="rounded bg-[#f1f2f3] px-1 py-0.5 font-mono text-[0.85em]">{m[4]}</code>)
+    else if (m[4] != null) nodes.push(<code key={key} className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.85em]">{m[4]}</code>)
     else if (m[5] != null && m[6] != null)
       nodes.push(
-        <a key={key} href={m[6]} target="_blank" rel="noopener noreferrer" className="font-medium text-[#ff4500] hover:underline">
+        <a key={key} href={m[6]} target="_blank" rel="noopener noreferrer" className="font-medium text-brand hover:underline">
           {m[5]}
         </a>,
       )
@@ -55,7 +55,7 @@ export function Markdown({ text, className = '' }: { text: string; className?: s
       const level = line.match(/^#+/)![0].length
       const content = line.replace(/^#{1,3}\s+/, '')
       const cls = level === 1 ? 'mt-3 text-lg font-bold' : level === 2 ? 'mt-3 text-base font-bold' : 'mt-2 text-sm font-semibold'
-      blocks.push(<p key={`h-${key++}`} className={`${cls} text-[#1c1c1c]`}>{inline(content, `h-${key}`)}</p>)
+      blocks.push(<p key={`h-${key++}`} className={`${cls} text-ink`}>{inline(content, `h-${key}`)}</p>)
     } else if (/^[-*]\s+/.test(line)) {
       list.push(line.replace(/^[-*]\s+/, ''))
     } else if (line.trim() === '') {
@@ -67,5 +67,5 @@ export function Markdown({ text, className = '' }: { text: string; className?: s
   }
   flushList()
 
-  return <div className={`text-[15px] leading-relaxed text-[#1c1c1c] ${className}`}>{blocks.map((b, i) => <Fragment key={i}>{b}</Fragment>)}</div>
+  return <div className={`text-[15px] leading-relaxed text-ink ${className}`}>{blocks.map((b, i) => <Fragment key={i}>{b}</Fragment>)}</div>
 }

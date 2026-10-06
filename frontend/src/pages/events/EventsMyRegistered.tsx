@@ -35,7 +35,7 @@ export function EventsMyRegistered() {
   if (registered.length === 0) {
     return (
       <EventsEmptyState title="You haven't registered for any events yet">
-        <p className="max-w-sm text-sm text-[#878a8c]">
+        <p className="max-w-sm text-sm text-muted">
           RSVP to an upcoming event and it'll show up here for easy tracking.
         </p>
       </EventsEmptyState>

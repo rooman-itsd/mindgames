@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, Crown, Loader2, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { Check, Crown, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { Button } from '../ui'
 import { api } from '../../lib/api'
 import { useApp } from '../../store/AppStore'
 import type { Plan, PlanId, SubscriptionState } from '../../types'
+import { SkeletonCards } from '../ui/Skeleton'
 
 /**
  * The paywall. Opened when the backend answers 402 — accepting a session or
@@ -76,12 +77,12 @@ export function SubscriptionPlans({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/60 p-4 py-8" onClick={onClose}>
       <div
-        className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-5xl overflow-hidden rounded-2xl bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Dark header, gold accent — the "upgrade" moment reads differently
             from the rest of the app on purpose. */}
-        <div className="relative bg-gradient-to-br from-[#1c1c1c] via-[#2a1a10] to-[#3d2410] px-6 py-8 text-center">
+        <div className="relative bg-gradient-to-br from-ink via-night to-brand-900 px-6 py-8 text-center">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 rounded-full p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
@@ -90,7 +91,7 @@ export function SubscriptionPlans({
             <X size={20} />
           </button>
 
-          <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#ffd700] to-[#ff9500] text-[#1c1c1c] shadow-lg">
+          <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[#ffd700] to-[#ff9500] text-on-gold shadow-lg">
             <Crown size={24} />
           </span>
           <h2 className="text-2xl font-bold text-white">Mentor plans</h2>
@@ -112,7 +113,7 @@ export function SubscriptionPlans({
                 key={m}
                 onClick={() => setMonths(m)}
                 className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                  months === m ? 'bg-white text-[#1c1c1c]' : 'text-white/70 hover:text-white'
+                  months === m ? 'bg-surface text-ink' : 'text-white/70 hover:text-white'
                 }`}
               >
                 {m === 1 ? 'Monthly' : m === 3 ? '3 months' : '1 year'}
@@ -122,9 +123,7 @@ export function SubscriptionPlans({
         </div>
 
         {loading ? (
-          <div className="grid place-items-center py-20">
-            <Loader2 size={28} className="animate-spin text-[#ff4500]" />
-          </div>
+          <SkeletonCards count={3} className="p-6" />
         ) : (
           <>
             <div className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-4">
@@ -143,7 +142,7 @@ export function SubscriptionPlans({
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 border-t border-[#edeff1] bg-[#fafafa] px-6 py-4 text-xs text-[#878a8c]">
+            <div className="flex flex-wrap items-center justify-center gap-4 border-t border-line bg-gray-50 px-6 py-4 text-xs text-muted">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck size={14} className="text-green-600" />
                 Cancel any time — access runs to the end of the period
@@ -185,45 +184,45 @@ function PlanCard({
     <div
       className={`relative flex flex-col rounded-xl border p-5 transition-shadow ${
         plan.highlighted
-          ? 'border-[#ff4500] bg-[#fff8f4] shadow-md ring-1 ring-[#ff4500]/20'
-          : 'border-[#edeff1] bg-white hover:shadow-sm'
+          ? 'border-brand bg-brand-50 shadow-md ring-1 ring-brand/20'
+          : 'border-line bg-surface hover:shadow-sm'
       }`}
     >
       {plan.highlighted && (
-        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#ff4500] to-[#ff8c00] px-3 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">
+        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-brand-hover to-brand px-3 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">
           Best value
         </span>
       )}
 
-      <p className={`text-xs font-bold tracking-widest uppercase ${plan.highlighted ? 'text-[#ff4500]' : 'text-[#878a8c]'}`}>
+      <p className={`text-xs font-bold tracking-widest uppercase ${plan.highlighted ? 'text-brand' : 'text-muted'}`}>
         {plan.name}
       </p>
 
       <p className="mt-2 flex items-baseline gap-1">
-        <span className="text-lg font-bold text-[#1c1c1c]">₹</span>
-        <span className="text-3xl font-bold text-[#1c1c1c]">{free ? 0 : total.toLocaleString('en-IN')}</span>
+        <span className="text-lg font-bold text-ink">₹</span>
+        <span className="text-3xl font-bold text-ink">{free ? 0 : total.toLocaleString('en-IN')}</span>
       </p>
-      <p className="text-xs text-[#878a8c]">
+      <p className="text-xs text-muted">
         {free ? 'always free' : months === 1 ? 'per month' : `for ${months} months`}
       </p>
 
-      <p className="mt-2 min-h-[32px] text-xs text-[#878a8c]">{plan.tagline}</p>
+      <p className="mt-2 min-h-[32px] text-xs text-muted">{plan.tagline}</p>
 
       <ul className="mt-4 mb-5 flex flex-1 flex-col gap-2">
         {plan.features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-xs text-[#1c1c1c]">
-            <Check size={13} className={`mt-0.5 shrink-0 ${plan.highlighted ? 'text-[#ff4500]' : 'text-green-600'}`} />
+          <li key={f} className="flex items-start gap-2 text-xs text-ink">
+            <Check size={13} className={`mt-0.5 shrink-0 ${plan.highlighted ? 'text-brand' : 'text-green-600'}`} />
             <span>{f}</span>
           </li>
         ))}
       </ul>
 
       {isCurrent ? (
-        <span className="rounded-full border border-[#edeff1] bg-gray-50 py-2 text-center text-sm font-semibold text-[#878a8c]">
+        <span className="rounded-full border border-line bg-gray-50 py-2 text-center text-sm font-semibold text-muted">
           Current plan
         </span>
       ) : free ? (
-        <span className="rounded-full border border-[#edeff1] py-2 text-center text-sm font-semibold text-[#878a8c]">
+        <span className="rounded-full border border-line py-2 text-center text-sm font-semibold text-muted">
           Included
         </span>
       ) : (

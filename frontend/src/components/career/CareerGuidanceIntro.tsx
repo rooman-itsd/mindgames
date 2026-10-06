@@ -66,14 +66,14 @@ export function CareerGuidanceIntro({
       aria-labelledby="career-intro-heading"
     >
       <div
-        className="animate-slidein flex max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="animate-slidein flex max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Step rail. Hidden on phones, where the dots in the footer do the
             same job without eating half the width. */}
-        <aside className="hidden w-56 shrink-0 flex-col bg-[#1c1c1c] p-5 sm:flex">
+        <aside className="hidden w-56 shrink-0 flex-col bg-ink p-5 sm:flex">
           <div className="mb-6 flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#ff4500] text-sm font-bold text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-sm font-bold text-white">
               R
             </span>
             <span className="text-xs leading-tight font-bold text-white">
@@ -97,7 +97,7 @@ export function CareerGuidanceIntro({
                   <span
                     className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${
                       active
-                        ? 'bg-[#ff4500] text-white'
+                        ? 'bg-brand text-white'
                         : done
                           ? 'bg-white/20 text-white'
                           : 'bg-white/10 text-white/60'
@@ -118,23 +118,23 @@ export function CareerGuidanceIntro({
 
         {/* Content pane */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-start justify-between gap-3 border-b border-[#edeff1] px-5 py-4">
+          <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
             <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#ff4500]">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand">
                 <StepIcon size={20} />
               </span>
               <div>
-                <h2 id="career-intro-heading" className="text-lg leading-tight font-bold text-[#1c1c1c]">
+                <h2 id="career-intro-heading" className="text-lg leading-tight font-bold text-ink">
                   {step.heading}
                 </h2>
-                <p className="mt-0.5 text-xs font-semibold text-[#878a8c] sm:hidden">
+                <p className="mt-0.5 text-xs font-semibold text-muted sm:hidden">
                   Step {i + 1} of {CAREER_INTRO_STEPS.length} · {step.tab}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="shrink-0 rounded-full p-1 text-[#878a8c] hover:bg-gray-100"
+              className="shrink-0 rounded-full p-1 text-muted hover:bg-gray-100"
               aria-label="Close"
             >
               <X size={18} />
@@ -142,21 +142,21 @@ export function CareerGuidanceIntro({
           </div>
 
           <div key={i} className="animate-slidein min-h-0 flex-1 overflow-y-auto px-5 py-4">
-            <p className="mb-4 text-sm leading-relaxed text-[#1c1c1c]">{step.lead}</p>
+            <p className="mb-4 text-sm leading-relaxed text-ink">{step.lead}</p>
             <div className="flex flex-col gap-2.5">
               {step.points.map((p) => {
                 const PointIcon = p.icon
                 return (
                   <div
                     key={p.title}
-                    className="flex gap-3 rounded-xl border border-[#edeff1] p-3 transition-colors hover:border-[#ff4500]/40"
+                    className="flex gap-3 rounded-xl border border-line p-3 transition-colors hover:border-brand/40"
                   >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gray-50 text-[#878a8c]">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gray-50 text-muted">
                       <PointIcon size={16} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-[#1c1c1c]">{p.title}</p>
-                      <p className="text-sm leading-relaxed text-[#878a8c]">{p.body}</p>
+                      <p className="text-sm font-bold text-ink">{p.title}</p>
+                      <p className="text-sm leading-relaxed text-muted">{p.body}</p>
                     </div>
                   </div>
                 )
@@ -164,7 +164,7 @@ export function CareerGuidanceIntro({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-[#edeff1] px-5 py-3.5">
+          <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3.5">
             <Button
               variant="ghost"
               icon={<ArrowLeft size={14} />}
@@ -179,7 +179,7 @@ export function CareerGuidanceIntro({
                 <span
                   key={s.tab}
                   className={`h-1.5 rounded-full transition-all ${
-                    idx === i ? 'w-5 bg-[#ff4500]' : 'w-1.5 bg-[#edeff1]'
+                    idx === i ? 'w-5 bg-brand' : 'w-1.5 bg-line'
                   }`}
                 />
               ))}
@@ -187,6 +187,7 @@ export function CareerGuidanceIntro({
 
             {i === last ? (
               <Button
+                variant="ai"
                 icon={<Sparkles size={14} />}
                 onClick={() => {
                   onClose()

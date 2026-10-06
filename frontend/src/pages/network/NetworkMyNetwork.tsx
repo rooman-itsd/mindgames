@@ -5,6 +5,8 @@ import { useLayout } from '../../components/layout/LayoutContext'
 import { Avatar, Button, Card, SectionTitle } from '../../components/ui'
 import { roleLine } from '../../lib/format'
 import type { NetworkOutletContext } from './NetworkLayout'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { Users } from 'lucide-react'
 
 export function NetworkMyNetwork() {
   const { users, connectionIds } = useApp()
@@ -17,7 +19,12 @@ export function NetworkMyNetwork() {
     <section>
       <SectionTitle>Your Connections ({connections.length})</SectionTitle>
       {connections.length === 0 && (
-        <p className="text-sm text-[#878a8c]">You haven't connected with anyone yet.</p>
+        <EmptyState
+          icon={<Users size={28} />}
+          title="Your network starts here"
+          body="Connect with batchmates, mentors and people at companies you like."
+          action={{ label: 'Find people', to: '/network/matches' }}
+        />
       )}
       <div className="flex flex-col gap-3">
         {connections.map((u) => (
@@ -28,11 +35,11 @@ export function NetworkMyNetwork() {
             <div className="min-w-0 flex-1">
               <button
                 onClick={() => openQuickView(u.id)}
-                className="font-semibold text-[#1c1c1c] hover:underline"
+                className="font-semibold text-ink hover:underline"
               >
                 {u.name}
               </button>
-              {roleLine(u) && <p className="truncate text-xs text-[#878a8c]">{roleLine(u)}</p>}
+              {roleLine(u) && <p className="truncate text-xs text-muted">{roleLine(u)}</p>}
             </div>
             <Button variant="subtle" className="!px-3 !py-1.5 text-xs" onClick={() => openChatWith(u.id)}>
               <MessageSquare size={15} /> Message

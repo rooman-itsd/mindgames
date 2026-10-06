@@ -62,7 +62,7 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="flex h-full w-[35vw] min-w-[320px] max-w-md flex-col overflow-y-auto bg-white shadow-2xl"
+        className="flex h-full w-[35vw] min-w-[320px] max-w-md flex-col overflow-y-auto bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         initial={reduced ? undefined : { x: '100%' }}
         animate={{ x: 0 }}
@@ -70,7 +70,7 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
       >
         {/* Header: the same near-black mesh-gradient banner as the full
             profile hero, so the two surfaces read as one design. */}
-        <div className="relative h-24 shrink-0 overflow-hidden bg-[#1c1c1c]">
+        <div className="relative h-24 shrink-0 overflow-hidden bg-ink">
           {user.bannerImage ? (
             <img
               src={user.bannerImage}
@@ -114,24 +114,24 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
               initial={reduced ? undefined : { scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, type: 'spring', stiffness: 240, damping: 18 }}
-              className="-mt-10 rounded-full ring-4 ring-white"
+              className="-mt-10 rounded-full ring-4 ring-surface"
             >
               <Avatar name={user.name} src={user.photo} size={80} />
             </motion.span>
             <Link
               to={`/profile/${user.id}`}
               onClick={onClose}
-              className="mt-3 inline-flex items-center gap-1 text-lg font-bold text-[#1c1c1c] hover:underline"
+              className="mt-3 inline-flex items-center gap-1 text-lg font-bold text-ink hover:underline"
             >
               {user.name}
               <VerifiedBadge verified={user.emailVerified} size={16} />
             </Link>
             {(user.designation || user.company) && (
-              <p className="text-sm text-[#878a8c]">
+              <p className="text-sm text-muted">
                 {[user.designation, user.company].filter(Boolean).join(' · ')}
               </p>
             )}
-            <p className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-[#878a8c]">
+            <p className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted">
               {user.city && (
                 <span className="inline-flex items-center gap-1">
                   <MapPin size={12} /> {user.city}
@@ -147,7 +147,8 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
             <motion.div variants={itemVariants} className="flex gap-2">
               <Button
                 className="flex-1"
-                variant={conn === 'none' ? 'primary' : 'subtle'}
+                variant="social"
+                aria-pressed={conn !== 'none'}
                 disabled={conn !== 'none'}
                 onClick={() => sendConnect(user.id)}
               >
@@ -171,7 +172,7 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
           )}
 
           {user.bio && (
-            <motion.p variants={itemVariants} className="text-sm leading-relaxed text-[#1c1c1c]">
+            <motion.p variants={itemVariants} className="text-sm leading-relaxed text-ink">
               {user.bio}
             </motion.p>
           )}
@@ -181,8 +182,8 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
           </motion.div>
 
           {hasProofOfWork && (
-            <motion.div variants={itemVariants} className="border-t border-[#edeff1] pt-4">
-              <p className="mb-2 text-xs font-semibold tracking-wide text-[#878a8c] uppercase">
+            <motion.div variants={itemVariants} className="border-t border-line pt-4">
+              <p className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
                 Proof of work
               </p>
               {user.linkedin && (
@@ -190,7 +191,7 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
                   href={user.linkedin}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-medium text-[#ff4500] hover:bg-orange-100"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand-100"
                 >
                   <LinkIcon size={14} /> LinkedIn
                 </a>
@@ -201,7 +202,7 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
                     <span
                       key={b.id}
                       title={b.description}
-                      className="flex items-center gap-1 rounded-full border border-[#edeff1] bg-[#f6f7f8] px-2.5 py-1 text-xs font-semibold text-[#1c1c1c]"
+                      className="flex items-center gap-1 rounded-full border border-line bg-page px-2.5 py-1 text-xs font-semibold text-ink"
                     >
                       <span>{b.emoji}</span> {b.label}
                     </span>
@@ -214,7 +215,7 @@ export function ProfileQuickView({ userId, onClose }: { userId: string; onClose:
           <Link
             to={`/profile/${user.id}`}
             onClick={onClose}
-            className="group mt-auto flex items-center justify-center gap-1 pt-2 text-center text-sm font-semibold text-[#ff4500] hover:underline"
+            className="group mt-auto flex items-center justify-center gap-1 pt-2 text-center text-sm font-semibold text-brand hover:underline"
           >
             View full profile
             <motion.span aria-hidden whileHover={{ x: 3 }} className="inline-block">
@@ -244,7 +245,7 @@ function ExpertiseTags({ expertise }: { expertise: string[] }) {
       {shown.map((e) => (
         <span
           key={e}
-          className="shrink-0 rounded-full bg-[#f6f7f8] px-2.5 py-1 text-xs font-medium whitespace-nowrap text-[#878a8c]"
+          className="shrink-0 rounded-full bg-page px-2.5 py-1 text-xs font-medium whitespace-nowrap text-muted"
         >
           {e}
         </span>
@@ -252,7 +253,7 @@ function ExpertiseTags({ expertise }: { expertise: string[] }) {
       {hiddenCount > 0 && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="shrink-0 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-[#ff4500] hover:bg-orange-100"
+          className="shrink-0 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-brand hover:bg-brand-100"
         >
           {expanded ? 'Show less' : `+${hiddenCount} more`}
         </button>

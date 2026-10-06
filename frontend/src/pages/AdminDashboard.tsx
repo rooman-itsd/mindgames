@@ -26,12 +26,15 @@ import { InviteEmailTemplateModal } from '../components/admin/InviteEmailTemplat
 import { SentInvitesPanel } from '../components/admin/SentInvitesPanel'
 import { PendingConfirmationsPanel } from '../components/admin/PendingConfirmationsPanel'
 import { Avatar, Button, Card } from '../components/ui'
+import { CountUp } from '../components/ui/CountUp'
 import { roleLine, timeAgo } from '../lib/format'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 // NOTE: Restyled to the light Root Connect theme. All api.* invite/alumni LOGIC
 // is unchanged from the original implementation.
 
 export function AdminDashboard() {
+  useDocumentTitle('Admin console · Root Connect')
   const { notify } = useApp()
   const [view, setView] = useState<AdminView>('dashboard')
   const [alumni, setAlumni] = useState<Alumni[]>([])
@@ -102,8 +105,8 @@ export function AdminDashboard() {
           <OverviewPanel />
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="p-5 lg:col-span-2">
-              <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Bulk Upload (CSV)</h2>
-              <p className="mb-4 text-sm text-[#878a8c]">Import a contact list — we keep only Name, Phone and Email.</p>
+              <h2 className="mb-1 text-base font-bold text-ink">Bulk Upload (CSV)</h2>
+              <p className="mb-4 text-sm text-muted">Import a contact list — we keep only Name, Phone and Email.</p>
               <CsvUpload
                 onParsed={(rows, fileName) => {
                   setPreview(rows)
@@ -112,8 +115,8 @@ export function AdminDashboard() {
               />
             </Card>
             <Card className="p-5">
-              <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Add Individually</h2>
-              <p className="mb-4 text-sm text-[#878a8c]">Quick single-user entry.</p>
+              <h2 className="mb-1 text-base font-bold text-ink">Add Individually</h2>
+              <p className="mb-4 text-sm text-muted">Quick single-user entry.</p>
               <AddUserForm onAdd={addOne} />
             </Card>
           </div>
@@ -173,27 +176,27 @@ function AnnouncementsPanel() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card className="p-5">
-        <h2 className="flex items-center gap-2 text-base font-bold text-[#1c1c1c]">
-          <Megaphone size={18} className="text-[#ff4500]" /> Publish to the Network
+        <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+          <Megaphone size={18} className="text-brand" /> Publish to the Network
         </h2>
-        <p className="mb-3 mt-1 text-sm text-[#878a8c]">
+        <p className="mb-3 mt-1 text-sm text-muted">
           Official content shows on News &amp; Updates. Member posts never do.
         </p>
 
         {/* Mode */}
         <div className="mb-3 flex flex-col gap-2">
-          <label className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 ${mode === 'announcement' ? 'border-[#ff4500] bg-orange-50' : 'border-[#edeff1]'}`}>
-            <input type="radio" className="mt-0.5 accent-[#ff4500]" checked={mode === 'announcement'} onChange={() => setMode('announcement')} />
+          <label className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 ${mode === 'announcement' ? 'border-brand bg-brand-50' : 'border-line'}`}>
+            <input type="radio" className="mt-0.5 accent-brand" checked={mode === 'announcement'} onChange={() => setMode('announcement')} />
             <span>
-              <span className="block text-sm font-semibold text-[#1c1c1c]">📌 Announcement</span>
-              <span className="block text-xs text-[#878a8c]">Pinned to the top of every feed + notification to all members. For important news.</span>
+              <span className="block text-sm font-semibold text-ink">📌 Announcement</span>
+              <span className="block text-xs text-muted">Pinned to the top of every feed + notification to all members. For important news.</span>
             </span>
           </label>
-          <label className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 ${mode === 'news' ? 'border-[#ff4500] bg-orange-50' : 'border-[#edeff1]'}`}>
-            <input type="radio" className="mt-0.5 accent-[#ff4500]" checked={mode === 'news'} onChange={() => setMode('news')} />
+          <label className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 ${mode === 'news' ? 'border-brand bg-brand-50' : 'border-line'}`}>
+            <input type="radio" className="mt-0.5 accent-brand" checked={mode === 'news'} onChange={() => setMode('news')} />
             <span>
-              <span className="block text-sm font-semibold text-[#1c1c1c]">📰 News update</span>
-              <span className="block text-xs text-[#878a8c]">Appears on News &amp; Updates and in the feed — no pin, no notification blast.</span>
+              <span className="block text-sm font-semibold text-ink">📰 News update</span>
+              <span className="block text-xs text-muted">Appears on News &amp; Updates and in the feed — no pin, no notification blast.</span>
             </span>
           </label>
         </div>
@@ -203,7 +206,7 @@ function AnnouncementsPanel() {
           onChange={(e) => setText(e.target.value)}
           rows={4}
           placeholder="e.g. Alumni Summit 2026 registrations are now open!"
-          className="w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
         <Button
           className="mt-3"
@@ -216,23 +219,23 @@ function AnnouncementsPanel() {
       </Card>
 
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Live Pinned Announcements</h2>
+        <h2 className="text-base font-bold text-ink">Live Pinned Announcements</h2>
         <div className="mt-3 flex flex-col gap-3">
           {pinned.map((p) => (
-            <div key={p.id} className="rounded-lg border border-orange-100 bg-orange-50 p-3">
-              <p className="text-sm text-[#1c1c1c]">{p.content}</p>
+            <div key={p.id} className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+              <p className="text-sm text-ink">{p.content}</p>
               <div className="mt-1 flex items-center justify-between">
-                <p className="text-xs text-[#878a8c]">{userById(p.authorId)?.name} · {timeAgo(p.createdAt)}</p>
+                <p className="text-xs text-muted">{userById(p.authorId)?.name} · {timeAgo(p.createdAt)}</p>
                 <button
                   onClick={() => unpinAnnouncement(p.id)}
-                  className="text-xs font-semibold text-[#ff4500] hover:underline"
+                  className="text-xs font-semibold text-brand hover:underline"
                 >
                   Unpin
                 </button>
               </div>
             </div>
           ))}
-          {pinned.length === 0 && <p className="text-sm text-[#878a8c]">No announcements pinned yet.</p>}
+          {pinned.length === 0 && <p className="text-sm text-muted">No announcements pinned yet.</p>}
         </div>
       </Card>
     </div>
@@ -287,12 +290,12 @@ function MentorApplicationRow({
   }
 
   return (
-    <div className="rounded-lg border border-[#edeff1] p-3">
+    <div className="rounded-lg border border-line p-3">
       <div className="flex items-center gap-3">
         <Avatar name={user.name} size={44} />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-[#1c1c1c]">{user.name}</p>
-          <p className="truncate text-xs text-[#878a8c]">
+          <p className="font-semibold text-ink">{user.name}</p>
+          <p className="truncate text-xs text-muted">
             {[roleLine(user), user.domain].filter(Boolean).join(' · ')}
           </p>
         </div>
@@ -302,25 +305,25 @@ function MentorApplicationRow({
         <button
           onClick={() => setDeclining((d) => !d)}
           aria-label={`Decline ${user.name}`}
-          className="rounded-full p-2 text-[#878a8c] hover:bg-gray-100"
+          className="rounded-full p-2 text-muted hover:bg-gray-100"
         >
           <X size={18} />
         </button>
       </div>
 
       {app?.claim && (
-        <div className="mt-2 border-t border-[#edeff1] pt-2">
-          <p className="text-xs text-[#878a8c]">
-            Claiming: <span className="font-medium text-[#1c1c1c]">{MENTOR_CLAIM_LABELS[app.claim]}</span>
+        <div className="mt-2 border-t border-line pt-2">
+          <p className="text-xs text-muted">
+            Claiming: <span className="font-medium text-ink">{MENTOR_CLAIM_LABELS[app.claim]}</span>
           </p>
-          {app.note && <p className="mt-1 text-xs text-[#878a8c]">Note: {app.note}</p>}
+          {app.note && <p className="mt-1 text-xs text-muted">Note: {app.note}</p>}
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {app.documents.map((d) => (
               <button
                 key={d.id}
                 type="button"
                 onClick={() => downloadProof(d.id, d.name)}
-                className="flex items-center gap-1 rounded-full border border-[#edeff1] px-2.5 py-1 text-xs font-medium text-[#1c1c1c] hover:border-[#ff4500] hover:text-[#ff4500]"
+                className="flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs font-medium text-ink hover:border-brand hover:text-brand"
               >
                 <FileText size={11} /> {d.name}
               </button>
@@ -332,26 +335,27 @@ function MentorApplicationRow({
         </div>
       )}
       {app && !app.claim && (
-        <p className="mt-2 border-t border-[#edeff1] pt-2 text-xs text-[#878a8c]">
+        <p className="mt-2 border-t border-line pt-2 text-xs text-muted">
           Submitted before proof was required — no documents on file.
         </p>
       )}
 
       {declining && (
-        <div className="mt-2 border-t border-[#edeff1] pt-2">
+        <div className="mt-2 border-t border-line pt-2">
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Why? Shown to the member so they can resubmit."
             maxLength={500}
-            className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
           <div className="mt-2 flex justify-end gap-2">
             <Button variant="subtle" className="!px-3 !py-1.5 text-xs" onClick={() => setDeclining(false)}>
               Cancel
             </Button>
             <Button
-              className="!bg-red-500 !px-3 !py-1.5 text-xs hover:!bg-red-600"
+              variant="danger"
+              className="!px-3 !py-1.5 text-xs"
               onClick={() => onDecline(reason.trim() || undefined)}
             >
               Confirm decline
@@ -372,7 +376,7 @@ function MentorApprovalsPanel() {
   return (
     <div className="flex flex-col gap-6">
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Pending Mentor Applications ({pending.length})</h2>
+        <h2 className="text-base font-bold text-ink">Pending Mentor Applications ({pending.length})</h2>
         <div className="mt-3 flex flex-col gap-3">
           {pending.map((u) => (
             <MentorApplicationRow
@@ -382,19 +386,19 @@ function MentorApprovalsPanel() {
               onDecline={(reason) => declineMentor(u.id, reason)}
             />
           ))}
-          {pending.length === 0 && <p className="text-sm text-[#878a8c]">No pending applications. 🎉</p>}
+          {pending.length === 0 && <p className="text-sm text-muted">No pending applications. 🎉</p>}
         </div>
       </Card>
 
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Active Mentors ({activeMentors.length})</h2>
+        <h2 className="text-base font-bold text-ink">Active Mentors ({activeMentors.length})</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {activeMentors.map((u) => (
-            <div key={u.id} className="flex items-center gap-3 rounded-lg border border-[#edeff1] p-3">
+            <div key={u.id} className="flex items-center gap-3 rounded-lg border border-line p-3">
               <Avatar name={u.name} size={40} />
               <div className="min-w-0">
-                <p className="truncate font-medium text-[#1c1c1c]">{u.name}</p>
-                <p className="truncate text-xs text-[#878a8c]">₹{u.mentorRate?.toLocaleString('en-IN')}/hr · {u.sessionsConducted} sessions</p>
+                <p className="truncate font-medium text-ink">{u.name}</p>
+                <p className="truncate text-xs text-muted">₹{u.mentorRate?.toLocaleString('en-IN')}/hr · {u.sessionsConducted} sessions</p>
               </div>
             </div>
           ))}
@@ -447,34 +451,34 @@ function SubscriptionsPanel() {
   return (
     <div className="flex flex-col gap-6">
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Mentor Subscriptions ({rows.length})</h2>
-        <p className="mt-1 text-sm text-[#878a8c]">
+        <h2 className="text-base font-bold text-ink">Mentor Subscriptions ({rows.length})</h2>
+        <p className="mt-1 text-sm text-muted">
           Comp a plan for a mentor (support fixing a failed charge, or before a gateway is wired up),
           or revoke one.
         </p>
         {loading ? (
-          <p className="mt-4 text-sm text-[#878a8c]">Loading…</p>
+          <p className="mt-4 text-sm text-muted">Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="mt-4 text-sm text-[#878a8c]">No approved mentors yet.</p>
+          <p className="mt-4 text-sm text-muted">No approved mentors yet.</p>
         ) : (
           <div className="mt-3 flex flex-col gap-2">
             {rows.map((r) => (
-              <div key={r.userId} className="flex flex-wrap items-center gap-3 rounded-lg border border-[#edeff1] p-3">
+              <div key={r.userId} className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-3">
                 <Avatar name={r.name} src={r.photo} size={38} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#1c1c1c]">{r.name}</p>
-                  <p className="truncate text-xs text-[#878a8c]">
+                  <p className="truncate text-sm font-semibold text-ink">{r.name}</p>
+                  <p className="truncate text-xs text-muted">
                     {[r.designation, r.company].filter(Boolean).join(' · ')}
                   </p>
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    r.subscribed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-[#878a8c]'
+                    r.subscribed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-muted'
                   }`}
                 >
                   {r.plan} · {r.status}
                 </span>
-                <span className="shrink-0 text-xs text-[#878a8c]">
+                <span className="shrink-0 text-xs text-muted">
                   {r.sessionsThisMonth} session{r.sessionsThisMonth === 1 ? '' : 's'} this month
                   {r.expiresAt && ` · expires ${new Date(r.expiresAt).toLocaleDateString('en-IN')}`}
                 </span>
@@ -524,23 +528,23 @@ function SubscriptionHistoryModal({ userId, name, onClose }: { userId: string; n
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-bold text-[#1c1c1c]">{name}'s subscription history</h2>
+      <div className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-bold text-ink">{name}'s subscription history</h2>
         <div className="mt-3 flex-1 overflow-y-auto">
           {events === null ? (
-            <p className="text-sm text-[#878a8c]">Loading…</p>
+            <p className="text-sm text-muted">Loading…</p>
           ) : events.length === 0 ? (
-            <p className="text-sm text-[#878a8c]">No subscription events yet.</p>
+            <p className="text-sm text-muted">No subscription events yet.</p>
           ) : (
             <div className="flex flex-col gap-2">
               {events.map((e, i) => (
-                <div key={i} className="rounded-lg border border-[#edeff1] p-3 text-sm">
+                <div key={i} className="rounded-lg border border-line p-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-[#1c1c1c]">{e.kind} · {e.plan}</span>
-                    <span className="text-xs text-[#878a8c]">{new Date(e.createdAt).toLocaleString('en-IN')}</span>
+                    <span className="font-semibold text-ink">{e.kind} · {e.plan}</span>
+                    <span className="text-xs text-muted">{new Date(e.createdAt).toLocaleString('en-IN')}</span>
                   </div>
                   {(e.amount || e.provider || e.note) && (
-                    <p className="mt-1 text-xs text-[#878a8c]">
+                    <p className="mt-1 text-xs text-muted">
                       {[e.amount ? `₹${e.amount.toLocaleString('en-IN')}` : null, e.provider, e.note].filter(Boolean).join(' · ')}
                     </p>
                   )}
@@ -567,19 +571,19 @@ function GrantSubscriptionModal({
   const [plan, setPlan] = useState<PlanId>('mentor')
   const [months, setMonths] = useState('1')
   const [note, setNote] = useState('')
-  const field = 'mt-1 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
+  const field = 'mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-bold text-[#1c1c1c]">Grant a plan to {name}</h2>
-        <label className="mt-4 block text-sm font-medium text-[#1c1c1c]">Plan</label>
+      <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-bold text-ink">Grant a plan to {name}</h2>
+        <label className="mt-4 block text-sm font-medium text-ink">Plan</label>
         <select value={plan} onChange={(e) => setPlan(e.target.value as PlanId)} className={field}>
           {PLAN_IDS.filter((p) => p !== 'free').map((p) => (
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
-        <label className="mt-3 block text-sm font-medium text-[#1c1c1c]">Months</label>
+        <label className="mt-3 block text-sm font-medium text-ink">Months</label>
         <input
           type="number"
           min={1}
@@ -588,7 +592,7 @@ function GrantSubscriptionModal({
           onChange={(e) => setMonths(e.target.value)}
           className={field}
         />
-        <label className="mt-3 block text-sm font-medium text-[#1c1c1c]">Note (optional)</label>
+        <label className="mt-3 block text-sm font-medium text-ink">Note (optional)</label>
         <input value={note} onChange={(e) => setNote(e.target.value)} className={field} placeholder="e.g. Comp for a failed charge" />
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -604,6 +608,19 @@ function GrantSubscriptionModal({
 type AdminStats = Awaited<ReturnType<typeof api.getAdminStats>>
 
 // Network-wide overview: who joined, engagement, and what needs attention.
+/** One hue per overview tile so the numbers scan apart at a glance. Written in
+ *  full (not built from a template) so Tailwind generates every class. */
+const TILE_TONES = [
+  'text-brand',
+  'text-lagoon-700',
+  'text-iris-700',
+  'text-clay-700',
+  'text-amethyst-700',
+  'text-saffron-700',
+  'text-ocean-700',
+  'text-rosewood-700',
+]
+
 function OverviewPanel() {
   const [stats, setStats] = useState<AdminStats | null>(null)
 
@@ -627,32 +644,34 @@ function OverviewPanel() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tiles.map((t) => (
+        {tiles.map((t, i) => (
           <Card key={t.label} className="p-4">
-            <p className="text-2xl font-extrabold text-[#ff4500]">{t.value}</p>
-            <p className="mt-0.5 text-sm font-medium text-[#1c1c1c]">{t.label}</p>
-            {t.hint && <p className="text-xs text-[#878a8c]">{t.hint}</p>}
+            <p className={`text-2xl font-extrabold ${TILE_TONES[i % TILE_TONES.length]}`}>
+              {typeof t.value === 'number' ? <CountUp value={t.value} /> : t.value}
+            </p>
+            <p className="mt-0.5 text-sm font-medium text-ink">{t.label}</p>
+            {t.hint && <p className="text-xs text-muted">{t.hint}</p>}
           </Card>
         ))}
       </div>
 
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Newest Accounts</h2>
+        <h2 className="text-base font-bold text-ink">Newest Accounts</h2>
         {/* Was "Recently Joined", which read as "these people showed up" — but
             an admin invite creates the account, so this list is really
             "accounts created". Whether they've arrived is last_login_at. */}
-        <p className="mb-3 mt-0.5 text-xs text-[#878a8c]">
+        <p className="mb-3 mt-0.5 text-xs text-muted">
           Created by invite or sign-up — not necessarily signed in yet.
         </p>
         <div className="flex flex-col gap-2">
           {stats.recentMembers.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 rounded-lg border border-[#edeff1] p-2.5">
+            <div key={m.id} className="flex items-center gap-3 rounded-lg border border-line p-2.5">
               <Avatar name={m.name} size={36} />
               <div className="min-w-0 flex-1">
-                <Link to={`/profile/${m.id}`} className="text-sm font-semibold text-[#1c1c1c] hover:underline">
+                <Link to={`/profile/${m.id}`} className="text-sm font-semibold text-ink hover:underline">
                   {m.name}
                 </Link>
-                <p className="truncate text-xs text-[#878a8c]">
+                <p className="truncate text-xs text-muted">
                   {m.email}{m.city ? ` · ${m.city}` : ''}
                 </p>
                 {m.lastLoginAt ? (
@@ -665,14 +684,14 @@ function OverviewPanel() {
                   // started recording when. Claiming "never" here is wrong.
                   <p className="text-xs text-green-700">signed in (before login tracking)</p>
                 ) : (
-                  <p className="text-xs text-[#ff4500]">never signed in</p>
+                  <p className="text-xs text-brand">never signed in</p>
                 )}
               </div>
-              <span className="shrink-0 text-xs text-[#878a8c]">added {timeAgo(m.joinedAt)}</span>
+              <span className="shrink-0 text-xs text-muted">added {timeAgo(m.joinedAt)}</span>
             </div>
           ))}
           {stats.recentMembers.length === 0 && (
-            <p className="text-sm text-[#878a8c]">No members yet — send some invites below.</p>
+            <p className="text-sm text-muted">No members yet — send some invites below.</p>
           )}
         </div>
       </Card>
@@ -700,13 +719,13 @@ function CommunityApprovalsPanel() {
     )
   }
 
-  if (pending === null) return <p className="text-sm text-[#878a8c]">Loading pending communities…</p>
+  if (pending === null) return <p className="text-sm text-muted">Loading pending communities…</p>
 
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Pending Communities ({pending.length})</h2>
-        <p className="mt-1 text-sm text-[#878a8c]">
+        <h2 className="text-base font-bold text-ink">Pending Communities ({pending.length})</h2>
+        <p className="mt-1 text-sm text-muted">
           Member-created communities go live only after your approval. Creators are notified either way.
         </p>
       </Card>
@@ -719,8 +738,8 @@ function CommunityApprovalsPanel() {
                 {c.name[0]}
               </span>
               <div>
-                <p className="font-bold text-[#1c1c1c]">{c.name}</p>
-                <p className="text-xs text-[#878a8c]">{c.category} · #{c.tag} · requested by {c.creatorName}</p>
+                <p className="font-bold text-ink">{c.name}</p>
+                <p className="text-xs text-muted">{c.category} · #{c.tag} · requested by {c.creatorName}</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -732,11 +751,11 @@ function CommunityApprovalsPanel() {
               </Button>
             </div>
           </div>
-          <p className="mt-3 text-sm text-[#1c1c1c]">{c.description}</p>
+          <p className="mt-3 text-sm text-ink">{c.description}</p>
         </Card>
       ))}
       {pending.length === 0 && (
-        <Card className="py-12 text-center text-sm text-[#878a8c]">No pending communities. 🎉</Card>
+        <Card className="py-12 text-center text-sm text-muted">No pending communities. 🎉</Card>
       )}
     </div>
   )
@@ -765,13 +784,13 @@ function EventApprovalsPanel() {
     )
   }
 
-  if (pending === null) return <p className="text-sm text-[#878a8c]">Loading pending events…</p>
+  if (pending === null) return <p className="text-sm text-muted">Loading pending events…</p>
 
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Pending Events ({pending.length})</h2>
-        <p className="mt-1 text-sm text-[#878a8c]">
+        <h2 className="text-base font-bold text-ink">Pending Events ({pending.length})</h2>
+        <p className="mt-1 text-sm text-muted">
           Member-created events go live only after your approval. Hosts are notified either way.
         </p>
       </Card>
@@ -782,18 +801,18 @@ function EventApprovalsPanel() {
           <Card key={e.id} className="p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-orange-50 text-[#ff4500]">
+                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 text-brand">
                   <span className="text-[10px] font-bold uppercase">{start.toLocaleDateString('en-IN', { month: 'short' })}</span>
                   <span className="text-lg leading-none font-extrabold">{start.getDate()}</span>
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold text-[#1c1c1c]">{e.title}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${e.isPaid ? 'bg-orange-100 text-[#ff4500]' : 'bg-green-100 text-green-700'}`}>
+                    <p className="font-bold text-ink">{e.title}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${e.isPaid ? 'bg-brand-100 text-brand' : 'bg-green-100 text-green-700'}`}>
                       {e.isPaid ? `Paid · ₹${(e.price ?? 0).toLocaleString('en-IN')}` : 'Free'}
                     </span>
                   </div>
-                  <p className="text-xs text-[#878a8c]">
+                  <p className="text-xs text-muted">
                     {start.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                     {' · '}
                     {start.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
@@ -810,12 +829,12 @@ function EventApprovalsPanel() {
                 </Button>
               </div>
             </div>
-            {e.description && <p className="mt-3 text-sm text-[#1c1c1c]">{e.description}</p>}
+            {e.description && <p className="mt-3 text-sm text-ink">{e.description}</p>}
           </Card>
         )
       })}
       {pending.length === 0 && (
-        <Card className="py-12 text-center text-sm text-[#878a8c]">No pending events. 🎉</Card>
+        <Card className="py-12 text-center text-sm text-muted">No pending events. 🎉</Card>
       )}
     </div>
   )
@@ -829,17 +848,17 @@ function StartupApplicationsPanel() {
     api.getStartupApplications().then(setApps, () => setApps([]))
   }, [])
 
-  if (apps === null) return <p className="text-sm text-[#878a8c]">Loading applications…</p>
+  if (apps === null) return <p className="text-sm text-muted">Loading applications…</p>
 
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-5">
-        <h2 className="text-base font-bold text-[#1c1c1c]">
+        <h2 className="text-base font-bold text-ink">
           StartupVarsity Applications ({apps.length})
         </h2>
-        <p className="mt-1 text-sm text-[#878a8c]">
+        <p className="mt-1 text-sm text-muted">
           Ideas submitted from the network. Reach out to founders directly, or process them at{' '}
-          <a href="https://www.startupvarsity.com" target="_blank" rel="noopener noreferrer" className="font-medium text-[#ff4500] hover:underline">
+          <a href="https://www.startupvarsity.com" target="_blank" rel="noopener noreferrer" className="font-medium text-brand hover:underline">
             startupvarsity.com
           </a>.
         </p>
@@ -849,20 +868,20 @@ function StartupApplicationsPanel() {
         <Card key={a.id} className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="text-lg font-bold text-[#1c1c1c]">{a.name}</p>
-              <p className="text-xs text-[#878a8c]">
+              <p className="text-lg font-bold text-ink">{a.name}</p>
+              <p className="text-xs text-muted">
                 {a.domain} · {a.stage} · team of {a.teamSize} · applied {timeAgo(a.appliedAt)}
               </p>
             </div>
             <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">{a.stage}</span>
           </div>
-          <p className="mt-3 text-sm text-[#1c1c1c]">{a.description}</p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#edeff1] pt-3">
+          <p className="mt-3 text-sm text-ink">{a.description}</p>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
             <div className="flex items-center gap-2">
               <Avatar name={a.founderName} size={36} />
               <div>
-                <p className="text-sm font-semibold text-[#1c1c1c]">{a.founderName}</p>
-                <p className="text-xs text-[#878a8c]">
+                <p className="text-sm font-semibold text-ink">{a.founderName}</p>
+                <p className="text-xs text-muted">
                   {a.founderEmail}
                   {a.founderPhone ? ` · ${a.founderPhone}` : ''}
                 </p>
@@ -871,13 +890,13 @@ function StartupApplicationsPanel() {
             <div className="flex gap-2">
               <a
                 href={`mailto:${a.founderEmail}?subject=${encodeURIComponent(`StartupVarsity — ${a.name}`)}`}
-                className="rounded-full border border-[#edeff1] px-4 py-2 text-sm font-semibold text-[#1c1c1c] hover:border-[#ff4500] hover:text-[#ff4500]"
+                className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink hover:border-brand hover:text-brand"
               >
                 Email founder
               </a>
               <Link
                 to={`/profile/${a.founderId}`}
-                className="rounded-full bg-[#ff4500] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff6534]"
+                className="rounded-full btn-primary px-4 py-2 text-sm font-semibold text-white"
               >
                 View profile
               </Link>
@@ -886,7 +905,7 @@ function StartupApplicationsPanel() {
         </Card>
       ))}
       {apps.length === 0 && (
-        <Card className="py-12 text-center text-sm text-[#878a8c]">No applications yet.</Card>
+        <Card className="py-12 text-center text-sm text-muted">No applications yet.</Card>
       )}
     </div>
   )
@@ -904,16 +923,16 @@ function PreviewTable({
   const validCount = rows.filter((r) => r.valid).length
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#edeff1] px-4 py-3">
-        <h3 className="text-sm font-bold text-[#1c1c1c]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <h3 className="text-sm font-bold text-ink">
           Parsed Preview — <span className="text-green-600">{validCount} valid</span>
           {rows.length - validCount > 0 && <span className="text-red-500"> · {rows.length - validCount} flagged</span>}
         </h3>
         <div className="flex gap-2">
-          <button onClick={onDiscard} className="rounded-lg px-3 py-2 text-sm text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onDiscard} className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-gray-100">
             Discard
           </button>
-          <button onClick={onImport} className="rounded-full bg-[#ff4500] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ff6534]">
+          <button onClick={onImport} className="rounded-full btn-primary px-4 py-2 text-sm font-semibold text-white">
             Import {validCount}
           </button>
         </div>
@@ -921,7 +940,7 @@ function PreviewTable({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
-            <tr className="border-b border-[#edeff1] text-xs uppercase tracking-wide text-[#878a8c]">
+            <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">Phone</th>
               <th className="px-4 py-2 font-medium">Email</th>
@@ -930,10 +949,10 @@ function PreviewTable({
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i} className="border-b border-[#edeff1]">
-                <td className="px-4 py-2 text-[#1c1c1c]">{r.name || <span className="text-red-500">missing</span>}</td>
-                <td className="px-4 py-2 text-[#878a8c]">{r.phone || '—'}</td>
-                <td className="px-4 py-2 text-[#878a8c]">{r.email || <span className="text-red-500">missing</span>}</td>
+              <tr key={i} className="border-b border-line">
+                <td className="px-4 py-2 text-ink">{r.name || <span className="text-red-500">missing</span>}</td>
+                <td className="px-4 py-2 text-muted">{r.phone || '—'}</td>
+                <td className="px-4 py-2 text-muted">{r.email || <span className="text-red-500">missing</span>}</td>
                 <td className="px-4 py-2 text-center">
                   {r.valid ? (
                     <CheckCircle2 size={16} className="mx-auto text-green-600" />
@@ -979,9 +998,9 @@ function SettingsPanel() {
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Integrations</h2>
-        <p className="text-sm text-[#878a8c]">
-          Configured via <code className="rounded bg-[#f6f7f8] px-1">backend/.env</code> — restart the API after changes.
+        <h2 className="mb-1 text-base font-bold text-ink">Integrations</h2>
+        <p className="text-sm text-muted">
+          Configured via <code className="rounded bg-page px-1">backend/.env</code> — restart the API after changes.
         </p>
         <div className="mt-5 space-y-3">
           <IntegrationRow
@@ -1005,13 +1024,13 @@ function SettingsPanel() {
         </div>
       </Card>
       <Card className="p-6">
-        <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Invite Link Address</h2>
-        <p className="mb-3 text-sm text-[#878a8c]">
-          Every invite email links to this address. It comes from <code className="rounded bg-[#f6f7f8] px-1">APP_URL</code>{' '}
-          in the server&rsquo;s <code className="rounded bg-[#f6f7f8] px-1">.env</code>.
+        <h2 className="mb-1 text-base font-bold text-ink">Invite Link Address</h2>
+        <p className="mb-3 text-sm text-muted">
+          Every invite email links to this address. It comes from <code className="rounded bg-page px-1">APP_URL</code>{' '}
+          in the server&rsquo;s <code className="rounded bg-page px-1">.env</code>.
         </p>
-        <p className="font-mono text-sm text-[#1c1c1c]">{appUrl ?? '—'}</p>
-        <p className="mt-2 text-xs text-[#878a8c]">
+        <p className="font-mono text-sm text-ink">{appUrl ?? '—'}</p>
+        <p className="mt-2 text-xs text-muted">
           Check this is an address your recipients can reach — if this server&rsquo;s public address
           has changed, invite links keep pointing at the old one until <code>APP_URL</code> is
           updated in the server&rsquo;s <code>.env</code> and the API restarted.
@@ -1026,8 +1045,8 @@ function SettingsPanel() {
         </p>
       </Card>
       <Card className="p-6">
-        <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Invite Email</h2>
-        <p className="mb-4 text-sm text-[#878a8c]">
+        <h2 className="mb-1 text-base font-bold text-ink">Invite Email</h2>
+        <p className="mb-4 text-sm text-muted">
           The credentials email a new member receives. Sending an invite creates their account and
           mails them a generated password, so this is the only place those details appear.
         </p>
@@ -1040,12 +1059,12 @@ function SettingsPanel() {
         </Button>
       </Card>
       <Card className="p-6">
-        <h2 className="mb-2 text-base font-bold text-[#1c1c1c]">Invitation Landing Page</h2>
-        <p className="mb-4 text-sm text-[#878a8c]">
+        <h2 className="mb-2 text-base font-bold text-ink">Invitation Landing Page</h2>
+        <p className="mb-4 text-sm text-muted">
           Where an invite link used to land. Sign-ups are invite-only now, so this page just points
           people at sign-in — invited members go straight to the locked sign-in screen instead.
         </p>
-        <Link to="/accept-invite" className="inline-flex items-center gap-2 text-sm font-medium text-[#ff4500] hover:underline">
+        <Link to="/accept-invite" className="inline-flex items-center gap-2 text-sm font-medium text-brand hover:underline">
           Open invitation page <ExternalLink size={15} />
         </Link>
       </Card>
@@ -1056,8 +1075,8 @@ function SettingsPanel() {
 
 function IntegrationRow({ label, ok, okText, offText }: { label: string; ok: boolean; okText: string; offText: string }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-[#edeff1] px-4 py-3">
-      <span className="text-sm font-medium text-[#1c1c1c]">{label}</span>
+    <div className="flex items-center justify-between rounded-lg border border-line px-4 py-3">
+      <span className="text-sm font-medium text-ink">{label}</span>
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${ok ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
         {ok ? okText : offText}
       </span>
@@ -1084,23 +1103,23 @@ function ReportsPanel() {
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <h2 className="mb-1 text-base font-bold text-[#1c1c1c]">Open Reports ({open.length})</h2>
-        <p className="mb-4 text-sm text-[#878a8c]">Content flagged by members, newest first.</p>
+        <h2 className="mb-1 text-base font-bold text-ink">Open Reports ({open.length})</h2>
+        <p className="mb-4 text-sm text-muted">Content flagged by members, newest first.</p>
         {reports === null ? (
-          <p className="text-sm text-[#878a8c]">Loading…</p>
+          <p className="text-sm text-muted">Loading…</p>
         ) : open.length === 0 ? (
-          <p className="text-sm text-[#878a8c]">Nothing to review. 🎉</p>
+          <p className="text-sm text-muted">Nothing to review. 🎉</p>
         ) : (
           <div className="space-y-3">
             {open.map((r) => (
-              <div key={r.id} className="rounded-lg border border-[#edeff1] p-4">
-                <p className="text-sm text-[#1c1c1c]">{r.summary}</p>
-                <p className="mt-1 text-xs text-[#878a8c]">
+              <div key={r.id} className="rounded-lg border border-line p-4">
+                <p className="text-sm text-ink">{r.summary}</p>
+                <p className="mt-1 text-xs text-muted">
                   Reported by {r.reporterName}: “{r.reason}”
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {r.targetType === 'post' && (
-                    <Button className="!bg-red-500 !px-3 !py-1.5 text-xs hover:!bg-red-600" onClick={() => act(r.id, 'remove')}>
+                    <Button variant="danger" className="!px-3 !py-1.5 text-xs" onClick={() => act(r.id, 'remove')}>
                       Remove post & resolve
                     </Button>
                   )}
@@ -1118,11 +1137,11 @@ function ReportsPanel() {
       </Card>
       {handled.length > 0 && (
         <Card className="p-6">
-          <h2 className="mb-3 text-base font-bold text-[#1c1c1c]">Recently handled</h2>
+          <h2 className="mb-3 text-base font-bold text-ink">Recently handled</h2>
           <div className="space-y-2">
             {handled.slice(0, 10).map((r) => (
-              <p key={r.id} className="text-sm text-[#878a8c]">
-                <span className={`mr-2 rounded-full px-2 py-0.5 text-xs font-semibold ${r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-[#878a8c]'}`}>
+              <p key={r.id} className="text-sm text-muted">
+                <span className={`mr-2 rounded-full px-2 py-0.5 text-xs font-semibold ${r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-muted'}`}>
                   {r.status}
                 </span>
                 {r.summary}

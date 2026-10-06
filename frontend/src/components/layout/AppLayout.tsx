@@ -11,11 +11,21 @@ import { AskRoo } from './AskRoo'
 import { PostCreateModal } from '../feed/PostCreateModal'
 import { LayoutContext } from './LayoutContext'
 import { VerifyEmailNotice } from './VerifyEmailNotice'
+import { MobileTabBar } from './MobileTabBar'
+import { CommandPalette } from './CommandPalette'
+import { ShareWinModal } from '../feed/ShareWinModal'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useApplyTheme } from '../../hooks/useTheme'
+import { documentTitle, pageLabel } from '../../lib/pageTitle'
 import type { PostType } from '../../types'
 
 export function AppLayout() {
-  const { currentUser, notify } = useApp()
+  const { currentUser, notify, unreadNotifications, unreadMessages, userById } = useApp()
   const { pathname } = useLocation()
+  // Distinct tab titles per page, with the unread count in front like Gmail.
+  const viewedProfile = pathname.startsWith('/profile/') ? userById(pathname.split('/')[2]) : undefined
+  useApplyTheme() // opt-in dark mode, signed-in app only
+  useDocumentTitle(documentTitle(pageLabel(pathname, viewedProfile?.name), unreadNotifications + unreadMessages))
   const [composer, setComposer] = useState<{ open: boolean; type?: PostType; communityId?: string }>({
     open: false,
   })
@@ -72,11 +82,10 @@ export function AppLayout() {
       {/*
         Padding tracks the sidebars, which are offset by --shell-gutter so the
         three columns stay together as one centred shell on wide screens.
-        The +16px past each sidebar width (260 -> 276, 300 -> 316) guarantees a
-        gutter even at exactly 1280px, where 260 + 720 + 300 would otherwise
-        leave the feed touching both sidebars.
+        Both sidebars float 14px in from the edge with a 14px gap to the
+        content (14 + 248 + 14 = 276 left, 14 + 288 + 14 = 316 right).
       */}
-      <main className={`min-h-screen pt-14 transition-all duration-200 ${
+      <main className={`min-h-screen pt-14 pb-20 transition-all duration-200 lg:pb-0 ${
         isFullWidth ? 'xl:pr-[var(--shell-gutter)]' : 'xl:pr-[calc(316px+var(--shell-gutter))]'
       } ${
         sidebarOpen
@@ -84,12 +93,12 @@ export function AppLayout() {
           : 'lg:pl-[calc(64px+var(--shell-gutter))]'
       }`}>
         {/*
-          With the sidebar collapsed the 720px column would just centre itself
-          in the freed space, so widen it instead — the point of collapsing is
-          more room for the content, not more margin.
+          With the sidebar collapsed the column would just centre itself in the
+          freed space, so widen it instead — the point of collapsing is more
+          room for the content, not more margin.
         */}
-        <div className={`mx-auto w-full px-4 py-5 transition-all duration-200 ${
-          isFullWidth ? 'max-w-[1180px]' : sidebarOpen ? 'max-w-[720px]' : 'max-w-[1100px]'
+        <div className={`mx-auto w-full px-4 py-3.5 transition-all duration-200 ${
+          isFullWidth ? 'max-w-[1180px]' : sidebarOpen ? 'max-w-[820px]' : 'max-w-[1100px]'
         }`}>
           {/* The left sidebar carries a small version of this on wide screens.
               It isn't on screen below lg or when collapsed, so the full banner
@@ -103,7 +112,12 @@ export function AppLayout() {
               />
             </div>
           )}
-          <Outlet />
+          {/* Keyed by the first path segment only: a new section replays the
+              entrance cascade, while tab changes inside one (network/…,
+              events/…) keep their state instead of remounting. */}
+          <div key={pathname.split('/')[1]} className="page-enter">
+            <Outlet />
+          </div>
         </div>
       </main>
 
@@ -117,6 +131,9 @@ export function AppLayout() {
         <ChatPanel initialUserId={chat.userId} onClose={() => setChat({ open: false })} />
       )}
       <AskRoo />
+      <MobileTabBar />
+      <CommandPalette />
+      <ShareWinModal />
     </LayoutContext.Provider>
   )
 }

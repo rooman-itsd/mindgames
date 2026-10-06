@@ -6,6 +6,8 @@ import { isValidEmail } from '../lib/csv'
 import { landingRoute } from '../lib/landingRoute'
 import { setPendingPassword } from '../lib/pendingPassword'
 import { Button, Card, PasswordInput } from '../components/ui'
+import { AuthBackdrop } from '../components/layout/AuthBackdrop'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 // Sign-in for existing members. Authenticates against the backend (JWT) via the
 // store, then lands in the app. Demo account: you@rooman.alumni / roomandemo.
@@ -15,6 +17,7 @@ import { Button, Card, PasswordInput } from '../components/ui'
 // an admin under exactly that address, so letting them retype it only invites
 // a typo that reads back as "wrong password".
 export function Login() {
+  useDocumentTitle('Sign in · Root Connect')
   const navigate = useNavigate()
   const { login } = useApp()
   const [params] = useSearchParams()
@@ -59,22 +62,23 @@ export function Login() {
   }
 
   const field =
-    'w-full rounded-lg border border-[#edeff1] bg-white px-3 py-2.5 text-sm text-[#1c1c1c] placeholder-[#878a8c] focus:border-[#ff4500] focus:outline-none focus:ring-2 focus:ring-orange-100'
+    'w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-100'
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6f7f8] px-4">
+    <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AuthBackdrop />
       <Card className="w-full max-w-md p-6 sm:p-8">
         <Link to="/" className="mb-6 inline-flex items-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center rounded-lg bg-[#ff4500] text-white">
+          <span className="grid h-10 w-10 place-items-center rounded-lg bg-brand text-white">
             <GraduationCap size={22} />
           </span>
-          <span className="text-sm font-semibold text-[#878a8c]">Rooman Alumni Network</span>
+          <span className="text-sm font-semibold text-muted">Rooman Alumni Network</span>
         </Link>
 
-        <h1 className="text-xl font-semibold text-[#1c1c1c]">
+        <h1 className="text-xl font-semibold text-ink">
           {fromInvite ? 'Welcome to the network' : 'Welcome back'}
         </h1>
-        <p className="mt-1 text-sm text-[#878a8c]">
+        <p className="mt-1 text-sm text-muted">
           {fromInvite
             ? 'Enter the password from your invitation email to sign in.'
             : 'Sign in to your alumni account.'}
@@ -83,11 +87,11 @@ export function Login() {
         <form onSubmit={submit} className="mt-6 space-y-3" noValidate>
           {emailLocked ? (
             <div>
-              <div className="flex items-center gap-2 rounded-lg border border-[#edeff1] bg-[#f6f7f8] px-3 py-2.5">
-                <Lock size={14} className="shrink-0 text-[#878a8c]" />
-                <span className="truncate text-sm font-medium text-[#1c1c1c]">{email}</span>
+              <div className="flex items-center gap-2 rounded-lg border border-line bg-page px-3 py-2.5">
+                <Lock size={14} className="shrink-0 text-muted" />
+                <span className="truncate text-sm font-medium text-ink">{email}</span>
               </div>
-              <p className="mt-1.5 text-xs text-[#878a8c]">
+              <p className="mt-1.5 text-xs text-muted">
                 This is the address your invitation was sent to.{' '}
                 <button
                   type="button"
@@ -95,7 +99,7 @@ export function Login() {
                     setUnlocked(true)
                     setEmail('')
                   }}
-                  className="font-medium text-[#ff4500] hover:underline"
+                  className="font-medium text-brand hover:underline"
                 >
                   Not you?
                 </button>
@@ -124,7 +128,7 @@ export function Login() {
             </p>
           )}
           <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-xs font-semibold text-[#ff4500] hover:underline">
+            <Link to="/forgot-password" className="text-xs font-semibold text-brand hover:underline">
               Forgot password?
             </Link>
           </div>

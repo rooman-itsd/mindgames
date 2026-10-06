@@ -50,13 +50,13 @@ export function Notifications() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#1c1c1c]">Notifications</h1>
+        <h1 className="text-2xl font-bold text-ink">Notifications</h1>
       </div>
 
       {/* Connection requests inline */}
       {pendingRequestIds.length > 0 && (
         <Card className="p-4">
-          <h2 className="mb-3 text-sm font-bold text-[#1c1c1c]">Connection Requests</h2>
+          <h2 className="mb-3 text-sm font-bold text-ink">Connection Requests</h2>
           <div className="flex flex-col gap-3">
             {pendingRequestIds.map((rid) => {
               const u = userById(rid)
@@ -65,8 +65,8 @@ export function Notifications() {
                 <div key={rid} className="flex items-center gap-3">
                   <Avatar name={u.name} src={u.photo} size={40} to={`/profile/${u.id}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#1c1c1c]">{u.name}</p>
-                    <p className="truncate text-xs text-[#878a8c]">{u.designation}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{u.name}</p>
+                    <p className="truncate text-xs text-muted">{u.designation}</p>
                   </div>
                   <Button className="!px-3 !py-1.5 text-xs" onClick={() => acceptRequest(rid)}>Accept</Button>
                   <Button variant="subtle" className="!px-3 !py-1.5 text-xs" onClick={() => ignoreRequest(rid)}>Ignore</Button>
@@ -88,22 +88,22 @@ export function Notifications() {
               tabIndex={0}
               onClick={() => openNotification(n)}
               onKeyDown={(e) => e.key === 'Enter' && openNotification(n)}
-              className={`flex cursor-pointer gap-3 px-4 py-3.5 hover:bg-gray-50 ${i < notifications.length - 1 ? 'border-b border-[#edeff1]' : ''}`}
+              className={`flex cursor-pointer gap-3 px-4 py-3.5 hover:bg-gray-50 ${i < notifications.length - 1 ? 'border-b border-line' : ''}`}
             >
               {actor ? (
                 <span onClick={(e) => e.stopPropagation()}>
                   <Avatar name={actor.name} src={actor.photo} size={40} to={`/profile/${actor.id}`} />
                 </span>
               ) : (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[#ff4500]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand">
                   <Icon size={18} />
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-[#1c1c1c]">{n.text}</p>
-                <p className="mt-0.5 text-xs text-[#878a8c]">{timeAgo(n.createdAt)}</p>
+                <p className="text-sm text-ink">{n.text}</p>
+                <p className="mt-0.5 text-xs text-muted">{timeAgo(n.createdAt)}</p>
               </div>
-              <span className="mt-1 text-[#878a8c]"><Icon size={16} /></span>
+              <span className="mt-1 text-muted"><Icon size={16} /></span>
             </div>
           )
         })}

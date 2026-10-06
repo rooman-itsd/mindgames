@@ -22,6 +22,7 @@ import type {
   CareerRoadmap,
   CareerStageStatus,
 } from '../types'
+import { SkeletonPage } from '../components/ui/Skeleton'
 
 type BookingTarget =
   | { kind: 'person'; mentorId: string; name: string; topic: string }
@@ -155,9 +156,7 @@ export function CareerGuidance() {
 
   if (loading) {
     return (
-      <div className="grid place-items-center py-24">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#ff4500] border-t-transparent" />
-      </div>
+      <SkeletonPage />
     )
   }
 
@@ -271,20 +270,20 @@ export function CareerGuidance() {
         <QuickAccessCard resourceCount={resourceCount} />
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#edeff1] bg-white px-5 py-4">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-5 py-4">
         <p className="text-sm">
-          <span className="font-bold text-[#1c1c1c]">Your network is your net worth.</span>
-          <span className="block text-[#878a8c]">
+          <span className="font-bold text-ink">Your network is your net worth.</span>
+          <span className="block text-muted">
             Tap into the Rooman alumni community and build the career you want.
           </span>
         </p>
         <span className="hidden shrink-0 items-center gap-2 sm:flex">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#ff4500] text-sm font-bold text-white">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-sm font-bold text-white">
             R
           </span>
-          <span className="text-xs leading-tight font-bold text-[#1c1c1c]">
+          <span className="text-xs leading-tight font-bold text-ink">
             RooConnect
-            <span className="block font-medium text-[#878a8c]">Alumni Network</span>
+            <span className="block font-medium text-muted">Alumni Network</span>
           </span>
         </span>
       </div>
@@ -323,14 +322,14 @@ function PageHeader({ onBack, actions }: { onBack: () => void; actions?: React.R
       <div className="flex items-start gap-2">
         <button
           onClick={onBack}
-          className="mt-1 rounded-full p-1 text-[#878a8c] hover:bg-gray-100"
+          className="mt-1 rounded-full p-1 text-muted hover:bg-gray-100"
           aria-label="Go back"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1c1c]">Your Career Roadmap</h1>
-          <p className="text-sm text-[#878a8c]">
+          <h1 className="text-2xl font-bold text-ink">Your Career Roadmap</h1>
+          <p className="text-sm text-muted">
             Built from your goals, skills, time, and the kind of help you want.
           </p>
         </div>
@@ -343,13 +342,13 @@ function PageHeader({ onBack, actions }: { onBack: () => void; actions?: React.R
 function EmptyState({ hasDraft, onStart }: { hasDraft: boolean; onStart: () => void }) {
   return (
     <Card className="px-6 py-12 text-center">
-      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-orange-50 text-[#ff4500]">
+      <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand">
         <Route size={26} />
       </span>
-      <h2 className="text-xl font-bold text-[#1c1c1c]">
+      <h2 className="text-xl font-bold text-ink">
         {hasDraft ? 'Pick up where you left off' : 'Build your career roadmap'}
       </h2>
-      <p className="mx-auto mt-1.5 max-w-md text-sm text-[#878a8c]">
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-muted">
         Answer a few questions about where you are and where you want to go. We’ll build a
         step-by-step plan and connect you with Rooman alumni who’ve walked a similar path.
       </p>
@@ -360,22 +359,22 @@ function EmptyState({ hasDraft, onStart }: { hasDraft: boolean; onStart: () => v
         <Perk icon={<Briefcase size={18} />} title="Help you can book" body="Guidance and services matched to each stage." />
       </div>
 
-      <Button className="mx-auto mt-6" icon={<Sparkles size={14} />} onClick={onStart}>
+      <Button variant="ai" className="mx-auto mt-6" icon={<Sparkles size={14} />} onClick={onStart}>
         {hasDraft ? 'Resume assessment' : 'Start assessment'}
       </Button>
-      <p className="mt-2 text-xs text-[#878a8c]">Takes about 5–10 minutes. Your progress is saved.</p>
+      <p className="mt-2 text-xs text-muted">Takes about 5–10 minutes. Your progress is saved.</p>
     </Card>
   )
 }
 
 function Perk({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-xl border border-[#edeff1] p-4 text-left">
-      <span className="mb-2 grid h-9 w-9 place-items-center rounded-lg bg-orange-50 text-[#ff4500]">
+    <div className="rounded-xl border border-line p-4 text-left">
+      <span className="mb-2 grid h-9 w-9 place-items-center rounded-lg bg-brand-50 text-brand">
         {icon}
       </span>
-      <p className="text-sm font-bold text-[#1c1c1c]">{title}</p>
-      <p className="text-xs text-[#878a8c]">{body}</p>
+      <p className="text-sm font-bold text-ink">{title}</p>
+      <p className="text-xs text-muted">{body}</p>
     </div>
   )
 }
@@ -404,35 +403,35 @@ function BookModal({
       <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <Card className="w-full p-5">
           <div>
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Request a session with {target.name}</h2>
-          <p className="mb-4 text-sm text-[#878a8c]">
+          <h2 className="text-lg font-bold text-ink">Request a session with {target.name}</h2>
+          <p className="mb-4 text-sm text-muted">
             They’ll get your request and confirm a time. Payment, if any, is arranged directly with them.
           </p>
 
-          <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Topic</label>
+          <label className="mb-1 block text-xs font-semibold text-muted">Topic</label>
           <input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
 
           <div className="mb-4 grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Preferred date</label>
+              <label className="mb-1 block text-xs font-semibold text-muted">Preferred date</label>
               <input
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 placeholder="Mon, 12 Oct"
-                className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Preferred time</label>
+              <label className="mb-1 block text-xs font-semibold text-muted">Preferred time</label>
               <input
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 placeholder="6:00 PM IST"
-                className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
             </div>
           </div>

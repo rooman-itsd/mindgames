@@ -36,10 +36,10 @@ export function CompanyMatchRow({
     <div
       className={cx(
         'flex items-start gap-3 py-3 transition-colors sm:gap-4',
-        !last && 'border-b border-[#edeff1]',
+        !last && 'border-b border-line',
       )}
     >
-      <span className="w-4 shrink-0 pt-1 text-right text-sm font-bold text-[#c3c6c9] tabular-nums">
+      <span className="w-4 shrink-0 pt-1 text-right text-sm font-bold text-gray-300 tabular-nums">
         {rank}
       </span>
 
@@ -48,26 +48,26 @@ export function CompanyMatchRow({
       <div className="min-w-0 flex-1">
         <Link
           to={`/companies/${company.id}`}
-          className="font-bold text-[#1c1c1c] hover:text-[#ff4500] hover:underline"
+          className="font-bold text-ink hover:text-brand hover:underline"
         >
           {company.name}
         </Link>
 
         {/* The reasons, full width — the point of a row over a box. */}
-        <p className="mt-0.5 text-sm text-[#6b6e70]">
+        <p className="mt-0.5 text-sm text-muted">
           {match.reasons.length > 0
             ? match.reasons.map((r) => r.detail).join(' · ')
             : match.confidenceNote}
         </p>
 
-        <p className="mt-0.5 text-xs text-[#878a8c]">
+        <p className="mt-0.5 text-xs text-muted">
           {company.industry} · {company.alumniCount} alumn{company.alumniCount === 1 ? 'us' : 'i'}
           {company.signals.roadmapCount > 0 && (
             <>
               {' · '}
               <Link
                 to={`/companies/${company.id}/roadmaps`}
-                className="font-semibold text-[#ff4500] hover:underline"
+                className="font-semibold text-brand hover:underline"
               >
                 {company.signals.roadmapCount} roadmap
                 {company.signals.roadmapCount > 1 ? 's' : ''}
@@ -78,12 +78,12 @@ export function CompanyMatchRow({
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <span className="text-lg font-bold text-[#1c1c1c] tabular-nums">{match.score}</span>
+        <span className="text-lg font-bold text-ink tabular-nums">{match.score}</span>
         <span className="flex gap-0.5" aria-hidden>
           {[0, 1, 2, 3].map((i) => (
             <span
               key={i}
-              className={cx('h-1.5 w-1.5 rounded-full', i < pips ? 'bg-[#ff4500]' : 'bg-[#edeff1]')}
+              className={cx('h-1.5 w-1.5 rounded-full', i < pips ? 'bg-brand' : 'bg-line')}
             />
           ))}
         </span>
@@ -93,8 +93,8 @@ export function CompanyMatchRow({
           className={cx(
             'mt-0.5 flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors',
             selected
-              ? 'border-[#ff4500] bg-[#ff4500] text-white'
-              : 'border-[#edeff1] text-[#878a8c] hover:border-[#ff4500] hover:text-[#ff4500]',
+              ? 'border-brand bg-brand text-white'
+              : 'border-line text-muted hover:border-brand hover:text-brand',
           )}
         >
           {selected && <Check size={10} />}

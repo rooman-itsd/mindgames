@@ -22,23 +22,23 @@ export function EventsLayout() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-[#1c1c1c]">Events</h1>
+      <h1 className="text-2xl font-bold text-ink">Events</h1>
 
-      <div className="flex flex-wrap items-center rounded-xl border border-[#edeff1] bg-white px-2 shadow-sm">
+      <div className="flex flex-wrap items-center rounded-xl border border-line bg-surface px-2 shadow-sm">
         {TABS.map((t) => (
           <NavLink
             key={t.to}
             to={t.to}
             className={({ isActive }) =>
               `relative px-4 py-3 text-sm font-semibold whitespace-nowrap transition-colors ${
-                isActive ? 'text-[#ff4500]' : 'text-[#878a8c] hover:text-[#1c1c1c]'
+                isActive ? 'text-brand' : 'text-muted hover:text-ink'
               }`
             }
           >
             {({ isActive }) => (
               <>
                 {t.label}
-                {isActive && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-[#ff4500]" />}
+                {isActive && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-brand" />}
               </>
             )}
           </NavLink>

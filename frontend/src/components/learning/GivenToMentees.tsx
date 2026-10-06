@@ -44,10 +44,10 @@ export function GivenToMentees() {
 
   return (
     <section className="mt-8">
-      <h3 className="mb-1 flex items-center gap-2 text-sm font-bold text-[#1c1c1c]">
-        <GraduationCap size={16} className="text-[#ff4500]" /> Given to your mentees
+      <h3 className="mb-1 flex items-center gap-2 text-sm font-bold text-ink">
+        <GraduationCap size={16} className="text-brand" /> Given to your mentees
       </h3>
-      <p className="mb-3 text-xs text-[#878a8c]">Only you and that mentee can see these.</p>
+      <p className="mb-3 text-xs text-muted">Only you and that mentee can see these.</p>
       <CardGrid>
         {rows.map((r) => (
           <GivenCard key={r.id} resource={r} />
@@ -62,20 +62,20 @@ function GivenCard({ resource }: { resource: CareerResource }) {
   const kind = toHubKind(resource.kind)
   const state = submissionState(resource)
   return (
-    <article className="flex h-full flex-col rounded-xl border border-[#edeff1] bg-white p-3.5 shadow-sm">
+    <article className="flex h-full flex-col rounded-xl border border-line bg-surface p-3.5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <KindIcon kind={kind} />
         <KindBadge kind={kind} label={KIND_LABEL[kind] ?? 'Link'} />
       </div>
 
-      <h3 className="mt-3 line-clamp-2 text-sm font-bold text-[#1c1c1c]">{resource.title}</h3>
-      {resource.note && <p className="mt-1 line-clamp-2 text-xs text-[#878a8c]">{resource.note}</p>}
+      <h3 className="mt-3 line-clamp-2 text-sm font-bold text-ink">{resource.title}</h3>
+      {resource.note && <p className="mt-1 line-clamp-2 text-xs text-muted">{resource.note}</p>}
       {resource.url && (
         <a
           href={resource.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 flex min-w-0 items-center gap-1 text-[11px] text-[#878a8c] hover:text-[#ff4500]"
+          className="mt-2 flex min-w-0 items-center gap-1 text-[11px] text-muted hover:text-brand"
         >
           <Link2 size={11} className="shrink-0" />
           <span className="truncate">{displayLink(resource.url)}</span>
@@ -84,16 +84,16 @@ function GivenCard({ resource }: { resource: CareerResource }) {
       )}
 
       <div className="mt-auto pt-3">
-        <p className="flex items-center gap-1 text-[11px] text-[#878a8c]">
+        <p className="flex items-center gap-1 text-[11px] text-muted">
           <UserRound size={11} className="shrink-0" />
           <span className="truncate">
             Assigned to{' '}
             {resource.assignedToId ? (
-              <Link to={`/profile/${resource.assignedToId}`} className="font-semibold text-[#1c1c1c] hover:underline">
+              <Link to={`/profile/${resource.assignedToId}`} className="font-semibold text-ink hover:underline">
                 {resource.assignedToName ?? 'your mentee'}
               </Link>
             ) : (
-              <span className="font-semibold text-[#1c1c1c]">{resource.assignedToName ?? 'your mentee'}</span>
+              <span className="font-semibold text-ink">{resource.assignedToName ?? 'your mentee'}</span>
             )}
             {' · '}
             {assignmentOrigin(resource)}
@@ -110,7 +110,7 @@ function GivenCard({ resource }: { resource: CareerResource }) {
           </a>
         )}
         {state === 'needed' && (
-          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-[#878a8c]">
+          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted">
             <Clock size={12} /> Waiting for their work
           </p>
         )}

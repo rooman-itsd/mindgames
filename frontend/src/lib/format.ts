@@ -9,11 +9,13 @@ export function initials(name: string): string {
 
 // Deterministic gradient per name so avatars are stable & colourful.
 const AVATAR_GRADIENTS = [
-  'from-orange-500 to-rose-500',
+  // Banyan slots replace the two orange ones; the count stays 8 so every
+  // other member keeps the colour their name already hashes to.
+  'from-brand-500 to-brand-800',
   'from-sky-500 to-indigo-500',
   'from-emerald-500 to-teal-500',
   'from-violet-500 to-fuchsia-500',
-  'from-amber-500 to-orange-600',
+  'from-marigold to-amber-600',
   'from-cyan-500 to-blue-600',
   'from-pink-500 to-rose-600',
   'from-lime-500 to-emerald-600',

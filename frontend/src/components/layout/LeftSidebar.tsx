@@ -1,39 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import {
-  BookOpen,
-  Briefcase,
-  Building2,
-  Calendar,
-  Compass,
-  GraduationCap,
-  Home,
-  Newspaper,
-  Rocket,
-  Route,
-  ShieldCheck,
-  Users,
-  Menu,
-} from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
+import { ShieldCheck, Menu } from 'lucide-react'
 import { useApp } from '../../store/AppStore'
 import { useLayout } from './LayoutContext'
 import { VerifyEmailNotice } from './VerifyEmailNotice'
+import { NAV } from './navItems'
 
-const NAV = [
-  { to: '/home', label: 'Home', icon: Home },
-  { to: '/network', label: 'My Network', icon: Users },
-  { to: '/events', label: 'Events', icon: Calendar },
-  { to: '/jobs', label: 'Jobs & Opportunities', icon: Briefcase },
-  { to: '/companies', label: 'Companies', icon: Building2 },
-  { to: '/mentorship', label: 'Mentorship', icon: GraduationCap },
-  { to: '/startupvarsity', label: 'StartupVarsity', icon: Rocket },
-  { to: '/news', label: 'News & Updates', icon: Newspaper },
-  { to: '/learning-resources', label: 'Learning Resources', icon: BookOpen },
-  { to: '/career-guidance', label: 'Career Guidance', icon: Route },
-  // Explore and "Start a Community" are one entry: the Explore page already
-  // has its own Start a Community button, so a separate sidebar item was a
-  // second door to the same room.
-  { to: '/explore', label: 'Explore Communities', icon: Compass },
-]
 
 export function LeftSidebar({
   verifyNotice,
@@ -44,6 +16,7 @@ export function LeftSidebar({
   const { communities, currentUser } = useApp()
   const { sidebarOpen, toggleSidebar } = useLayout()
   const joined = communities.filter((c) => c.joined)
+  const reduceMotion = useReducedMotion()
 
   return (
     <>
@@ -54,9 +27,9 @@ export function LeftSidebar({
       */}
       <button
         onClick={toggleSidebar}
-        className={`fixed top-20 z-50 hidden h-9 w-9 items-center justify-center rounded-full border border-[#edeff1] bg-white text-[#878a8c] shadow-sm transition-all duration-200 hover:bg-gray-100 hover:text-[#1c1c1c] lg:flex ${
+        className={`fixed top-20 z-50 hidden h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-sm transition-all duration-200 hover:bg-gray-100 hover:text-ink lg:flex ${
           sidebarOpen
-            ? 'left-[calc(var(--shell-gutter)+260px-18px)]'
+            ? 'left-[calc(var(--shell-gutter)+14px+248px-18px)]'
             : 'left-[calc(var(--shell-gutter)+8px)]'
         }`}
         aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
@@ -66,26 +39,35 @@ export function LeftSidebar({
       </button>
 
       {/* Sidebar — slides fully off-screen when closed */}
-      <aside className={`fixed bottom-0 top-14 z-40 hidden w-[260px] flex-col overflow-y-auto border-r border-[#edeff1] bg-white px-3 py-4 transition-all duration-200 lg:flex ${
-        sidebarOpen ? 'left-[var(--shell-gutter)]' : '-left-[280px]'
+      {/* A floating card 14px in from the edge and the navbar. */}
+      <aside className={`fixed bottom-3.5 top-[70px] z-40 hidden w-[248px] flex-col overflow-y-auto rounded-2xl border border-line bg-surface px-2.5 py-3 shadow-[0_18px_40px_-28px_rgb(1_38_28/0.45)] transition-all duration-200 lg:flex ${
+        sidebarOpen ? 'left-[calc(var(--shell-gutter)+14px)]' : '-left-[280px]'
       }`}>
       <nav className="flex flex-col gap-0.5">
-        {NAV.map(({ to, label, icon: Icon }) => (
+        {NAV.map(({ to, label, icon: Icon, tone }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                  : 'border-transparent text-[#1c1c1c] hover:bg-gray-100'
+              `relative flex items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2 text-sm transition-colors ${
+                isActive ? `font-semibold ${tone.text}` : 'font-medium text-ink hover:bg-gray-100'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={20} className={isActive ? 'text-[#ff4500]' : 'text-[#878a8c]'} />
-                {label}
+                {/* One shared layoutId: when the active route changes, motion
+                    springs this highlight from the old row to the new one. */}
+                {isActive && (
+                  <motion.span
+                    layoutId="sidebar-active"
+                    aria-hidden
+                    className={`absolute inset-y-0 -left-[3px] right-0 rounded-lg border-l-[3px] ${tone.pill}`}
+                    transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 34 }}
+                  />
+                )}
+                <Icon size={20} className={`relative ${tone.icon}`} />
+                <span className="relative">{label}</span>
               </>
             )}
           </NavLink>
@@ -95,7 +77,7 @@ export function LeftSidebar({
         {currentUser.isAdmin && (
           <NavLink
             to="/admin"
-            className="mt-1 flex items-center gap-3 rounded-lg border-l-[3px] border-transparent bg-orange-50/60 px-3 py-2 text-sm font-semibold text-[#ff4500] hover:bg-orange-50"
+            className="mt-1 flex items-center gap-3 rounded-lg border-l-[3px] border-transparent bg-brand-50/60 px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-50"
           >
             <ShieldCheck size={20} />
             Admin Console
@@ -105,9 +87,9 @@ export function LeftSidebar({
 
       {joined.length > 0 && (
         <>
-          <div className="my-4 border-t border-[#edeff1]" />
+          <div className="my-4 border-t border-line" />
 
-          <p className="px-3 pb-2 text-xs font-bold uppercase tracking-wide text-[#878a8c]">
+          <p className="px-3 pb-2 text-xs font-bold uppercase tracking-wide text-muted">
             My Communities
           </p>
           <div className="flex flex-col gap-0.5">
@@ -117,7 +99,7 @@ export function LeftSidebar({
                 to={`/community/${c.id}`}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    isActive ? 'bg-orange-50 text-[#ff4500]' : 'text-[#1c1c1c] hover:bg-gray-100'
+                    isActive ? 'bg-brand-50 text-brand' : 'text-ink hover:bg-gray-100'
                   }`
                 }
               >

@@ -59,12 +59,12 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <div
-        className="animate-slidein flex h-full w-[35vw] min-w-[360px] max-w-lg flex-col overflow-y-auto bg-white shadow-2xl"
+        className="animate-slidein flex h-full w-[35vw] min-w-[360px] max-w-lg flex-col overflow-y-auto bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
-          <h2 className="font-bold text-[#1c1c1c]">Event details</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 className="font-bold text-ink">Event details</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -72,10 +72,10 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
         <div className="flex flex-1 flex-col gap-4 px-5 py-5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-bold text-[#1c1c1c]">{event.title}</h3>
+              <h3 className="text-lg font-bold text-ink">{event.title}</h3>
               <EventPhaseBadge phase={phase} countdownLabel={countdownLabel} />
             </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#878a8c]">
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
               <span className="inline-flex items-center gap-1">
                 <Calendar size={14} />
                 {start.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
@@ -85,7 +85,7 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
               </span>
             </p>
             {event.location && (
-              <p className="mt-1 flex items-center gap-1 text-sm text-[#878a8c]">
+              <p className="mt-1 flex items-center gap-1 text-sm text-muted">
                 <MapPin size={14} /> {event.location}
               </p>
             )}
@@ -94,17 +94,17 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
                 href={event.meetingLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-[#ff4500] hover:underline"
+                className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline"
               >
                 <Video size={14} /> Join link
               </a>
             )}
-            <p className="mt-2 text-xs text-[#a5a8ab]">
+            <p className="mt-2 text-xs text-gray-400">
               hosted by{' '}
               <Link
                 to={`/profile/${event.creatorId}`}
                 onClick={onClose}
-                className="inline-flex items-center gap-1 font-medium text-[#878a8c] hover:underline"
+                className="inline-flex items-center gap-1 font-medium text-muted hover:underline"
               >
                 {creator?.name}
                 <VerifiedBadge verified={creator?.emailVerified} size={12} />
@@ -112,9 +112,9 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
             </p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg border border-[#edeff1] bg-[#f6f7f8] px-3 py-2">
-            <Ticket size={16} className="text-[#ff4500]" />
-            <span className="text-sm font-semibold text-[#1c1c1c]">
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-page px-3 py-2">
+            <Ticket size={16} className="text-brand" />
+            <span className="text-sm font-semibold text-ink">
               {event.isPaid ? `₹${(event.price ?? 0).toLocaleString('en-IN')} per attendee` : 'Free to attend'}
             </span>
           </div>
@@ -124,26 +124,26 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
               approved, so the button could only ever return a 400 here.
               Defaults to 'approved' to match the NOT NULL column default. */}
           {(event.status ?? 'approved') === 'approved' && (
-            <Button variant={event.rsvpedByMe || event.waitlistedByMe ? 'subtle' : 'primary'} onClick={() => toggleRsvp(event.id)}>
+            <Button variant="social" aria-pressed={event.rsvpedByMe || event.waitlistedByMe} onClick={() => toggleRsvp(event.id)}>
               {rsvpLabel}
             </Button>
           )}
 
           {event.description && (
             <div>
-              <p className="mb-1 text-xs font-semibold tracking-wide text-[#878a8c] uppercase">Agenda</p>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap text-[#1c1c1c]">{event.description}</p>
+              <p className="mb-1 text-xs font-semibold tracking-wide text-muted uppercase">Agenda</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-ink">{event.description}</p>
             </div>
           )}
 
           {event.speakers.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-semibold tracking-wide text-[#878a8c] uppercase">Speakers</p>
+              <p className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">Speakers</p>
               <div className="flex flex-col gap-2">
                 {event.speakers.map((s, i) => (
-                  <div key={i} className="rounded-lg border border-[#edeff1] p-3">
-                    <p className="text-sm font-semibold text-[#1c1c1c]">{s.name}</p>
-                    {s.bio && <p className="mt-0.5 text-xs text-[#878a8c]">{s.bio}</p>}
+                  <div key={i} className="rounded-lg border border-line p-3">
+                    <p className="text-sm font-semibold text-ink">{s.name}</p>
+                    {s.bio && <p className="mt-0.5 text-xs text-muted">{s.bio}</p>}
                   </div>
                 ))}
               </div>
@@ -151,12 +151,12 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
           )}
 
           <div>
-            <p className="mb-2 flex items-center gap-1 text-xs font-semibold tracking-wide text-[#878a8c] uppercase">
+            <p className="mb-2 flex items-center gap-1 text-xs font-semibold tracking-wide text-muted uppercase">
               {/* Count confirmed only, to match the card's "X going" (which excludes
                   the waitlist); waitlisted people are still listed below, labelled. */}
               <Users size={12} /> Attendees ({attendees ? attendees.filter((a) => !a.waitlisted).length : event.rsvpCount})
             </p>
-            {attendees === null && <p className="text-sm text-[#878a8c]">Loading…</p>}
+            {attendees === null && <p className="text-sm text-muted">Loading…</p>}
             <div className="flex flex-col gap-3">
               {rankedAttendees.map(({ a, reasons }) => (
                 <div key={a.id} className="flex items-center gap-2">
@@ -166,23 +166,23 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
                       <Link
                         to={`/profile/${a.id}`}
                         onClick={onClose}
-                        className="text-sm font-semibold text-[#1c1c1c] hover:underline"
+                        className="text-sm font-semibold text-ink hover:underline"
                       >
                         {a.name}
                       </Link>
                       {a.waitlisted && (
-                        <span className="rounded-full bg-[#f6f7f8] px-1.5 py-0.5 text-[10px] font-semibold text-[#878a8c]">
+                        <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-semibold text-muted">
                           Waitlisted
                         </span>
                       )}
                     </span>
-                    <p className="truncate text-xs text-[#878a8c]">{a.designation}</p>
+                    <p className="truncate text-xs text-muted">{a.designation}</p>
                     {reasons.length > 0 && (
                       <div className="mt-0.5 flex flex-wrap gap-1">
                         {reasons.map((r) => (
                           <span
                             key={r}
-                            className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-[#ff4500]"
+                            className="inline-flex items-center gap-0.5 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand"
                           >
                             <Sparkles size={9} /> {r}
                           </span>
@@ -192,7 +192,7 @@ export function EventQuickView({ eventId, onClose }: { eventId: string; onClose:
                   </div>
                 </div>
               ))}
-              {attendees?.length === 0 && <p className="text-sm text-[#878a8c]">No one's RSVP'd yet.</p>}
+              {attendees?.length === 0 && <p className="text-sm text-muted">No one's RSVP'd yet.</p>}
             </div>
           </div>
         </div>

@@ -47,9 +47,9 @@ export function AssignedView() {
         sub="From your mentors — before a session, after it, or directly."
       />
       {failed && <p className="mb-3 text-sm text-red-600">Could not load what was assigned to you.</p>}
-      {rows === null && !failed && <p className="text-sm text-[#878a8c]">Loading…</p>}
+      {rows === null && !failed && <p className="text-sm text-muted">Loading…</p>}
       {rows && rows.length === 0 && (
-        <p className="rounded-xl border border-dashed border-[#edeff1] bg-white p-4 text-sm text-[#878a8c]">
+        <p className="rounded-xl border border-dashed border-line bg-surface p-4 text-sm text-muted">
           Nothing assigned yet. When a mentor shares something with you, it shows up here.
         </p>
       )}

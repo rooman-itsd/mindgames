@@ -64,13 +64,13 @@ export function AvatarStack({
   return (
     <div className="flex -space-x-2">
       {shown.map((p) => (
-        <span key={p.id} className="rounded-full ring-2 ring-white">
+        <span key={p.id} className="rounded-full ring-2 ring-surface">
           <Avatar name={p.name} src={p.photo} size={size} />
         </span>
       ))}
       {extra > 0 && (
         <span
-          className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#f6f7f8] font-semibold text-[#878a8c] ring-2 ring-white select-none"
+          className="inline-flex shrink-0 items-center justify-center rounded-full bg-page font-semibold text-muted ring-2 ring-surface select-none"
           style={{ width: size, height: size, fontSize: size * 0.35 }}
         >
           +{extra}
@@ -97,7 +97,7 @@ export function CompanyLogo({
         src={logoUrl}
         alt={name}
         onError={() => setBroken(true)}
-        className="rounded-xl bg-white object-contain ring-1 ring-[#edeff1]"
+        className="rounded-xl bg-surface object-contain ring-1 ring-line"
         style={{ width: size, height: size, padding: size * 0.12 }}
       />
     )
@@ -125,13 +125,29 @@ export function VerifiedBadge({ verified, size = 16 }: { verified?: boolean; siz
 }
 
 // ---- Button ----------------------------------------------------------------
-type Variant = 'primary' | 'outline' | 'ghost' | 'subtle'
+/**
+ * A button's colour says what it does (Emerald Grove categories, index.css):
+ *   primary  save / post / submit — emerald gradient, sweep, lift
+ *   cta      join / accept invite / upgrade — marigold, at most one per screen
+ *   social   connect / RSVP / join — lagoon outline, fills via aria-pressed
+ *   danger   delete / remove / decline — solid rosewood, no sparkle
+ *   ai       Ask Roo / autofill / suggest — amethyst → iris
+ *   outline · ghost · subtle — secondary and quiet actions
+ */
+type Variant = 'primary' | 'outline' | 'ghost' | 'subtle' | 'cta' | 'social' | 'danger' | 'ai'
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-[#ff4500] text-white hover:bg-[#ff6534] border border-transparent',
-  outline: 'bg-white text-[#ff4500] border border-[#ff4500] hover:bg-orange-50',
-  ghost: 'bg-transparent text-[#878a8c] hover:bg-gray-100 border border-transparent',
-  subtle: 'bg-gray-100 text-[#1c1c1c] hover:bg-gray-200 border border-transparent',
+  // `btn-primary` (index.css) owns the emerald gradient, hover sweep, lift and
+  // press. The gradient is a background IMAGE, so a caller recolouring a primary
+  // Button must also pass `!bg-none` or its bg-* colour stays hidden underneath.
+  primary: 'btn-primary border border-transparent',
+  outline: 'btn-press bg-surface text-brand border border-brand hover:bg-brand-50',
+  ghost: 'btn-press bg-transparent text-muted hover:bg-gray-100 border border-transparent',
+  subtle: 'btn-press bg-gray-100 text-ink hover:bg-gray-200 border border-transparent',
+  cta: 'btn-cta border border-transparent',
+  social: 'btn-social border border-transparent',
+  danger: 'btn-danger border border-transparent',
+  ai: 'btn-ai border border-transparent',
 }
 
 export function Button({
@@ -147,14 +163,26 @@ export function Button({
   icon?: ReactNode
   loading?: boolean
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
+  // While loading the button is disabled (no double submits) but keeps its full
+  // colour: the dimmed look is reserved for genuinely unavailable actions.
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${className}`}
+      aria-busy={loading || undefined}
+      className={`relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-4 py-2 text-sm font-semibold ${
+        loading ? 'cursor-wait' : 'disabled:cursor-not-allowed disabled:opacity-50'
+      } ${VARIANTS[variant]} ${className}`}
       {...rest}
     >
-      {loading ? <Loader2 size={16} className="animate-spin" /> : icon}
-      {children}
+      {/* Submit slide (index.css): the label slides up and out, the spinner
+          slides in from below. */}
+      <span className={`btn-label inline-flex items-center gap-2 ${loading ? 'is-out' : ''}`}>
+        {icon}
+        {children}
+      </span>
+      <span aria-hidden className={`btn-spinner ${loading ? 'is-in' : ''}`}>
+        <Loader2 size={16} className="animate-spin" />
+      </span>
     </button>
   )
 }
@@ -173,7 +201,7 @@ export function PasswordInput({
         onClick={() => setVisible((v) => !v)}
         tabIndex={-1}
         aria-label={visible ? 'Hide password' : 'Show password'}
-        className="absolute inset-y-0 right-0 flex items-center px-3 text-[#878a8c] hover:text-[#1c1c1c]"
+        className="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-ink"
       >
         {visible ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
@@ -202,7 +230,7 @@ export function Checkbox({
       type="checkbox"
       checked={checked}
       onChange={(e) => onChange(e.target.checked)}
-      className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-[#ff4500]"
+      className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-brand"
       {...rest}
     />
   )
@@ -232,7 +260,7 @@ export function Card({
   ref?: Ref<HTMLDivElement>
 }) {
   return (
-    <div ref={ref} id={id} className={`rounded-xl border border-[#edeff1] bg-white shadow-sm ${className}`}>
+    <div ref={ref} id={id} className={`rounded-xl border border-line bg-surface shadow-sm ${className}`}>
       {children}
     </div>
   )
@@ -264,8 +292,8 @@ export function Pill({
       onClick={onClick}
       className={`rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
         active
-          ? 'bg-[#ff4500] text-white'
-          : 'bg-white text-[#878a8c] border border-[#edeff1] hover:bg-gray-50'
+          ? 'bg-brand text-white'
+          : 'bg-surface text-muted border border-line hover:bg-gray-50'
       }`}
     >
       {children}
@@ -276,6 +304,6 @@ export function Pill({
 // ---- Section heading -------------------------------------------------------
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">{children}</h2>
+    <h2 className="mb-3 text-lg font-bold text-ink">{children}</h2>
   )
 }
