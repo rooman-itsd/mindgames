@@ -1164,6 +1164,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [notify],
   )
 
+  // Retained but currently unused: the /startupvarsity page now links out to
+  // StartupVarsity's own form (Oct 2026) instead of applying in-app. Kept
+  // because store fields are frozen and the admin "Startup Applications" panel
+  // still reads the applications already submitted.
   const submitStartup = useCallback(
     (
       s: { name: string; domain: Startup['domain']; stage: Startup['stage']; teamSize: number; description: string; visibility: 'network' | 'admin' },

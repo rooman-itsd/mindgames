@@ -1063,6 +1063,7 @@ html.dark .text-marigold-800 { color: #f8c95a; }
 html.dark .text-brand-50 { color: #ecfbf5; }
 html.dark .text-brand-100 { color: #d2f4e7; }
 html.dark .text-iris-100 { color: #e3e8ff; }
+html.dark .text-violet-50 { color: #f5f3ff; } /* StartupVarsity header */
 /* Panels painted in ink (tour sidebar, badge tooltips) stay dark. */
 html.dark .bg-ink { background-color: #0a100d; }
 

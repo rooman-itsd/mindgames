@@ -25,14 +25,14 @@ export function StartupVarsity() {
               href={STARTUPVARSITY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-surface/95 px-4 py-2 text-sm font-bold text-[#7c3aed] shadow-sm transition-colors hover:bg-surface"
+              // bg-white, not bg-surface: it sits on the purple header, which
+              // doesn't flip, so the pill must stay white in dark mode too.
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-[#7c3aed] shadow-sm transition-colors hover:bg-white"
             >
               Visit startupvarsity.com <ExternalLink size={15} />
             </a>
           </div>
-          {/* Fixed white: the gradient behind it doesn't flip in dark mode, but
-              violet-50 does (it went dark-on-purple). */}
-          <p className="mt-2 max-w-xl text-white/90">
+          <p className="mt-2 max-w-xl text-violet-50">
             Turn your idea into a company. Build your product using Rooman's labs, mentor network and
             seed support — built for alumni founders.
           </p>

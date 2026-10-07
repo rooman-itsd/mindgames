@@ -58,7 +58,7 @@ export function StartupVarsityPitch() {
     <Card className="overflow-hidden">
       <section
         aria-labelledby="sv-pitch-heading"
-        className="grid gap-6 bg-gradient-to-br from-surface via-surface to-marigold-50 p-5 sm:p-6"
+        className="grid gap-6 bg-gradient-to-br from-surface via-surface to-marigold-50 p-4 sm:p-6"
       >
         <div>
           <p className="text-xs font-bold tracking-wider text-brand uppercase">StartupVarsity · Where startups begin</p>
@@ -79,9 +79,9 @@ export function StartupVarsityPitch() {
 
         <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-4" aria-label="StartupVarsity so far">
           {STATS.map((s) => (
-            <div key={s.label} className="rounded-xl bg-brand-50 px-3.5 py-3">
+            <div key={s.label} className="rounded-xl bg-brand-50 px-3 py-2.5 sm:px-3.5 sm:py-3">
               <dt className="text-xs text-muted">{s.label}</dt>
-              <dd className="font-display text-2xl font-extrabold text-brand tabular-nums">{s.value}</dd>
+              <dd className="font-display text-lg font-extrabold whitespace-nowrap text-brand tabular-nums sm:text-2xl">{s.value}</dd>
             </div>
           ))}
         </dl>
