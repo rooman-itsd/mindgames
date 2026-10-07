@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import { useApp } from '../store/AppStore'
 import { CareerAssessmentWizard } from '../components/career/CareerAssessmentWizard'
 import type { CareerAssessment } from '../types'
+import { SkeletonPage } from '../components/ui/Skeleton'
 
 /**
  * The assessment on its own route (/career-guidance/assessment).
@@ -54,9 +55,7 @@ export function CareerAssessmentPage() {
 
   if (loading) {
     return (
-      <div className="grid place-items-center py-24">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#ff4500] border-t-transparent" />
-      </div>
+      <SkeletonPage />
     )
   }
 
@@ -67,19 +66,19 @@ export function CareerAssessmentPage() {
       <div className="flex items-start gap-2">
         <button
           onClick={back}
-          className="mt-1 rounded-full p-1 text-[#878a8c] hover:bg-gray-100"
+          className="mt-1 rounded-full p-1 text-muted hover:bg-gray-100"
           aria-label="Back to your roadmap"
         >
           <ArrowLeft size={20} />
         </button>
-        <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#ff4500]">
+        <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand">
           <ClipboardList size={20} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1c1c]">
+          <h1 className="text-2xl font-bold text-ink">
             {retaking ? 'Edit your assessment' : 'Career assessment'}
           </h1>
-          <p className="text-sm text-[#878a8c]">
+          <p className="text-sm text-muted">
             {retaking
               ? 'Change any answer, then review what it changes before your roadmap is rebuilt.'
               : 'A few questions about where you are and where you want to go. Saved after every step.'}

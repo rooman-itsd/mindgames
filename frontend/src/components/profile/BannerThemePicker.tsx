@@ -94,11 +94,11 @@ export function BannerThemePicker({
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-2 w-64 rounded-xl border border-[#edeff1] bg-white p-3 shadow-lg">
+        <div className="absolute top-full right-0 mt-2 w-64 rounded-xl border border-line bg-surface p-3 shadow-lg">
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#edeff1] py-2.5 text-sm font-medium text-[#ff4500] hover:bg-orange-50 disabled:cursor-wait disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line py-2.5 text-sm font-medium text-brand hover:bg-brand-50 disabled:cursor-wait disabled:opacity-60"
           >
             <Camera size={14} /> {image ? 'Change cover photo' : 'Upload cover photo'}
           </button>
@@ -117,13 +117,13 @@ export function BannerThemePicker({
             <button
               onClick={removePhoto}
               disabled={busy}
-              className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-[#878a8c] hover:bg-gray-50 hover:text-red-500 disabled:cursor-wait"
+              className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-muted hover:bg-gray-50 hover:text-red-500 disabled:cursor-wait"
             >
               <Trash2 size={12} /> Remove photo — use a colour instead
             </button>
           )}
 
-          <p className="mt-3 mb-1.5 text-[11px] font-semibold tracking-wide text-[#878a8c] uppercase">
+          <p className="mt-3 mb-1.5 text-[11px] font-semibold tracking-wide text-muted uppercase">
             Or pick a colour
           </p>
           <div className="flex gap-2">
@@ -147,13 +147,13 @@ export function BannerThemePicker({
                       // The "selected" ring is an inline outline rather than a
                       // Tailwind ring utility: its colour has to be
                       // conditional on `active`, which a static class can't do.
-                      outline: active ? '2px solid #ff4500' : '2px solid transparent',
+                      outline: active ? '2px solid var(--color-brand)' : '2px solid transparent',
                       outlineOffset: 2,
                     }}
                   >
                     {active && <Check size={14} className="text-white drop-shadow" />}
                   </span>
-                  <span className="text-[10px] font-medium text-[#878a8c]">{theme.label}</span>
+                  <span className="text-[10px] font-medium text-muted">{theme.label}</span>
                 </button>
               )
             })}

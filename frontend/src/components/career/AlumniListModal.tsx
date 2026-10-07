@@ -61,43 +61,43 @@ export function AlumniListModal({
     <>
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
         <div
-          className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+          className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header stays put while the list scrolls under it. */}
-          <div className="flex items-start justify-between gap-3 border-b border-[#edeff1] px-5 py-4">
+          <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
             <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-orange-50 text-[#ff4500]">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand">
                 <Users size={20} />
               </span>
               <div>
-                <h2 className="text-lg font-bold text-[#1c1c1c]">{title}</h2>
-                <p className="text-sm text-[#878a8c]">
+                <h2 className="text-lg font-bold text-ink">{title}</h2>
+                <p className="text-sm text-muted">
                   {subtitle ??
                     `${people.length} ${people.length === 1 ? 'person' : 'people'} matched to your roadmap`}
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+            <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
               <X size={20} />
             </button>
           </div>
 
-          <div className="border-b border-[#edeff1] px-5 py-3">
+          <div className="border-b border-line px-5 py-3">
             <div className="relative">
-              <Search size={15} className="absolute top-1/2 left-3 -translate-y-1/2 text-[#878a8c]" />
+              <Search size={15} className="absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search by name, role, company or skill"
-                className="w-full rounded-lg border border-[#edeff1] py-2 pr-3 pl-9 text-sm outline-none focus:border-[#ff4500]"
+                className="w-full rounded-lg border border-line py-2 pr-3 pl-9 text-sm outline-none focus:border-brand"
               />
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-3">
             {filtered.length === 0 ? (
-              <p className="py-10 text-center text-sm text-[#878a8c]">
+              <p className="py-10 text-center text-sm text-muted">
                 {people.length === 0
                   ? 'No alumni matched to your roadmap yet.'
                   : `No one matches “${q}”.`}
@@ -121,8 +121,8 @@ export function AlumniListModal({
             )}
           </div>
 
-          <div className="border-t border-[#edeff1] px-5 py-3 text-center">
-            <Link to="/network/matches" onClick={onClose} className="text-sm font-semibold text-[#ff4500] hover:underline">
+          <div className="border-t border-line px-5 py-3 text-center">
+            <Link to="/network/matches" onClick={onClose} className="text-sm font-semibold text-brand hover:underline">
               Browse the whole network →
             </Link>
           </div>
@@ -149,12 +149,12 @@ function Row({
   onBook: () => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#edeff1] p-3 transition-colors hover:bg-gray-50/70">
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3 transition-colors hover:bg-gray-50/70">
       <Avatar name={person.name} src={person.photo} size={44} to={`/profile/${person.id}`} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Link to={`/profile/${person.id}`} className="truncate text-sm font-bold text-[#1c1c1c] hover:underline">
+          <Link to={`/profile/${person.id}`} className="truncate text-sm font-bold text-ink hover:underline">
             {person.name}
           </Link>
           <span
@@ -170,17 +170,17 @@ function Row({
             </span>
           )}
         </div>
-        <p className="truncate text-xs text-[#878a8c]">
+        <p className="truncate text-xs text-muted">
           {[person.designation, person.company].filter(Boolean).join(' · ')}
         </p>
         {person.expertise.length > 0 && (
-          <p className="mt-1 flex items-start gap-1.5 text-xs text-[#878a8c]">
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-muted">
             <Wrench size={11} className="mt-0.5 shrink-0" />
             <span className="line-clamp-1">{person.expertise.join(', ')}</span>
           </p>
         )}
         {person.reason && (
-          <p className="mt-1 flex items-start gap-1.5 text-[11px] text-[#878a8c]">
+          <p className="mt-1 flex items-start gap-1.5 text-[11px] text-muted">
             <GraduationCap size={11} className="mt-0.5 shrink-0" />
             <span className="line-clamp-1">Relevant to: {person.reason}</span>
           </p>
@@ -193,7 +193,7 @@ function Row({
             Message
           </Button>
         ) : state === 'pending' ? (
-          <span className="rounded-full bg-gray-100 px-2.5 py-1.5 text-xs font-semibold text-[#878a8c]">
+          <span className="rounded-full bg-gray-100 px-2.5 py-1.5 text-xs font-semibold text-muted">
             Request sent
           </span>
         ) : (

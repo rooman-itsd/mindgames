@@ -31,14 +31,14 @@ export function ContributePanel({
   const canHelp = stages.some((s) => s.reason !== 'mine')
 
   return (
-    <section className="rounded-xl border border-orange-100 bg-gradient-to-r from-orange-50 to-white p-4 shadow-sm">
+    <section className="rounded-xl border border-brand-100 bg-gradient-to-r from-brand-50 to-surface p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[#ff4500] shadow-sm">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface text-brand shadow-sm">
           <HandHeart size={20} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-bold text-[#1c1c1c]">Help someone behind you</h2>
-          <p className="text-xs text-[#878a8c]">
+          <h2 className="text-sm font-bold text-ink">Help someone behind you</h2>
+          <p className="text-xs text-muted">
             {canHelp
                 ? 'Share what helped you get through a stage you have already passed.'
                 : 'Found something useful on your path? Share it with everyone on that stage.'}
@@ -55,10 +55,10 @@ export function ContributePanel({
             <li key={s.topicKey}>
               <button
                 onClick={() => onShare(s.topicKey)}
-                className="w-full rounded-lg border border-[#edeff1] bg-white p-2 text-left hover:border-[#ff4500]/40"
+                className="w-full rounded-lg border border-line bg-surface p-2 text-left hover:border-brand/40"
               >
-                <span className="block truncate text-xs font-semibold text-[#1c1c1c]">{s.title}</span>
-                <span className="flex items-center gap-1 text-[11px] text-[#ff4500]">
+                <span className="block truncate text-xs font-semibold text-ink">{s.title}</span>
+                <span className="flex items-center gap-1 text-[11px] text-brand">
                   <Users size={10} /> {waitingLabel(s.membersWaiting)} · nothing shared yet
                 </span>
               </button>

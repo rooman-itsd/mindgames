@@ -27,8 +27,8 @@ const FORMATS: {
 ]
 
 const field =
-  'w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm text-[#1c1c1c] placeholder-[#878a8c] outline-none focus:border-[#ff4500]'
-const label = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-[#878a8c]'
+  'w-full rounded-lg border border-line px-3 py-2 text-sm text-ink placeholder-muted outline-none focus:border-brand'
+const label = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-muted'
 
 // ~200 wpm reading estimate, shown live on the Article format.
 const readMins = (text: string) => Math.max(1, Math.round(text.trim().split(/\s+/).filter(Boolean).length / 200))
@@ -82,11 +82,11 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
-      <div className="animate-slidein my-auto w-full max-w-xl rounded-2xl bg-white shadow-2xl">
+      <div className="animate-slidein my-auto w-full max-w-xl rounded-2xl bg-surface shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Share news &amp; updates</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 className="text-lg font-bold text-ink">Share news &amp; updates</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={20} />
           </button>
         </div>
@@ -96,8 +96,8 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
           <div className="mb-4 flex items-center gap-3">
             <Avatar name={currentUser.name} src={currentUser.photo} size={44} />
             <div>
-              <p className="font-semibold text-[#1c1c1c]">{currentUser.name}</p>
-              <p className="text-xs text-[#878a8c]">Posting to News &amp; Updates · Everyone</p>
+              <p className="font-semibold text-ink">{currentUser.name}</p>
+              <p className="text-xs text-muted">Posting to News &amp; Updates · Everyone</p>
             </div>
           </div>
 
@@ -109,8 +109,8 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
                 onClick={() => { setType(f.type); setError(null) }}
                 className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-3 text-center transition-colors ${
                   type === f.type
-                    ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                    : 'border-[#edeff1] text-[#878a8c] hover:border-[#ff4500]/40'
+                    ? 'border-brand bg-brand-50 text-brand'
+                    : 'border-line text-muted hover:border-brand/40'
                 }`}
                 title={f.blurb}
               >
@@ -119,7 +119,7 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
-          <p className="mb-4 text-xs text-[#878a8c]">{FORMATS.find((f) => f.type === type)!.blurb}.</p>
+          <p className="mb-4 text-xs text-muted">{FORMATS.find((f) => f.type === type)!.blurb}.</p>
 
           {/* ---- Format-specific fields ---- */}
           {type === 'Achievement' && (
@@ -155,7 +155,7 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
                       key={s}
                       onClick={() => set('seeking', meta.seeking === s ? undefined : s)}
                       className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        meta.seeking === s ? 'bg-[#ff4500] text-white' : 'bg-gray-100 text-[#878a8c] hover:bg-gray-200'
+                        meta.seeking === s ? 'bg-brand text-white' : 'bg-gray-100 text-muted hover:bg-gray-200'
                       }`}
                     >
                       {s}
@@ -226,7 +226,7 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
             className={`${field} resize-none`}
           />
           {type === 'Article' && content.trim() && (
-            <p className="mt-1 text-xs text-[#878a8c]">~{readMins(content)} min read</p>
+            <p className="mt-1 text-xs text-muted">~{readMins(content)} min read</p>
           )}
 
           {/* Collaborators / tech stack chip inputs */}
@@ -241,7 +241,7 @@ export function NewsComposer({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end border-t border-[#edeff1] px-5 py-3">
+        <div className="flex items-center justify-end border-t border-line px-5 py-3">
           <Button onClick={submit} disabled={!content.trim()}>Post to News</Button>
         </div>
       </div>
@@ -272,9 +272,9 @@ function ChipInput({
       {values.length > 0 && (
         <div className="mb-1.5 flex flex-wrap gap-1.5">
           {values.map((v) => (
-            <span key={v} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-[#ff4500]">
+            <span key={v} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand">
               {v}
-              <button onClick={() => onChange(values.filter((x) => x !== v))} className="text-[#ff4500]/70 hover:text-[#ff4500]">
+              <button onClick={() => onChange(values.filter((x) => x !== v))} className="text-brand/70 hover:text-brand">
                 <X size={12} />
               </button>
             </span>

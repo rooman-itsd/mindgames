@@ -42,6 +42,8 @@ import { BannerThemePicker } from '../components/profile/BannerThemePicker'
 import { roleLine } from '../lib/format'
 import { api } from '../lib/api'
 import { bannerThemeGradient, type Badge, type MentorApplication } from '../types'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PenLine } from 'lucide-react'
 
 type Tab = 'overview' | 'posts' | 'about'
 
@@ -88,8 +90,8 @@ export function Profile() {
         className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-[560px] w-[900px] -translate-x-1/2 opacity-[0.06]"
         style={{
           background:
-            'radial-gradient(50% 50% at 20% 20%, #ff4500 0%, transparent 70%),' +
-            'radial-gradient(40% 40% at 85% 10%, #ff6534 0%, transparent 70%)',
+            'radial-gradient(50% 50% at 20% 20%, var(--color-brand) 0%, transparent 70%),' +
+            'radial-gradient(40% 40% at 85% 10%, var(--color-marigold) 0%, transparent 70%)',
         }}
       />
 
@@ -100,9 +102,9 @@ export function Profile() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="overflow-hidden rounded-xl border border-[#edeff1] bg-white shadow-sm"
+        className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm"
       >
-        <div className="relative h-32 bg-[#1c1c1c]">
+        <div className="relative h-32 bg-ink">
           {/* Background art gets its own clipped layer so it still respects
               the card's rounded top corners — the outer container can't
               carry overflow-hidden itself, or it would clip the cover-picker
@@ -146,7 +148,7 @@ export function Profile() {
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.12, type: 'spring', stiffness: 220, damping: 18 }}
-            className="-mt-12 inline-block rounded-full ring-4 ring-white"
+            className="-mt-12 inline-block rounded-full ring-4 ring-surface"
           >
             <ProfilePhoto
               name={user.name}
@@ -165,14 +167,14 @@ export function Profile() {
           </motion.span>
 
           <div className="mt-3">
-            <h1 className="flex items-center gap-1.5 text-xl font-bold text-[#1c1c1c]">
+            <h1 className="flex items-center gap-1.5 text-xl font-bold text-ink">
               {user.name}
               <VerifiedBadge verified={user.emailVerified} size={18} />
             </h1>
             {roleLine(user) && (
-              <p className="text-sm font-medium text-[#1c1c1c]">{roleLine(user)}</p>
+              <p className="text-sm font-medium text-ink">{roleLine(user)}</p>
             )}
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#878a8c]">
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
               {user.city && (
                 <span className="flex items-center gap-1">
                   <MapPin size={12} /> {user.city}
@@ -256,7 +258,7 @@ export function Profile() {
                 )}
                 <button
                   onClick={() => setReportingUser(true)}
-                  className="ml-auto rounded-full p-2 text-[#c3c6c9] transition-colors hover:bg-red-50 hover:text-red-500"
+                  className="ml-auto rounded-full p-2 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
                   title={`Report ${user.name}`}
                   aria-label={`Report ${user.name}`}
                 >
@@ -270,7 +272,7 @@ export function Profile() {
 
       {/* ---- Tabs, borrowed from Reddit: three short pages instead of one
           very long scroll. Sticky under the 56px app header. */}
-      <div className="sticky top-14 z-10 -mx-4 border-b border-[#edeff1] bg-[#f6f7f8]/95 px-4 backdrop-blur">
+      <div className="sticky top-14 z-10 -mx-4 border-b border-line bg-page/95 px-4 backdrop-blur">
         <div className="flex gap-1">
           {TABS.map((t) => (
             <button
@@ -279,7 +281,7 @@ export function Profile() {
               aria-current={tab === t.key ? 'page' : undefined}
               className={cx(
                 'relative px-4 py-3 text-sm font-semibold transition-colors',
-                tab === t.key ? 'text-[#ff4500]' : 'text-[#878a8c] hover:text-[#1c1c1c]',
+                tab === t.key ? 'text-brand' : 'text-muted hover:text-ink',
               )}
             >
               {t.label}
@@ -291,7 +293,7 @@ export function Profile() {
                 // disappearing and reappearing.
                 <motion.span
                   layoutId="profile-tab-underline"
-                  className="absolute inset-x-2 bottom-0 h-[3px] rounded-full bg-[#ff4500]"
+                  className="absolute inset-x-2 bottom-0 h-[3px] rounded-full bg-brand"
                   transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                 />
               )}
@@ -371,11 +373,17 @@ export function Profile() {
           {userPosts.map((p) => (
             <PostCard key={p.id} post={p} />
           ))}
-          {userPosts.length === 0 && (
-            <div className="rounded-xl border border-[#edeff1] bg-white py-12 text-center text-sm text-[#878a8c] shadow-sm">
-              {isMe ? "You haven't posted yet." : 'No posts yet.'}
-            </div>
-          )}
+          {userPosts.length === 0 &&
+            (isMe ? (
+              <EmptyState
+                icon={<PenLine size={28} />}
+                title="Share your first post"
+                body="An update, a win, or what you're working on. Your network sees it on their feed."
+                action={{ label: 'Create a post', onClick: () => openComposer() }}
+              />
+            ) : (
+              <EmptyState icon={<PenLine size={28} />} title="No posts yet" />
+            ))}
         </>
       )}
 
@@ -399,9 +407,9 @@ export function Profile() {
 /** One tile in the stat strip. Counts up the first time it's seen. */
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <HoverLift className="rounded-lg bg-[#f6f7f8] px-3 py-2 text-center">
-      <CountUp to={value} className="block text-lg font-bold leading-tight text-[#1c1c1c]" />
-      <span className="text-[11px] font-medium tracking-wide text-[#878a8c] uppercase">
+    <HoverLift className="rounded-lg bg-page px-3 py-2 text-center">
+      <CountUp to={value} className="block text-lg font-bold leading-tight text-ink" />
+      <span className="text-[11px] font-medium tracking-wide text-muted uppercase">
         {label}
       </span>
     </HoverLift>
@@ -432,11 +440,11 @@ function AboutTab({
       <DetailsSection user={user} />
       {isMe && <PrivateSection user={user} />}
       {!hasDetails && (
-        <div className="rounded-xl border border-[#edeff1] bg-white py-12 text-center text-sm text-[#878a8c] shadow-sm">
+        <div className="rounded-xl border border-line bg-surface py-12 text-center text-sm text-muted shadow-sm">
           {isMe ? (
             <>
               Nothing here yet.{' '}
-              <button onClick={onEdit} className="font-semibold text-[#ff4500] hover:underline">
+              <button onClick={onEdit} className="font-semibold text-brand hover:underline">
                 Add your links and details
               </button>
             </>
@@ -482,11 +490,11 @@ function MentorshipStatusCard({ onEdit }: { onEdit: () => void }) {
         pending ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50',
       )}
     >
-      <h2 className="flex items-center gap-2 text-base font-bold text-[#1c1c1c]">
+      <h2 className="flex items-center gap-2 text-base font-bold text-ink">
         <Clock size={17} className={pending ? 'text-amber-600' : 'text-red-500'} />
         {pending ? 'Mentorship application pending' : 'Mentorship application declined'}
       </h2>
-      <p className="mt-1 text-sm leading-relaxed text-[#1c1c1c]/70">
+      <p className="mt-1 text-sm leading-relaxed text-ink/70">
         {pending
           ? 'An admin is reviewing the proof you submitted — this usually takes a couple of days. Your profile will show you as a mentor once approved.'
           : app.reviewNote ||
@@ -495,7 +503,7 @@ function MentorshipStatusCard({ onEdit }: { onEdit: () => void }) {
       {!pending && (
         <button
           onClick={onEdit}
-          className="mt-3 rounded-full bg-[#ff4500] px-4 py-2 text-xs font-bold text-white hover:bg-[#ff6534]"
+          className="mt-3 rounded-full btn-primary px-4 py-2 text-xs font-bold text-white"
         >
           Resubmit proof
         </button>
@@ -519,8 +527,8 @@ function BadgesCard({ userId, isMe }: { userId: string; isMe: boolean }) {
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold text-[#1c1c1c]">Badges</h2>
-        <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-[#ff4500]">
+        <h2 className="text-base font-bold text-ink">Badges</h2>
+        <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand">
           ⭐ {data.points} points
         </span>
       </div>
@@ -529,14 +537,14 @@ function BadgesCard({ userId, isMe }: { userId: string; isMe: boolean }) {
           <span
             key={b.id}
             title={b.description}
-            className="flex cursor-default items-center gap-1.5 rounded-full border border-[#edeff1] bg-[#f6f7f8] px-3 py-1.5 text-sm font-semibold text-[#1c1c1c]"
+            className="flex cursor-default items-center gap-1.5 rounded-full border border-line bg-page px-3 py-1.5 text-sm font-semibold text-ink"
           >
             <span>{b.emoji}</span> {b.label}
           </span>
         ))}
       </div>
       {isMe && data.badges.some((b) => !b.earned) && (
-        <p className="mt-3 text-xs text-[#878a8c]">
+        <p className="mt-3 text-xs text-muted">
           {data.badges.filter((b) => b.earned).length}/{data.badges.length} earned — keep posting,
           connecting and mentoring to unlock the rest.
         </p>

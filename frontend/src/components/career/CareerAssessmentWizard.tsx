@@ -132,7 +132,7 @@ export function CareerAssessmentWizard({
   return (
     <Card className="p-5 sm:p-6">
       <div className="mb-5">
-        <div className="mb-2 flex items-center justify-between text-xs font-semibold text-[#878a8c]">
+        <div className="mb-2 flex items-center justify-between text-xs font-semibold text-muted">
           <span>
             {isReview ? 'Review' : `Step ${step + 1} of ${STEP_TITLES.length}`}
           </span>
@@ -140,7 +140,7 @@ export function CareerAssessmentWizard({
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
           <div
-            className="h-full rounded-full bg-[#ff4500] transition-all duration-300"
+            className="h-full rounded-full bg-brand transition-all duration-300"
             style={{ width: `${((isReview ? STEP_TITLES.length : step) / STEP_TITLES.length) * 100}%` }}
           />
         </div>
@@ -171,9 +171,9 @@ export function CareerAssessmentWizard({
               disabled={a.targetRoleUnsure}
               onChange={(e) => set('targetRole', e.target.value)}
               placeholder="e.g. AI Engineer"
-              className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500] disabled:bg-gray-50 disabled:text-[#878a8c]"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand disabled:bg-gray-50 disabled:text-muted"
             />
-            <label className="mt-2 flex w-fit cursor-pointer items-center gap-2 text-sm text-[#1c1c1c]">
+            <label className="mt-2 flex w-fit cursor-pointer items-center gap-2 text-sm text-ink">
               <input
                 type="checkbox"
                 checked={a.targetRoleUnsure}
@@ -181,7 +181,7 @@ export function CareerAssessmentWizard({
                   set('targetRoleUnsure', e.target.checked)
                   if (e.target.checked) set('targetRole', '')
                 }}
-                className="h-4 w-4 rounded border-gray-300 accent-[#ff4500]"
+                className="h-4 w-4 rounded border-gray-300 accent-brand"
               />
               I’m not sure yet — help me explore
             </label>
@@ -194,7 +194,7 @@ export function CareerAssessmentWizard({
           title="Your skills and experience"
           hint="Taken from your profile — we won't ask you to type it all again."
         >
-          <div className="rounded-xl border border-[#edeff1] bg-gray-50 p-4">
+          <div className="rounded-xl border border-line bg-gray-50 p-4">
             <Fact label="Current role" value={[currentUser.designation, currentUser.company].filter(Boolean).join(' · ') || '—'} />
             <Fact label="Skills" value={currentUser.expertise?.join(', ') || '—'} />
             <Fact label="Experience" value={`${currentUser.experienceYears || 0} years · ${currentUser.domain || '—'}`} />
@@ -202,7 +202,7 @@ export function CareerAssessmentWizard({
               label="Certifications"
               value={currentUser.certifications?.map((c) => c.name).join(', ') || '—'}
             />
-            <a href="/profile" className="mt-1 inline-block text-xs font-semibold text-[#ff4500] hover:underline">
+            <a href="/profile" className="mt-1 inline-block text-xs font-semibold text-brand hover:underline">
               Edit in profile →
             </a>
           </div>
@@ -211,7 +211,7 @@ export function CareerAssessmentWizard({
             onChange={(e) => set('extraSkillsNote', e.target.value)}
             rows={3}
             placeholder="Anything not reflected in your profile? (optional)"
-            className="mt-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
         </Question>
       )}
@@ -265,7 +265,7 @@ export function CareerAssessmentWizard({
             <div className="flex flex-col gap-3">
               {SERVICE_CATEGORIES.map((cat) => (
                 <div key={cat.label}>
-                  <p className="mb-1.5 text-xs font-bold tracking-wide text-[#878a8c] uppercase">
+                  <p className="mb-1.5 text-xs font-bold tracking-wide text-muted uppercase">
                     {cat.label}
                   </p>
                   <OptionGrid
@@ -288,7 +288,7 @@ export function CareerAssessmentWizard({
             onChange={(e) => set('freeText', e.target.value)}
             rows={4}
             placeholder="Tell us anything else about where you want your career to go…"
-            className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
         </Question>
       )}
@@ -306,7 +306,7 @@ export function CareerAssessmentWizard({
 
       {isReview && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-base font-bold text-[#1c1c1c]">Check your answers</h3>
+          <h3 className="text-base font-bold text-ink">Check your answers</h3>
           <ReviewRow label="Current situation" value={a.currentSituation} onEdit={() => setStep(0)} />
           <ReviewRow
             label="Goal"
@@ -331,7 +331,7 @@ export function CareerAssessmentWizard({
         </div>
       )}
 
-      <div className="mt-6 flex items-center justify-between gap-3 border-t border-[#edeff1] pt-4">
+      <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-4">
         <Button
           variant="ghost"
           icon={<ArrowLeft size={14} />}
@@ -340,7 +340,7 @@ export function CareerAssessmentWizard({
           {step === 0 ? 'Cancel' : 'Back'}
         </Button>
         {isReview ? (
-          <Button icon={<Sparkles size={14} />} onClick={submit}>
+          <Button variant="ai" icon={<Sparkles size={14} />} onClick={submit}>
             Generate my roadmap
           </Button>
         ) : (
@@ -361,9 +361,9 @@ export function CareerAssessmentWizard({
 function GeneratingState() {
   return (
     <Card className="grid place-items-center gap-3 px-5 py-16 text-center">
-      <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#ff4500] border-t-transparent" />
-      <p className="text-base font-bold text-[#1c1c1c]">Building your roadmap…</p>
-      <p className="max-w-sm text-sm text-[#878a8c]">
+      <span className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+      <p className="text-base font-bold text-ink">Building your roadmap…</p>
+      <p className="max-w-sm text-sm text-muted">
         Reviewing your profile, finding alumni who took a similar path, and planning your stages.
       </p>
     </Card>
@@ -373,8 +373,8 @@ function GeneratingState() {
 function Question({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="mb-5 last:mb-0">
-      <h3 className="text-base font-bold text-[#1c1c1c]">{title}</h3>
-      {hint && <p className="mb-2.5 text-sm text-[#878a8c]">{hint}</p>}
+      <h3 className="text-base font-bold text-ink">{title}</h3>
+      {hint && <p className="mb-2.5 text-sm text-muted">{hint}</p>}
       <div className={hint ? '' : 'mt-2.5'}>{children}</div>
     </div>
   )
@@ -383,8 +383,8 @@ function Question({ title, hint, children }: { title: string; hint?: string; chi
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <p className="mb-1.5 text-sm">
-      <span className="font-semibold text-[#1c1c1c]">{label}: </span>
-      <span className="text-[#878a8c]">{value}</span>
+      <span className="font-semibold text-ink">{label}: </span>
+      <span className="text-muted">{value}</span>
     </p>
   )
 }
@@ -415,8 +415,8 @@ function OptionGrid({
             onClick={() => (multi ? onToggle?.(o.value) : onChange?.(o.value))}
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
               active
-                ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                : 'border-[#edeff1] bg-white text-[#1c1c1c] hover:bg-gray-50'
+                ? 'border-brand bg-brand-50 text-brand'
+                : 'border-line bg-surface text-ink hover:bg-gray-50'
             }`}
           >
             {active && <Check size={13} />}
@@ -457,21 +457,21 @@ function NumberField({
           const n = Number(e.target.value)
           onChange(e.target.value === '' || Number.isNaN(n) ? undefined : n)
         }}
-        className="w-24 rounded-lg border border-[#edeff1] px-3 py-2 text-center text-sm font-bold outline-none focus:border-[#ff4500]"
+        className="w-24 rounded-lg border border-line px-3 py-2 text-center text-sm font-bold outline-none focus:border-brand"
       />
-      <span className="text-sm font-medium text-[#878a8c]">{suffix}</span>
+      <span className="text-sm font-medium text-muted">{suffix}</span>
     </div>
   )
 }
 
 function ReviewRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-[#edeff1] px-3.5 py-2.5">
+    <div className="flex items-start justify-between gap-3 rounded-lg border border-line px-3.5 py-2.5">
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-[#878a8c]">{label}</p>
-        <p className="text-sm text-[#1c1c1c]">{value || '—'}</p>
+        <p className="text-xs font-semibold text-muted">{label}</p>
+        <p className="text-sm text-ink">{value || '—'}</p>
       </div>
-      <button onClick={onEdit} className="shrink-0 text-xs font-semibold text-[#ff4500] hover:underline">
+      <button onClick={onEdit} className="shrink-0 text-xs font-semibold text-brand hover:underline">
         Edit
       </button>
     </div>

@@ -64,7 +64,7 @@ export function ProfilePhoto({
       >
         <Avatar name={name} src={photo} size={size} />
         {canEdit && size >= 56 && (
-          <span className="absolute right-0 bottom-0 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-[#f6f7f8] text-[#1c1c1c]">
+          <span className="absolute right-0 bottom-0 grid h-7 w-7 place-items-center rounded-full border-2 border-surface bg-page text-ink">
             <Camera size={14} />
           </span>
         )}
@@ -72,7 +72,7 @@ export function ProfilePhoto({
 
       {/* Options menu */}
       {menuOpen && (
-        <div className="absolute top-full left-0 z-30 mt-2 w-44 rounded-xl border border-[#edeff1] bg-white p-1 shadow-lg">
+        <div className="absolute top-full left-0 z-30 mt-2 w-44 rounded-xl border border-line bg-surface p-1 shadow-lg">
           {photo && (
             <MenuItem
               icon={<Eye size={15} />}
@@ -158,7 +158,7 @@ function MenuItem({
     <button
       onClick={onClick}
       className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm ${
-        danger ? 'text-red-500 hover:bg-red-50' : 'text-[#1c1c1c] hover:bg-gray-50'
+        danger ? 'text-red-500 hover:bg-red-50' : 'text-ink hover:bg-gray-50'
       }`}
     >
       {icon} {label}

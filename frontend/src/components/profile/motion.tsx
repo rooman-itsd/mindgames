@@ -111,13 +111,13 @@ export function ProgressRing({
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#edeff1" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-line)" strokeWidth={stroke} />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={done ? '#16a34a' : '#ff4500'}
+          stroke={done ? '#16a34a' : 'var(--color-brand)'}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}

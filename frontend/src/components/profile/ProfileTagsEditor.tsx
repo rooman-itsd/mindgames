@@ -75,19 +75,19 @@ export function ProfileTagsEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Edit Profile Tags</h2>
+      <div className="w-full max-w-md rounded-2xl bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 className="text-lg font-bold text-ink">Edit Profile Tags</h2>
           <button
             onClick={onCancel}
-            className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100"
+            className="rounded-full p-1 text-muted hover:bg-gray-100"
           >
             <X size={18} />
           </button>
         </div>
 
         <div className="space-y-3 px-5 py-4">
-          <p className="text-sm text-[#878a8c]">
+          <p className="text-sm text-muted">
             Select the tags that best describe you. These will be visible on your profile.
           </p>
 
@@ -99,20 +99,20 @@ export function ProfileTagsEditor({
               return (
                 <label
                   key={tag}
-                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#edeff1] p-3 transition-colors hover:bg-[#f6f7f8]"
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-line p-3 transition-colors hover:bg-page"
                 >
                   <input
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => toggleTag(tag)}
-                    className="mt-1 h-5 w-5 cursor-pointer accent-[#ff4500]"
+                    className="mt-1 h-5 w-5 cursor-pointer accent-brand"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[#ff4500]">{info.icon}</span>
-                      <span className="font-semibold text-[#1c1c1c]">{info.label}</span>
+                      <span className="text-brand">{info.icon}</span>
+                      <span className="font-semibold text-ink">{info.label}</span>
                     </div>
-                    <p className="mt-1 text-xs text-[#878a8c]">{info.description}</p>
+                    <p className="mt-1 text-xs text-muted">{info.description}</p>
                   </div>
                 </label>
               )
@@ -120,7 +120,7 @@ export function ProfileTagsEditor({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[#edeff1] px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
           <Button variant="ghost" onClick={onCancel} disabled={saving}>
             Cancel
           </Button>

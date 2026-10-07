@@ -69,12 +69,12 @@ export function Section({
       {/* A 2px gradient hairline instead of a flat border-top — the one
           recurring visual signature that ties every tile together without
           repeating a solid block of colour. */}
-      <div className="absolute inset-x-5 top-0 h-[2px] rounded-full bg-gradient-to-r from-[#ff4500]/0 via-[#ff4500]/40 to-[#ff4500]/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="absolute inset-x-5 top-0 h-[2px] rounded-full bg-gradient-to-r from-brand/0 via-brand/40 to-brand/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <Card className="relative overflow-hidden p-5 transition-shadow duration-300 hover:shadow-[0_8px_30px_-12px_rgba(255,69,0,0.25)]">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2.5 text-base font-bold text-[#1c1c1c]">
+          <h2 className="flex items-center gap-2.5 text-base font-bold text-ink">
             <motion.span
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-orange-50 to-orange-100/60 text-[#ff4500]"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand-50 to-brand-100/60 text-brand"
               whileHover={{ rotate: -8, scale: 1.08 }}
               transition={{ type: 'spring', stiffness: 300, damping: 15 }}
             >
@@ -82,7 +82,7 @@ export function Section({
             </motion.span>
             {title}
             {!!count && count > 1 && (
-              <span className="rounded-full bg-[#f6f7f8] px-2 py-0.5 text-xs font-semibold text-[#878a8c]">
+              <span className="rounded-full bg-page px-2 py-0.5 text-xs font-semibold text-muted">
                 {count}
               </span>
             )}
@@ -91,7 +91,7 @@ export function Section({
             <button
               onClick={onAdd}
               aria-label={`Add to ${title}`}
-              className="rounded-full p-1.5 text-[#878a8c] hover:bg-[#f6f7f8] hover:text-[#1c1c1c]"
+              className="rounded-full p-1.5 text-muted hover:bg-page hover:text-ink"
             >
               <Plus size={16} />
             </button>
@@ -101,7 +101,7 @@ export function Section({
         {empty ? (
           <button
             onClick={onAdd}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#edeff1] py-3 text-sm font-medium text-[#ff4500] hover:bg-orange-50"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line py-3 text-sm font-medium text-brand hover:bg-brand-50"
           >
             <Plus size={14} /> {emptyPrompt}
           </button>
@@ -135,7 +135,7 @@ function Collapsible<T>({
       {items.length > COLLAPSE_AFTER && (
         <button
           onClick={() => setAll((a) => !a)}
-          className="mt-1 w-full border-t border-[#edeff1] pt-3 text-sm font-semibold text-[#878a8c] hover:text-[#1c1c1c]"
+          className="mt-1 w-full border-t border-line pt-3 text-sm font-semibold text-muted hover:text-ink"
         >
           {all ? 'Show less' : `Show all ${items.length} ${noun}`}
         </button>
@@ -149,7 +149,7 @@ function OrgBadge({ name }: { name: string }) {
   return (
     <span
       aria-hidden
-      className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#f6f7f8] text-sm font-bold text-[#878a8c]"
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-page text-sm font-bold text-muted"
     >
       {(name || '?').trim().charAt(0).toUpperCase()}
     </span>
@@ -162,7 +162,7 @@ function Chips({ items }: { items: string[] }) {
       {items.map((i) => (
         <span
           key={i}
-          className="rounded-full bg-[#f6f7f8] px-2.5 py-1 text-xs font-medium text-[#878a8c]"
+          className="rounded-full bg-page px-2.5 py-1 text-xs font-medium text-muted"
         >
           {i}
         </span>
@@ -195,7 +195,7 @@ export function AboutSection({
       {hasBio || skills.length > 0 ? (
         <>
           {hasBio && (
-            <p className="text-sm leading-relaxed whitespace-pre-line text-[#1c1c1c]">{user.bio}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line text-ink">{user.bio}</p>
           )}
           {skills.length > 0 && (
             <div className={hasBio ? 'mt-3' : ''}>
@@ -232,14 +232,14 @@ export function ExperienceSection({
           items={items}
           noun="roles"
           render={(e, i) => (
-            <div key={i} className="flex gap-3 border-b border-[#edeff1] py-3 first:pt-0 last:border-0 last:pb-0">
+            <div key={i} className="flex gap-3 border-b border-line py-3 first:pt-0 last:border-0 last:pb-0">
               <OrgBadge name={e.company} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#1c1c1c]">{e.role}</p>
-                <p className="text-sm text-[#1c1c1c]/80">{e.company}</p>
-                {e.period && <p className="text-xs text-[#878a8c]">{e.period}</p>}
+                <p className="text-sm font-semibold text-ink">{e.role}</p>
+                <p className="text-sm text-ink/80">{e.company}</p>
+                {e.period && <p className="text-xs text-muted">{e.period}</p>}
                 {e.summary && (
-                  <p className="mt-1 text-xs leading-relaxed text-[#878a8c]">{e.summary}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">{e.summary}</p>
                 )}
               </div>
             </div>
@@ -274,12 +274,12 @@ export function EducationSection({
           items={items}
           noun="qualifications"
           render={(e, i) => (
-            <div key={i} className="flex gap-3 border-b border-[#edeff1] py-3 first:pt-0 last:border-0 last:pb-0">
+            <div key={i} className="flex gap-3 border-b border-line py-3 first:pt-0 last:border-0 last:pb-0">
               <OrgBadge name={e.institution} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#1c1c1c]">{e.degree}</p>
-                <p className="text-sm text-[#1c1c1c]/80">{e.institution}</p>
-                <p className="text-xs text-[#878a8c]">
+                <p className="text-sm font-semibold text-ink">{e.degree}</p>
+                <p className="text-sm text-ink/80">{e.institution}</p>
+                <p className="text-xs text-muted">
                   {[e.year, e.score].filter(Boolean).join(' · ')}
                 </p>
               </div>
@@ -315,14 +315,14 @@ export function ProjectsSection({
           items={items}
           noun="projects"
           render={(p, i) => (
-            <div key={i} className="border-b border-[#edeff1] py-3 first:pt-0 last:border-0 last:pb-0">
-              <p className="text-sm font-semibold text-[#1c1c1c]">
+            <div key={i} className="border-b border-line py-3 first:pt-0 last:border-0 last:pb-0">
+              <p className="text-sm font-semibold text-ink">
                 {p.link ? (
                   <a
                     href={p.link}
                     target="_blank"
                     rel="noreferrer"
-                    className="hover:text-[#ff4500] hover:underline"
+                    className="hover:text-brand hover:underline"
                   >
                     {p.title}
                   </a>
@@ -331,7 +331,7 @@ export function ProjectsSection({
                 )}
               </p>
               {p.description && (
-                <p className="mt-0.5 text-xs leading-relaxed text-[#878a8c]">{p.description}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted">{p.description}</p>
               )}
               {p.tech.length > 0 && (
                 <div className="mt-1.5">
@@ -370,11 +370,11 @@ export function CertificationsSection({
           items={items}
           noun="certifications"
           render={(c, i) => (
-            <div key={i} className="flex gap-3 border-b border-[#edeff1] py-3 first:pt-0 last:border-0 last:pb-0">
+            <div key={i} className="flex gap-3 border-b border-line py-3 first:pt-0 last:border-0 last:pb-0">
               <OrgBadge name={c.issuer || c.name} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#1c1c1c]">{c.name}</p>
-                <p className="text-xs text-[#878a8c]">
+                <p className="text-sm font-semibold text-ink">{c.name}</p>
+                <p className="text-xs text-muted">
                   {[c.issuer, c.year].filter(Boolean).join(' · ')}
                 </p>
               </div>
@@ -411,8 +411,8 @@ export function AchievementsSection({
           noun="achievements"
           render={(a, i) => (
             <div key={i} className="flex items-baseline justify-between gap-3 py-1.5">
-              <span className="text-sm text-[#1c1c1c]">{a.title}</span>
-              {a.year && <span className="shrink-0 text-xs text-[#878a8c]">{a.year}</span>}
+              <span className="text-sm text-ink">{a.title}</span>
+              {a.year && <span className="shrink-0 text-xs text-muted">{a.year}</span>}
             </div>
           )}
         />
@@ -429,10 +429,10 @@ export function MentorshipSection({ user, onBook }: { user: User; onBook?: () =>
     // The one card on the page an admin has actually vouched for, so it gets
     // the feature treatment: a dark gradient surface rather than another white
     // tile, with a drifting glow to match the hero banner's language.
-    <div className="relative overflow-hidden rounded-xl bg-[#1c1c1c] p-5 text-white shadow-lg">
+    <div className="relative overflow-hidden rounded-xl bg-ink p-5 text-white shadow-lg">
       <motion.div
         aria-hidden
-        className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-[#ff4500]/30 blur-3xl"
+        className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-brand/30 blur-3xl"
         animate={{ x: [0, 14, 0], y: [0, 8, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -467,7 +467,7 @@ export function MentorshipSection({ user, onBook }: { user: User; onBook?: () =>
       {onBook && (
         <button
           onClick={onBook}
-          className="relative mt-3 rounded-full bg-[#ff4500] px-4 py-2 text-xs font-bold text-white hover:bg-[#ff6534]"
+          className="relative mt-3 rounded-full btn-primary px-4 py-2 text-xs font-bold text-white"
         >
           Book a session
         </button>
@@ -516,8 +516,8 @@ export function OpenToSection({ user }: { user: User }) {
     <Section icon={<Handshake size={17} />} title="Open to">
       <ul className="flex flex-col gap-2">
         {rows.map((r, i) => (
-          <li key={i} className="flex items-start gap-2 text-sm text-[#1c1c1c]">
-            <span className="mt-0.5 shrink-0 text-[#878a8c]">{r.icon}</span>
+          <li key={i} className="flex items-start gap-2 text-sm text-ink">
+            <span className="mt-0.5 shrink-0 text-muted">{r.icon}</span>
             {r.text}
           </li>
         ))}
@@ -598,8 +598,8 @@ export function DetailsSection({ user }: { user: User }) {
         {contact.length > 0 && (
           <div className="flex flex-col gap-1.5">
             {contact.map((c, i) => (
-              <p key={i} className="flex items-center gap-2 text-sm text-[#1c1c1c]">
-                <span className="text-[#878a8c]">{c.icon}</span>
+              <p key={i} className="flex items-center gap-2 text-sm text-ink">
+                <span className="text-muted">{c.icon}</span>
                 {c.value}
               </p>
             ))}
@@ -614,7 +614,7 @@ export function DetailsSection({ user }: { user: User }) {
                 href={l.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 rounded-full border border-[#edeff1] px-3 py-1.5 text-xs font-medium text-[#1c1c1c] hover:border-[#ff4500] hover:text-[#ff4500]"
+                className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink hover:border-brand hover:text-brand"
               >
                 {l.icon}
                 {l.label}
@@ -627,14 +627,14 @@ export function DetailsSection({ user }: { user: User }) {
           <dl className="flex flex-col gap-1 text-xs">
             {user.industry && (
               <div className="flex gap-2">
-                <dt className="text-[#878a8c]">Industry</dt>
-                <dd className="font-medium text-[#1c1c1c]">{user.industry}</dd>
+                <dt className="text-muted">Industry</dt>
+                <dd className="font-medium text-ink">{user.industry}</dd>
               </div>
             )}
             {user.roomanCenter && (
               <div className="flex gap-2">
-                <dt className="text-[#878a8c]">Rooman centre</dt>
-                <dd className="font-medium text-[#1c1c1c]">{user.roomanCenter}</dd>
+                <dt className="text-muted">Rooman centre</dt>
+                <dd className="font-medium text-ink">{user.roomanCenter}</dd>
               </div>
             )}
           </dl>
@@ -642,7 +642,7 @@ export function DetailsSection({ user }: { user: User }) {
 
         {langs.length > 0 && (
           <div>
-            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[#878a8c]">
+            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted">
               <Languages size={12} /> Languages
             </p>
             <Chips items={langs} />
@@ -651,7 +651,7 @@ export function DetailsSection({ user }: { user: User }) {
 
         {interests.length > 0 && (
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-[#878a8c]">Interests</p>
+            <p className="mb-1.5 text-xs font-semibold text-muted">Interests</p>
             <Chips items={interests} />
           </div>
         )}
@@ -695,19 +695,19 @@ export function PrivateSection({ user }: { user: User }) {
   if (rows.length === 0) return null
   return (
     <Card className="border-dashed p-5">
-      <h2 className="flex items-center gap-2 text-base font-bold text-[#1c1c1c]">
-        <Lock size={15} className="text-[#878a8c]" />
+      <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+        <Lock size={15} className="text-muted" />
         Only you can see this
       </h2>
-      <p className="mt-0.5 text-xs text-[#878a8c]">
+      <p className="mt-0.5 text-xs text-muted">
         Used to match you with jobs and mentors. Turn contact details on from Edit Profile if you
         want them public.
       </p>
       <dl className="mt-3 flex flex-col gap-2">
         {rows.map((r) => (
           <div key={r.label} className="flex flex-wrap gap-x-2 text-sm">
-            <dt className="text-[#878a8c]">{r.label}:</dt>
-            <dd className="font-medium text-[#1c1c1c]">{r.value}</dd>
+            <dt className="text-muted">{r.label}:</dt>
+            <dd className="font-medium text-ink">{r.value}</dd>
           </div>
         ))}
       </dl>

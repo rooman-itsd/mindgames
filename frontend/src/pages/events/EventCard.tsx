@@ -50,7 +50,7 @@ export function EventCard({
         {/* Date block */}
         <button
           onClick={() => onOpenQuickView(e.id)}
-          className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-orange-50 text-[#ff4500]"
+          className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 text-brand"
         >
           <span className="text-[11px] font-bold uppercase">
             {start.toLocaleDateString('en-IN', { month: 'short' })}
@@ -60,7 +60,7 @@ export function EventCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => onOpenQuickView(e.id)} className="text-lg font-bold text-[#1c1c1c] hover:underline">
+            <button onClick={() => onOpenQuickView(e.id)} className="text-lg font-bold text-ink hover:underline">
               {e.title}
             </button>
             {e.status === 'pending' && (
@@ -75,7 +75,7 @@ export function EventCard({
               </span>
             )}
             {e.isPaid ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-[#ff4500]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand">
                 <Ticket size={11} /> ₹{(e.price ?? 0).toLocaleString('en-IN')}
               </span>
             ) : (
@@ -84,7 +84,7 @@ export function EventCard({
               </span>
             )}
           </div>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[#878a8c]">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
             <span>
               {start.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
               {' · '}
@@ -100,13 +100,13 @@ export function EventCard({
                 href={e.meetingLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-[#ff4500] hover:underline"
+                className="inline-flex items-center gap-1 font-semibold text-brand hover:underline"
               >
                 <Video size={13} /> Join link <ExternalLink size={11} />
               </a>
             )}
           </p>
-          {e.description && <p className="mt-2 text-sm leading-relaxed text-[#1c1c1c]">{e.description}</p>}
+          {e.description && <p className="mt-2 text-sm leading-relaxed text-ink">{e.description}</p>}
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -114,22 +114,22 @@ export function EventCard({
                 {e.attendeeIds.slice(0, 5).map((id) => {
                   const u = userById(id)
                   return (
-                    <span key={id} className="rounded-full ring-2 ring-white">
+                    <span key={id} className="rounded-full ring-2 ring-surface">
                       <Avatar name={u?.name ?? '?'} src={u?.photo} size={26} />
                     </span>
                   )
                 })}
               </div>
-              <span className="text-xs text-[#878a8c]">
+              <span className="text-xs text-muted">
                 <Users size={12} className="mr-0.5 inline" />
                 {e.rsvpCount}{e.capacity ? ` / ${e.capacity}` : ''} going
                 {e.waitlistCount > 0 && ` · ${e.waitlistCount} waitlisted`}
               </span>
-              <span className="text-xs text-[#a5a8ab]">
+              <span className="text-xs text-gray-400">
                 · hosted by{' '}
                 <Link
                   to={`/profile/${e.creatorId}`}
-                  className="inline-flex items-center gap-1 font-medium text-[#878a8c] hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-muted hover:underline"
                 >
                   {isMine ? 'you' : creator?.name}
                   <VerifiedBadge verified={creator?.emailVerified} size={12} />
@@ -222,7 +222,8 @@ export function EventCard({
                       Defaults to 'approved' to match the NOT NULL column default. */}
                   {(e.status ?? 'approved') === 'approved' && (
                     <Button
-                      variant={e.rsvpedByMe || e.waitlistedByMe ? 'subtle' : 'primary'}
+                      variant="social"
+                    aria-pressed={e.rsvpedByMe || e.waitlistedByMe}
                       className="!px-4 !py-1.5 text-sm"
                       onClick={() => toggleRsvp(e.id)}
                     >
@@ -249,8 +250,8 @@ export function EventCard({
           {showDiscussion && <EventDiscussion eventId={e.id} />}
 
           {updates.length > 0 && (
-            <div className="mt-3 flex flex-col gap-2 border-t border-[#edeff1] pt-3">
-              <p className="text-xs font-semibold text-[#878a8c]">Updates ({updates.length})</p>
+            <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+              <p className="text-xs font-semibold text-muted">Updates ({updates.length})</p>
               {updates.map((p) => (
                 <PostCard key={p.id} post={p} />
               ))}
@@ -286,8 +287,8 @@ function EventFeedbackForm({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded-lg border border-[#edeff1] bg-[#f6f7f8] p-3">
-      <p className="text-xs font-semibold text-[#1c1c1c]">How was this event?</p>
+    <div className="mt-3 flex flex-col gap-2 rounded-lg border border-line bg-page p-3">
+      <p className="text-xs font-semibold text-ink">How was this event?</p>
       <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -301,7 +302,7 @@ function EventFeedbackForm({ eventId }: { eventId: string }) {
           >
             <Star
               size={20}
-              className={n <= (hovered || rating) ? 'fill-yellow-500 text-yellow-500' : 'text-[#c3c6c9]'}
+              className={n <= (hovered || rating) ? 'fill-yellow-500 text-yellow-500' : 'text-gray-300'}
             />
           </button>
         ))}
@@ -310,7 +311,7 @@ function EventFeedbackForm({ eventId }: { eventId: string }) {
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         placeholder="Anything you'd add? (optional)"
-        className="w-full rounded-lg border border-[#edeff1] bg-white px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
       />
       <Button className="self-start !px-4 !py-1.5 text-xs" disabled={!rating || saving} onClick={submit}>
         {saving ? 'Submitting…' : 'Submit feedback'}
@@ -329,31 +330,31 @@ function EventFeedbackModal({ event: e, onClose }: { event: AppEvent; onClose: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center" onClick={onClose}>
-      <div className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-white shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
+      <div className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-surface shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">
-            <Star size={18} className="text-[#ff4500]" />
-            <h2 className="font-bold text-[#1c1c1c]">Feedback — {e.title}</h2>
+            <Star size={18} className="text-brand" />
+            <h2 className="font-bold text-ink">Feedback — {e.title}</h2>
           </div>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
 
         <div className="max-h-[60vh] space-y-3 overflow-y-auto px-5 py-4">
-          {entries === null && <p className="text-sm text-[#878a8c]">Loading…</p>}
-          {entries?.length === 0 && <p className="text-sm text-[#878a8c]">No feedback submitted yet.</p>}
+          {entries === null && <p className="text-sm text-muted">Loading…</p>}
+          {entries?.length === 0 && <p className="text-sm text-muted">No feedback submitted yet.</p>}
           {entries?.map((f) => (
             <div key={f.userId} className="flex gap-2">
               <Avatar name={f.name} src={f.photo} size={32} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-[#1c1c1c]">{f.name}</p>
+                  <p className="text-sm font-semibold text-ink">{f.name}</p>
                   <span className="inline-flex items-center gap-0.5 text-xs text-yellow-600">
                     <Star size={11} className="fill-yellow-500 text-yellow-500" /> {f.rating}
                   </span>
                 </div>
-                {f.comment && <p className="text-sm text-[#1c1c1c]">{f.comment}</p>}
+                {f.comment && <p className="text-sm text-ink">{f.comment}</p>}
               </div>
             </div>
           ))}
@@ -401,7 +402,7 @@ function EventDiscussion({ eventId }: { eventId: string }) {
   const shown = expanded || hiddenCount <= 0 ? all : all.slice(-COLLAPSED_COMMENT_COUNT)
 
   return (
-    <div className="mt-3 flex flex-col gap-3 border-t border-[#edeff1] pt-3">
+    <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3">
       <div className="flex items-center gap-2">
         <Avatar name={currentUser.name} src={currentUser.photo} size={30} />
         <input
@@ -409,21 +410,21 @@ function EventDiscussion({ eventId }: { eventId: string }) {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder="Ask a question or leave a note…"
-          className="flex-1 rounded-full border border-[#edeff1] bg-[#f6f7f8] px-4 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="flex-1 rounded-full border border-line bg-page px-4 py-2 text-sm outline-none focus:border-brand"
         />
         <button
           onClick={submit}
           disabled={posting || !draft.trim()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ff4500] text-white hover:bg-[#ff6534] disabled:opacity-50"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full btn-primary text-white disabled:opacity-50"
         >
           <Send size={15} />
         </button>
       </div>
-      {comments === null && <p className="text-xs text-[#878a8c]">Loading discussion…</p>}
+      {comments === null && <p className="text-xs text-muted">Loading discussion…</p>}
       {hiddenCount > 0 && !expanded && (
         <button
           onClick={() => setExpanded(true)}
-          className="self-start text-xs font-semibold text-[#ff4500] hover:underline"
+          className="self-start text-xs font-semibold text-brand hover:underline"
         >
           View {hiddenCount} more comment{hiddenCount > 1 ? 's' : ''}
         </button>
@@ -434,19 +435,19 @@ function EventDiscussion({ eventId }: { eventId: string }) {
           return (
             <div key={c.id} className="flex gap-2">
               <Avatar name={author?.name ?? '?'} src={author?.photo} size={30} />
-              <div className="rounded-2xl bg-[#f6f7f8] px-3 py-2">
-                <p className="text-xs font-semibold text-[#1c1c1c]">{author?.name ?? 'Member'}</p>
-                <p className="text-sm text-[#1c1c1c]">{c.text}</p>
+              <div className="rounded-2xl bg-page px-3 py-2">
+                <p className="text-xs font-semibold text-ink">{author?.name ?? 'Member'}</p>
+                <p className="text-sm text-ink">{c.text}</p>
               </div>
             </div>
           )
         })}
-        {comments?.length === 0 && <p className="text-xs text-[#878a8c]">No comments yet — be the first to ask something.</p>}
+        {comments?.length === 0 && <p className="text-xs text-muted">No comments yet — be the first to ask something.</p>}
       </div>
       {expanded && hiddenCount > 0 && (
         <button
           onClick={() => setExpanded(false)}
-          className="self-start text-xs font-semibold text-[#878a8c] hover:underline"
+          className="self-start text-xs font-semibold text-muted hover:underline"
         >
           Show less
         </button>
@@ -467,13 +468,13 @@ function PostEventUpdateModal({ event: e, onClose }: { event: AppEvent; onClose:
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center" onClick={onClose}>
-      <div className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-white shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
+      <div className="animate-slidein my-auto w-full max-w-md rounded-2xl bg-surface shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">
-            <MessageSquarePlus size={18} className="text-[#ff4500]" />
-            <h2 className="font-bold text-[#1c1c1c]">Post an update — {e.title}</h2>
+            <MessageSquarePlus size={18} className="text-brand" />
+            <h2 className="font-bold text-ink">Post an update — {e.title}</h2>
           </div>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -485,14 +486,14 @@ function PostEventUpdateModal({ event: e, onClose }: { event: AppEvent; onClose:
             onChange={(ev) => setContent(ev.target.value)}
             rows={4}
             placeholder="Share a change of plan, the meeting link, a recap photo caption…"
-            className="w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
-          <p className="text-xs text-[#878a8c]">
+          <p className="text-xs text-muted">
             This posts to the main feed and notifies everyone who RSVP'd to "{e.title}".
           </p>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[#edeff1] px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button disabled={!content.trim()} onClick={submit}>Post update</Button>
         </div>

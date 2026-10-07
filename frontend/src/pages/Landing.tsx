@@ -22,6 +22,7 @@ import {
 import { Avatar } from '../components/ui'
 import { BlurText } from '../components/ui/BlurText'
 import { roomanStats } from '../data/mockData'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 type Feature = {
   icon: ReactNode
@@ -42,7 +43,7 @@ type Feature = {
 const FEATURES: Feature[] = [
   {
     icon: <Users size={24} />,
-    tint: 'bg-gradient-to-br from-[#ff4500] to-[#ff8a00] shadow-orange-500/30',
+    tint: 'bg-gradient-to-br from-brand to-brand-400 shadow-brand-500/30',
     title: 'Community Feed',
     body: 'One feed for the whole alumni family. Every post is typed, so you can tell a job opening from a mentorship offer at a glance.',
     points: [
@@ -336,7 +337,7 @@ function HeroVideo() {
       )}
 
       {/* Cinematic scrim: flat base keeps the footage colourful. */}
-      <div className="absolute inset-0 bg-[#0a0b0d]/55" />
+      <div className="absolute inset-0 bg-scrim/55" />
 
       {/*
         Text-protection scrim. Concentrated behind the copy column so the centre
@@ -344,10 +345,10 @@ function HeroVideo() {
         vivid — raising the flat scrim instead would just wash the whole video out.
       */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_65%_at_50%_42%,rgb(6_7_9/0.5),transparent_78%)]" />
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0a0b0d]/45 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-scrim/45 to-transparent" />
 
       {/* Short fade into the page background at the section boundary. */}
-      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-[#f6f7f8]" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-page" />
     </div>
   )
 }
@@ -362,6 +363,7 @@ function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
 // ---- Page -------------------------------------------------------------------
 
 export function Landing() {
+  useDocumentTitle('Root Connect — Rooman Alumni Network')
   // Invite emails link here with ?email=… (see backend/src/email.ts), so the
   // recipient sees what they've been invited to before being asked to sign
   // in. Carry the address through to /login, which pre-fills and locks it —
@@ -373,24 +375,24 @@ export function Landing() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-[#f6f7f8]">
+    <div className="min-h-screen bg-page">
       <a href="#main" className="skip-link">
         Skip to content
       </a>
 
       {/* Top bar */}
-      <header className="sticky top-0 z-50 border-b border-[#edeff1] bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-line bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff4500] text-lg font-black text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-lg font-black text-white">
               R
             </span>
-            <span className="text-[15px] font-bold text-[#1c1c1c]">
-              Root <span className="text-[#ff4500]">Connect</span>
+            <span className="text-[15px] font-bold text-ink">
+              Root <span className="text-brand">Connect</span>
             </span>
           </div>
           {/* py-2 on the links keeps every pointer target at/above the 24px minimum. */}
-          <nav className="hidden items-center gap-7 text-sm font-medium text-[#6b6e70] md:flex">
+          <nav className="hidden items-center gap-7 text-sm font-medium text-muted md:flex">
             {[
               { id: 'features', label: 'Features' },
               { id: 'how-it-works', label: 'How it works' },
@@ -400,7 +402,7 @@ export function Landing() {
                 key={l.id}
                 href={`#${l.id}`}
                 onClick={(e) => scrollToSection(e, l.id)}
-                className="inline-flex items-center py-2 transition-colors hover:text-[#1c1c1c]"
+                className="inline-flex items-center py-2 transition-colors hover:text-ink"
               >
                 {l.label}
               </a>
@@ -409,13 +411,13 @@ export function Landing() {
           <div className="flex items-center gap-3">
             <Link
               to={signInTo}
-              className="inline-flex items-center py-2 text-sm font-semibold text-[#1c1c1c] transition-colors hover:text-[#ff4500]"
+              className="inline-flex items-center py-2 text-sm font-semibold text-ink transition-colors hover:text-brand"
             >
               Sign In
             </Link>
             <button
               onClick={() => navigate(invitedEmail ? signInTo : '/accept-invite')}
-              className="hidden rounded-full bg-[#d13a00] px-4 py-2 text-sm font-bold text-white transition-all hover:bg-[#ff4500] active:scale-95 sm:inline-flex"
+              className="hidden rounded-full bg-brand-hover px-4 py-2 text-sm font-bold text-white transition-all hover:bg-brand active:scale-95 sm:inline-flex"
             >
               Join Now
             </button>
@@ -436,11 +438,11 @@ export function Landing() {
         />
         <div
           aria-hidden
-          className="animate-floaty pointer-events-none absolute -top-32 left-[12%] h-[420px] w-[560px] rounded-full bg-[#ff4500]/20 blur-3xl"
+          className="animate-floaty pointer-events-none absolute -top-32 left-[12%] h-[420px] w-[560px] rounded-full bg-brand/20 blur-3xl"
         />
         <div
           aria-hidden
-          className="animate-floaty2 pointer-events-none absolute -top-16 right-[8%] h-[340px] w-[460px] rounded-full bg-[#ffb800]/20 blur-3xl"
+          className="animate-floaty2 pointer-events-none absolute -top-16 right-[8%] h-[340px] w-[460px] rounded-full bg-marigold-light/20 blur-3xl"
         />
 
         {/* pb-32 clears the h-32 bottom fade so the stat cards stay in the dark band. */}
@@ -448,7 +450,7 @@ export function Landing() {
           <Reveal>
             {/* Dark glass, not white/10: a white tint brightens with the footage
                 behind it and the amber text loses contrast on sunlit frames. */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[#0a0b0d]/65 px-4 py-1.5 text-sm font-semibold text-[#ffd270] backdrop-blur-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-scrim/65 px-4 py-1.5 text-sm font-semibold text-marigold-light backdrop-blur-sm">
               <Sparkles size={14} />
               Rooman Technologies · {roomanStats.years} Years of Building Careers
             </span>
@@ -481,7 +483,7 @@ export function Landing() {
             />
             {/* Gradient rides on each word (spanClassName), not the container: the
                 animating blur filter on a child breaks a parent's bg-clip-text fill.
-                Lifted off #ff4500 — the darker orange loses too much contrast on video. */}
+                Marigold, not the forest brand — dark green would vanish into the video. */}
             <BlurText
               as="span"
               text="So did your network."
@@ -492,13 +494,13 @@ export function Landing() {
               startDelay={280}
               srOnlyText={false}
               className="justify-center"
-              spanClassName="animate-gradient-x bg-gradient-to-r from-[#ff8a3d] via-[#ffc94d] to-[#ff8a3d] bg-clip-text text-transparent"
+              spanClassName="animate-gradient-x bg-gradient-to-r from-marigold via-marigold-light to-marigold bg-clip-text text-transparent"
             />
           </h1>
 
           <Reveal delay={200}>
-            {/* Light, not the site's usual #878a8c: this copy sits over the dark hero video. */}
-            <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-[#e8e9ea]">
+            {/* Light, not the site's usual text-muted: this copy sits over the dark hero video. */}
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-200">
               Root Connect is the private network for {roomanStats.alumni} Rooman alumni. Find jobs
               through people who vouch for you, earn by mentoring the next batch, and build your
               startup with the institute that trained you.
@@ -509,13 +511,13 @@ export function Landing() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
                 onClick={() => navigate(invitedEmail ? signInTo : '/accept-invite')}
-                className="inline-flex items-center gap-2 rounded-full bg-[#d13a00] px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:-translate-y-0.5 hover:bg-[#ff4500] hover:shadow-xl hover:shadow-orange-500/30 active:scale-95"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-hover px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-brand-500/30 transition-all hover:-translate-y-0.5 hover:bg-brand hover:shadow-xl hover:shadow-brand-500/30 active:scale-95"
               >
                 Accept Invite & Join Now <ArrowRight size={20} />
               </button>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-[#0a0b0d]/45 px-7 py-3.5 text-base font-bold text-white shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-white/60 hover:bg-[#0a0b0d]/65"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-scrim/45 px-7 py-3.5 text-base font-bold text-white shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-white/60 hover:bg-scrim/65"
               >
                 Already a member? Sign In
               </Link>
@@ -537,7 +539,7 @@ export function Landing() {
                   ),
                 )}
               </div>
-              <p className="text-sm text-[#e8e9ea]">
+              <p className="text-sm text-gray-200">
                 Joined by <span className="font-semibold text-white">{roomanStats.alumni}</span>{' '}
                 alumni across India
               </p>
@@ -554,11 +556,11 @@ export function Landing() {
             ].map((s, i) => (
               <Reveal key={s.l} delay={i * 80}>
                 {/* Dark glass so the card never brightens with the footage behind it. */}
-                <div className="rounded-xl border border-white/15 bg-[#0a0b0d]/50 p-5 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-[#0a0b0d]/65">
-                  <p className="text-2xl font-extrabold text-[#ffb066]">
+                <div className="rounded-xl border border-white/15 bg-scrim/50 p-5 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-scrim/65">
+                  <p className="text-2xl font-extrabold text-marigold-light">
                     <CountUp value={s.v} />
                   </p>
-                  <p className="mt-1 text-sm text-[#e2e3e4]">{s.l}</p>
+                  <p className="mt-1 text-sm text-gray-200">{s.l}</p>
                 </div>
               </Reveal>
             ))}
@@ -574,7 +576,7 @@ export function Landing() {
       */}
       <section className="mx-auto max-w-4xl px-6 pt-10 pb-4 text-center">
         <Reveal>
-          <p className="text-xs font-semibold tracking-widest text-[#4f5356] uppercase">
+          <p className="text-xs font-semibold tracking-widest text-gray-700 uppercase">
             Our alumni work at
           </p>
           <div className="mt-4 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
@@ -582,7 +584,7 @@ export function Landing() {
               {[...COMPANIES, ...COMPANIES].map((c, i) => (
                 <span
                   key={`${c}-${i}`}
-                  className="text-base font-bold tracking-wide whitespace-nowrap text-[#6b6e70] transition-colors hover:text-[#1c1c1c]"
+                  className="text-base font-bold tracking-wide whitespace-nowrap text-muted transition-colors hover:text-ink"
                 >
                   {c}
                 </span>
@@ -597,15 +599,14 @@ export function Landing() {
       <section id="features" className="scroll-mt-20 py-20">
         <Reveal>
           <div className="mx-auto max-w-2xl px-6 text-center">
-            {/* Eyebrows use the darker action orange: #ff4500 is only 3.2:1 on the
-                light page at this size. The logotype keeps #ff4500 (WCAG exempts logos). */}
-            <p className="text-sm font-bold tracking-widest text-[#c2410c] uppercase">
+            {/* Eyebrows use the brand green: 6.01:1 on the light page. */}
+            <p className="text-sm font-bold tracking-widest text-brand uppercase">
               Everything in one place
             </p>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#1c1c1c] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
               Built for every stage of your career
             </h2>
-            <p className="mt-4 text-lg text-[#6b6e70]">
+            <p className="mt-4 text-lg text-muted">
               Whether you’re job-hunting, giving back or founding a company — the network has a
               place for you.
             </p>
@@ -620,14 +621,14 @@ export function Landing() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="scroll-mt-20 border-y border-[#edeff1] bg-white">
+      <section id="how-it-works" className="scroll-mt-20 border-y border-line bg-white">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <Reveal>
             <div className="mx-auto max-w-2xl text-center">
-              <p className="text-sm font-bold tracking-widest text-[#c2410c] uppercase">
+              <p className="text-sm font-bold tracking-widest text-brand uppercase">
                 Invite-only, alumni-only
               </p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#1c1c1c] sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
                 Up and running in three steps
               </h2>
             </div>
@@ -636,7 +637,7 @@ export function Landing() {
           <Steps />
 
           <Reveal delay={300}>
-            <div className="mx-auto mt-12 flex max-w-md items-center justify-center gap-2 rounded-full border border-[#edeff1] bg-[#f6f7f8] px-5 py-2.5 text-sm text-[#6b6e70]">
+            <div className="mx-auto mt-12 flex max-w-md items-center justify-center gap-2 rounded-full border border-line bg-page px-5 py-2.5 text-sm text-muted">
               <ShieldCheck size={16} className="shrink-0 text-[#16a34a]" />
               Every profile is verified against Rooman batch records.
             </div>
@@ -645,10 +646,10 @@ export function Landing() {
       </section>
 
       {/* Testimonials — dark band for contrast */}
-      <section id="stories" className="relative scroll-mt-20 overflow-hidden bg-[#17181a]">
+      <section id="stories" className="relative scroll-mt-20 overflow-hidden bg-night">
         <div
           aria-hidden
-          className="animate-floaty pointer-events-none absolute -top-44 left-[30%] h-[380px] w-[620px] rounded-full bg-[#ff4500]/15 blur-3xl"
+          className="animate-floaty pointer-events-none absolute -top-44 left-[30%] h-[380px] w-[620px] rounded-full bg-brand/15 blur-3xl"
         />
         <div
           aria-hidden
@@ -660,13 +661,13 @@ export function Landing() {
         <div className="relative py-20">
           <Reveal>
             <div className="mx-auto max-w-2xl px-6 text-center">
-              <p className="text-sm font-bold tracking-widest text-[#ff8a00] uppercase">
+              <p className="text-sm font-bold tracking-widest text-marigold uppercase">
                 Alumni stories
               </p>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                 From the people already inside
               </h2>
-              <p className="mt-4 text-lg text-[#e8e9ea]">
+              <p className="mt-4 text-lg text-gray-200">
                 Not marketing copy — members talking about what the network actually did for
                 them.
               </p>
@@ -682,7 +683,7 @@ export function Landing() {
                 { icon: <Users size={15} />, label: `${roomanStats.alumni} alumni trained` },
                 { icon: <Sparkles size={15} />, label: `${roomanStats.years} years of placements` },
               ].map((t) => (
-                <span key={t.label} className="inline-flex items-center gap-2 text-[#d8d9da]">
+                <span key={t.label} className="inline-flex items-center gap-2 text-gray-300">
                   <span className="shrink-0 text-[#86efac]">{t.icon}</span>
                   {t.label}
                 </span>
@@ -697,9 +698,9 @@ export function Landing() {
       {/* Final CTA */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
-          {/* Gradient stops at #ff5a1f: the old #ff8a00 end left the white heading
-              at 2.8:1, under the 3.0 large-text floor. */}
-          <div className="animate-gradient-x relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#d13a00] via-[#ff4500] to-[#ff5a1f] p-10 text-center text-white sm:p-14">
+          {/* Gradient stays between brand-hover and brand: the lighter brand-500 end
+              would drop the small white line below it to 4.27:1. */}
+          <div className="animate-gradient-x relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-hover via-brand to-brand p-10 text-center text-white sm:p-14">
             {/* Decorative rings */}
             <div
               aria-hidden
@@ -713,16 +714,16 @@ export function Landing() {
             <h2 className="relative text-3xl font-extrabold tracking-tight sm:text-4xl">
               Your network is waiting.
             </h2>
-            <p className="relative mx-auto mt-3 max-w-xl text-lg text-orange-50">
+            <p className="relative mx-auto mt-3 max-w-xl text-lg text-brand-50">
               {roomanStats.alumni} alumni. One invite between you and all of them.
             </p>
             <button
               onClick={() => navigate(invitedEmail ? signInTo : '/accept-invite')}
-              className="relative mt-7 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-[#c2410c] shadow-lg transition-all hover:-translate-y-0.5 hover:bg-orange-50 hover:shadow-xl active:scale-95"
+              className="relative mt-7 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-brand shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand-50 hover:shadow-xl active:scale-95"
             >
               Accept Invite & Join Now <ArrowRight size={20} />
             </button>
-            <p className="relative mt-4 text-sm text-orange-100">
+            <p className="relative mt-4 text-sm text-brand-100">
               Invite-only · Free for all Rooman alumni
             </p>
           </div>
@@ -730,18 +731,18 @@ export function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#edeff1] bg-white">
+      <footer className="border-t border-line bg-white">
         <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff4500] text-lg font-black text-white">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-lg font-black text-white">
                 R
               </span>
-              <span className="text-[15px] font-bold text-[#1c1c1c]">
-                Root <span className="text-[#ff4500]">Connect</span>
+              <span className="text-[15px] font-bold text-ink">
+                Root <span className="text-brand">Connect</span>
               </span>
             </div>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-[#6b6e70]">
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
               The private alumni network of Rooman Technologies — {roomanStats.years} years,{' '}
               {roomanStats.alumni} careers and counting.
             </p>
@@ -773,7 +774,7 @@ export function Landing() {
             ]}
           />
         </div>
-        <div className="border-t border-[#edeff1] py-5 text-center text-sm text-[#6b6e70]">
+        <div className="border-t border-line py-5 text-center text-sm text-muted">
           © 2026 Rooman Technologies · Alumni Network
         </div>
       </footer>
@@ -892,7 +893,7 @@ function Steps() {
         <div
           key={i}
           aria-hidden
-          className={`step-line absolute top-7 hidden border-t-2 border-dashed border-orange-200 md:block ${shown} ${
+          className={`step-line absolute top-7 hidden border-t-2 border-dashed border-brand-200 md:block ${shown} ${
             i === 0 ? 'right-[50%] left-[16%]' : 'right-[16%] left-[50%]'
           }`}
           style={{ transitionDelay: `${lineDelay(i)}ms` }}
@@ -901,10 +902,10 @@ function Steps() {
 
       {STEPS.map((s, i) => (
         <div key={s.n} className="relative text-center">
-          {/* Ink numerals, not white: white on this orange gradient is only
-              2.6:1, whereas #1c1c1c on it clears 4.7:1 and keeps the brand fill. */}
+          {/* Ink numerals on marigold (8.32:1). White on marigold would fail, and
+              ink on the forest brand would too — hence the highlight colour here. */}
           <div
-            className={`step-num mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ff4500] to-[#ff8a00] text-lg font-extrabold text-[#1c1c1c] shadow-lg shadow-orange-500/25 ${shown}`}
+            className={`step-num mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-marigold to-marigold-light text-lg font-extrabold text-ink shadow-lg shadow-marigold/30 ${shown}`}
             style={{ transitionDelay: `${badgeDelay(i)}ms` }}
           >
             {s.n}
@@ -915,8 +916,8 @@ function Steps() {
             className={`reveal ${shown}`}
             style={{ transitionDelay: `${badgeDelay(i) + 120}ms` }}
           >
-            <h3 className="mt-5 text-lg font-bold text-[#1c1c1c]">{s.title}</h3>
-            <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-[#6b6e70]">{s.body}</p>
+            <h3 className="mt-5 text-lg font-bold text-ink">{s.title}</h3>
+            <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted">{s.body}</p>
           </div>
         </div>
       ))}
@@ -938,7 +939,7 @@ function StoryCard({ t, shown, base }: { t: Testimonial; shown: string; base: nu
       <div className="flex items-start justify-between gap-3">
         <Quote
           size={22}
-          className={`pop-in shrink-0 text-[#ff6534] ${shown}`}
+          className={`pop-in shrink-0 text-marigold ${shown}`}
           style={{ transitionDelay: `${base + 180}ms` }}
           fill="currentColor"
         />
@@ -953,12 +954,12 @@ function StoryCard({ t, shown, base }: { t: Testimonial; shown: string; base: nu
         </span>
       </div>
 
-      <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-[#e8e9ea]">
+      <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-gray-200">
         “{t.quote}”
       </blockquote>
 
       <span
-        className={`pop-in mt-5 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-[#e2e3e4] ${shown}`}
+        className={`pop-in mt-5 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-gray-200 ${shown}`}
         style={{ transitionDelay: `${base + 320}ms` }}
       >
         <Check size={12} className="shrink-0 text-[#86efac]" />
@@ -969,8 +970,8 @@ function StoryCard({ t, shown, base }: { t: Testimonial; shown: string; base: nu
         <Avatar name={t.name} size={42} />
         <div className="min-w-0 text-left">
           <p className="text-sm font-bold text-white">{t.name}</p>
-          <p className="truncate text-xs text-[#a5a8ab]">{t.role}</p>
-          <p className="truncate text-xs text-[#9ca1a5]">{t.batch}</p>
+          <p className="truncate text-xs text-gray-400">{t.role}</p>
+          <p className="truncate text-xs text-gray-400">{t.batch}</p>
         </div>
       </figcaption>
     </figure>
@@ -1049,7 +1050,7 @@ function Testimonials() {
  */
 function FeatureCard({ f }: { f: Feature }) {
   return (
-    <div className="group relative flex min-h-[400px] w-[272px] shrink-0 flex-col rounded-2xl border border-[#edeff1] bg-white p-6 shadow-sm transition-all hover:-translate-y-1.5 hover:shadow-xl sm:min-h-[360px] sm:w-[330px]">
+    <div className="group relative flex min-h-[400px] w-[272px] shrink-0 flex-col rounded-2xl border border-line bg-white p-6 shadow-sm transition-all hover:-translate-y-1.5 hover:shadow-xl sm:min-h-[360px] sm:w-[330px]">
       {/*
         Offer sticker: absolutely placed and tilted so it reads as stuck onto the
         card rather than as another row of content. It overhangs the corner, which
@@ -1068,11 +1069,11 @@ function FeatureCard({ f }: { f: Feature }) {
       >
         {f.icon}
       </div>
-      <h3 className="mt-4 text-lg font-bold text-[#1c1c1c]">{f.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-[#6b6e70]">{f.body}</p>
+      <h3 className="mt-4 text-lg font-bold text-ink">{f.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted">{f.body}</p>
       <ul className="mt-4 space-y-2">
         {f.points.map((p) => (
-          <li key={p} className="flex items-start gap-2 text-sm text-[#1c1c1c]">
+          <li key={p} className="flex items-start gap-2 text-sm text-ink">
             <Check size={16} className="mt-0.5 shrink-0 text-[#16a34a]" />
             {p}
           </li>
@@ -1127,7 +1128,7 @@ function FeatureRow({ items, direction }: { items: Feature[]; direction: 'left' 
       <button
         onClick={handlePrev}
         aria-label="Previous features"
-        className="absolute left-1 top-1/2 -translate-y-1/2 z-10 flex opacity-80 sm:opacity-70 sm:group-hover:opacity-100 items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-[#d6d7d8] text-[#1c1c1c] hover:opacity-100 hover:bg-white hover:shadow-lg transition-all active:scale-95 shadow-md"
+        className="absolute left-1 top-1/2 -translate-y-1/2 z-10 flex opacity-80 sm:opacity-70 sm:group-hover:opacity-100 items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-gray-300 text-ink hover:opacity-100 hover:bg-white hover:shadow-lg transition-all active:scale-95 shadow-md"
       >
         <ChevronLeft size={20} />
       </button>
@@ -1135,7 +1136,7 @@ function FeatureRow({ items, direction }: { items: Feature[]; direction: 'left' 
       <button
         onClick={handleNext}
         aria-label="Next features"
-        className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex opacity-80 sm:opacity-70 sm:group-hover:opacity-100 items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-[#d6d7d8] text-[#1c1c1c] hover:opacity-100 hover:bg-white hover:shadow-lg transition-all active:scale-95 shadow-md"
+        className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex opacity-80 sm:opacity-70 sm:group-hover:opacity-100 items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-gray-300 text-ink hover:opacity-100 hover:bg-white hover:shadow-lg transition-all active:scale-95 shadow-md"
       >
         <ChevronRight size={20} />
       </button>
@@ -1152,13 +1153,13 @@ function FooterCol({
 }) {
   return (
     <div>
-      <p className="text-xs font-bold tracking-widest text-[#6b6e70] uppercase">{title}</p>
+      <p className="text-xs font-bold tracking-widest text-muted uppercase">{title}</p>
       <ul className="mt-4 space-y-2.5">
         {links.map((l) => (
           <li key={l.label}>
             <Link
               to={l.to}
-              className="inline-flex items-center py-1 text-sm text-[#1c1c1c] transition-colors hover:text-[#ff4500]"
+              className="inline-flex items-center py-1 text-sm text-ink transition-colors hover:text-brand"
             >
               {l.label}
             </Link>

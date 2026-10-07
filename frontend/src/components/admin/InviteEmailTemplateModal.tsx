@@ -146,19 +146,19 @@ export function InviteEmailTemplateModal({
   }
 
   const field =
-    'w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
+    'w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center">
-      <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
+      <div className="w-full max-w-3xl rounded-xl bg-surface shadow-xl">
         {/* header */}
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
-            <h2 className="flex items-center gap-2 text-base font-bold text-[#1c1c1c]">
-              <Mail size={18} className="text-[#ff4500]" />
+            <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+              <Mail size={18} className="text-brand" />
               {reviewMode ? 'Review before sending' : 'Invite Email Template'}
             </h2>
-            <p className="mt-0.5 text-xs text-[#878a8c]">
+            <p className="mt-0.5 text-xs text-muted">
               {reviewMode
                 ? `This is what ${sendCount} recipient${sendCount === 1 ? '' : 's'} will receive. Edit it here if you need to.`
                 : `${tpl?.isCustom ? 'Customised' : 'Using the built-in default'}${
@@ -170,7 +170,7 @@ export function InviteEmailTemplateModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-[#878a8c] transition-colors hover:bg-gray-100 hover:text-[#1c1c1c]"
+            className="rounded-lg p-1.5 text-muted transition-colors hover:bg-gray-100 hover:text-ink"
           >
             <X size={18} />
           </button>
@@ -178,34 +178,34 @@ export function InviteEmailTemplateModal({
 
         <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
           {loading ? (
-            <p className="py-8 text-center text-sm text-[#878a8c]">Loading…</p>
+            <p className="py-8 text-center text-sm text-muted">Loading…</p>
           ) : (
             <>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#878a8c]">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
                 Subject
               </label>
               <input className={field} value={subject} onChange={(e) => setSubject(e.target.value)} />
 
               <div className="mt-4 flex items-center justify-between">
-                <label className="block text-xs font-semibold uppercase tracking-wide text-[#878a8c]">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
                   Body
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPreview((p) => !p)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#ff4500] hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
                 >
                   <Eye size={13} /> {showPreview ? 'Hide preview' : 'Show preview'}
                 </button>
               </div>
 
               {showPreview ? (
-                <div className="mt-1 rounded-lg border border-[#edeff1] bg-[#f6f7f8] p-4">
-                  <p className="mb-2 text-xs text-[#878a8c]">
+                <div className="mt-1 rounded-lg border border-line bg-page p-4">
+                  <p className="mb-2 text-xs text-muted">
                     Preview with sample values — this is what a recipient sees.
                   </p>
-                  <p className="mb-3 text-sm font-semibold text-[#1c1c1c]">{preview.subject}</p>
-                  <pre className="overflow-x-auto whitespace-pre-wrap break-words font-sans text-sm text-[#1c1c1c]">
+                  <p className="mb-3 text-sm font-semibold text-ink">{preview.subject}</p>
+                  <pre className="overflow-x-auto whitespace-pre-wrap break-words font-sans text-sm text-ink">
                     {preview.body}
                   </pre>
                 </div>
@@ -221,7 +221,7 @@ export function InviteEmailTemplateModal({
 
               {/* placeholder legend — click to insert at the cursor */}
               <div className="mt-3">
-                <p className="mb-1.5 text-xs text-[#878a8c]">
+                <p className="mb-1.5 text-xs text-muted">
                   Click to insert. These are filled in per recipient when the invite is sent.
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -232,10 +232,10 @@ export function InviteEmailTemplateModal({
                       onClick={() => insert(name)}
                       disabled={showPreview}
                       title={tpl.required.includes(name) ? 'Required' : 'Optional'}
-                      className="rounded-full border border-[#edeff1] bg-[#f6f7f8] px-2.5 py-1 font-mono text-xs text-[#1c1c1c] transition-colors hover:border-[#ff4500] hover:text-[#ff4500] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full border border-line bg-page px-2.5 py-1 font-mono text-xs text-ink transition-colors hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {`{{${name}}}`}
-                      {tpl.required.includes(name) && <span className="ml-1 text-[#ff4500]">*</span>}
+                      {tpl.required.includes(name) && <span className="ml-1 text-brand">*</span>}
                     </button>
                   ))}
                 </div>
@@ -258,7 +258,7 @@ export function InviteEmailTemplateModal({
         </div>
 
         {/* footer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#edeff1] px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
           <Button
             variant="ghost"
             icon={<RotateCcw size={15} />}

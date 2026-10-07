@@ -24,16 +24,24 @@ import type {
   Visibility,
   SubscriptionState,
 } from '../types'
+import { celebrate } from '../components/ui/celebrate'
+import { openShareWin } from '../components/feed/shareWin'
 import { api, getToken, isPaymentRequired, setToken } from '../lib/api'
 import { googleSignIn } from '../lib/google'
 import { rankByMatch } from '../lib/matching'
 
 // ---- Toasts ----------------------------------------------------------------
 export type ToastKind = 'success' | 'error' | 'info'
+/** Optional button on a toast, e.g. { label: 'Undo', onClick } — Gmail-style. */
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
 export interface Toast {
   id: number
   kind: ToastKind
   message: string
+  action?: ToastAction
 }
 
 let toastSeq = 0
@@ -226,7 +234,7 @@ interface AppContextValue {
 
   // toasts
   toasts: Toast[]
-  notify: (message: string, kind?: ToastKind) => void
+  notify: (message: string, kind?: ToastKind, action?: ToastAction) => void
   dismissToast: (id: number) => void
 }
 
@@ -262,10 +270,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const notify = useCallback(
-    (message: string, kind: ToastKind = 'success') => {
+    (message: string, kind: ToastKind = 'success', action?: ToastAction) => {
       const id = ++toastSeq
-      setToasts((t) => [...t, { id, kind, message }])
-      setTimeout(() => dismissToast(id), 3500)
+      setToasts((t) => [...t, { id, kind, message, action }])
+      // A toast with a button stays long enough to reach it (see Toaster's countdown bar).
+      setTimeout(() => dismissToast(id), action ? 6000 : 3500)
     },
     [dismissToast],
   )
@@ -353,6 +362,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => users.find((u) => u.id === currentUserId) ?? GUEST,
     [users, currentUserId],
   )
+  // For callbacks that fire later (toast actions) and must see the latest profile.
+  const currentUserRef = useRef(currentUser)
+  useEffect(() => {
+    currentUserRef.current = currentUser
+  }, [currentUser])
 
   async function afterAuth(auth: { token: string; user: User }) {
     setToken(auth.token)
@@ -591,8 +605,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (id: string, note?: string) => {
       setSentRequestIds((s) => (s.includes(id) ? s : [...s, id]))
       const u = users.find((x) => x.id === id)
+      // The button that started this — confetti bursts from it on success.
+      const origin = document.activeElement
       api.connect(id, note).then(
         (r) => {
+          celebrate(origin)
           if (r.state === 'connected') {
             // The other side had already requested me — instantly connected.
             setSentRequestIds((s) => s.filter((x) => x !== id))
@@ -666,8 +683,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         meta: input.meta,
       }).then(
         (created) => {
+          // Published: the composer has closed, so this bursts mid-screen.
+          celebrate()
           setPosts((p) => [created, ...p])
-          notify('Your post is live.')
+          // An Achievement is a win worth sharing outside the network too.
+          if (input.type === 'Achievement')
+            notify('Your post is live.', 'success', {
+              label: 'Make a share card',
+              onClick: () =>
+                openShareWin({
+                  headline: input.content.trim().split('\n')[0].slice(0, 120),
+                  name: currentUserRef.current.name,
+                  role: [currentUserRef.current.designation, currentUserRef.current.company].filter(Boolean).join(' · '),
+                }),
+            })
+          else notify('Your post is live.')
         },
         (err) => notify(err instanceof Error ? err.message : 'Could not publish your post.', 'error'),
       )
@@ -754,7 +784,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPosts((list) => list.map((p) => (p.id === id ? { ...p, saved: saving } : p)))
       const call = saving ? api.savePost(id) : api.unsavePost(id)
       call.then(
-        () => notify(saving ? 'Saved to your bookmarks.' : 'Removed from saved.', 'info'),
+        () =>
+          saving
+            ? notify('Saved to your bookmarks.', 'info')
+            : notify('Removed from saved.', 'info', { label: 'Undo', onClick: () => toggleSaveRef.current(id) }),
         () => {
           setPosts((list) => list.map((p) => (p.id === id ? { ...p, saved: post.saved } : p)))
           notify('Could not update saved.', 'error')
@@ -763,6 +796,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [posts, notify],
   )
+
+  // Undo buttons fire seconds later, after state has moved on, so they must call
+  // the latest version of these actions rather than the one captured back then.
+  const toggleSaveRef = useRef(toggleSave)
+  useEffect(() => {
+    toggleSaveRef.current = toggleSave
+  }, [toggleSave])
 
   const addComment = useCallback(
     (postId: string, text: string) => {
@@ -805,8 +845,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             : p,
         ),
       )
+      const origin = document.activeElement
       api.applyToJob(postId, answers, resume).then(
         (r) => {
+          celebrate(origin)
           setPosts((list) =>
             list.map((p) =>
               p.id === postId ? { ...p, appliedByMe: true, applicantsCount: r.applicantsCount } : p,
@@ -845,10 +887,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ),
       )
       const call = joining ? api.joinCommunity(id) : api.leaveCommunity(id)
+      const origin = document.activeElement
       call.then(
         (updated) => {
+          if (joining) celebrate(origin)
           setCommunities((list) => list.map((x) => (x.id === id ? updated : x)))
-          notify(joining ? `Joined ${c.name}.` : `Left ${c.name}.`, 'info')
+          if (joining) notify(`Joined ${c.name}.`, 'info')
+          else notify(`Left ${c.name}.`, 'info', { label: 'Undo', onClick: () => toggleJoinRef.current(id) })
         },
         () => {
           setCommunities((list) => list.map((x) => (x.id === id ? c : x)))
@@ -858,6 +903,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [communities, notify],
   )
+  const toggleJoinRef = useRef(toggleJoin)
+  useEffect(() => {
+    toggleJoinRef.current = toggleJoin
+  }, [toggleJoin])
 
   const createCommunity = useCallback(
     (c: { name: string; description: string; category: Community['category']; tag: string }) => {
@@ -1082,8 +1131,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!ev) return
       const going = ev.rsvpedByMe || ev.waitlistedByMe
       const call = going ? api.unrsvpEvent : api.rsvpEvent
+      const origin = document.activeElement
       call(id).then(
-        (updated) => setEvents((list) => list.map((x) => (x.id === id ? updated : x))),
+        (updated) => {
+          setEvents((list) => list.map((x) => (x.id === id ? updated : x)))
+          if (!going && updated.rsvpedByMe) celebrate(origin)
+        },
         () => notify('Could not update your RSVP. Try again.', 'error'),
       )
     },
@@ -1172,8 +1225,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const approveMentor = useCallback(
     (id: string) => {
       const u = users.find((x) => x.id === id)
+      const origin = document.activeElement
       api.approveMentor(id).then(
         () => {
+          celebrate(origin)
           // Mirrors exactly what the approve route writes. mentorVerified is
           // the half isBookableMentor() checks on top of isMentor, so leaving
           // it out kept a just-approved mentor off the Mentors tab until the

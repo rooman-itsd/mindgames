@@ -53,19 +53,19 @@ export function CsvUpload({
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
         className={cx(
           'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors',
-          dragging ? 'border-[#ff4500] bg-orange-50' : 'border-[#edeff1] bg-[#f6f7f8] hover:border-[#ff6534]',
+          dragging ? 'border-brand bg-brand-50' : 'border-line bg-page hover:border-brand-400',
         )}
       >
-        <div className="grid h-12 w-12 place-items-center rounded-full bg-orange-100 text-[#ff4500]">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-brand-100 text-brand">
           <UploadCloud size={24} />
         </div>
         <div>
-          <p className="font-medium text-[#1c1c1c]">
-            Drag &amp; drop a CSV here, or <span className="text-[#ff4500]">browse</span>
+          <p className="font-medium text-ink">
+            Drag &amp; drop a CSV here, or <span className="text-brand">browse</span>
           </p>
-          <p className="mt-1 text-xs text-[#878a8c]">
-            We extract only <span className="text-[#1c1c1c]">Name</span>,{' '}
-            <span className="text-[#1c1c1c]">Phone</span> and <span className="text-[#1c1c1c]">Email</span>.
+          <p className="mt-1 text-xs text-muted">
+            We extract only <span className="text-ink">Name</span>,{' '}
+            <span className="text-ink">Phone</span> and <span className="text-ink">Email</span>.
           </p>
         </div>
         <input
@@ -82,8 +82,8 @@ export function CsvUpload({
       </div>
 
       {fileName && !error && (
-        <p className="mt-3 flex items-center gap-2 text-sm text-[#878a8c]">
-          <FileText size={15} className="text-[#ff4500]" /> Parsed <span className="text-[#1c1c1c]">{fileName}</span>
+        <p className="mt-3 flex items-center gap-2 text-sm text-muted">
+          <FileText size={15} className="text-brand" /> Parsed <span className="text-ink">{fileName}</span>
         </p>
       )}
       {error && (
@@ -92,10 +92,10 @@ export function CsvUpload({
         </p>
       )}
 
-      <p className="mt-4 text-xs text-[#878a8c]">
+      <p className="mt-4 text-xs text-muted">
         No file handy?{' '}
         <button
-          className="text-[#ff4500] underline-offset-2 hover:underline"
+          className="text-brand underline-offset-2 hover:underline"
           onClick={() =>
             onParsed(
               parseContactsCsv(

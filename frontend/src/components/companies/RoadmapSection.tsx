@@ -87,8 +87,8 @@ export function RoadmapSection({
     <>
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
-            <Route size={18} className="text-[#ff4500]" />
+          <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
+            <Route size={18} className="text-brand" />
             How alumni got into {companyName}
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -116,10 +116,10 @@ export function RoadmapSection({
         </div>
 
         {!data ? (
-          <p className="text-sm text-[#878a8c]">Loading roadmaps…</p>
+          <p className="text-sm text-muted">Loading roadmaps…</p>
         ) : feed.length === 0 ? (
           <Card className="py-10 text-center">
-            <p className="text-sm text-[#878a8c]">
+            <p className="text-sm text-muted">
               No one here has shared their path yet.
               {data.eligibleToAsk > 0 && !data.alreadyAsked
                 ? ' Ask the alumni above and they will be notified.'
@@ -140,7 +140,7 @@ export function RoadmapSection({
             ))}
             <Link
               to={`/companies/${companyId}/roadmaps`}
-              className="self-start text-sm font-semibold text-[#ff4500] hover:underline"
+              className="self-start text-sm font-semibold text-brand hover:underline"
             >
               {feed.length > PREVIEW_COUNT
                 ? `Click here to see all ${feed.length} roadmaps →`
@@ -150,7 +150,7 @@ export function RoadmapSection({
         )}
 
         {data?.alreadyAsked && (
-          <p className="text-xs text-[#878a8c]">
+          <p className="text-xs text-muted">
             You have already asked the alumni here — they will appear above as they respond.
           </p>
         )}
@@ -159,11 +159,11 @@ export function RoadmapSection({
       {/* What you're missing */}
       {gap && (gap.have.length > 0 || gap.missing.length > 0) && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">What you are missing for {companyName}</h2>
+          <h2 className="text-lg font-bold text-ink">What you are missing for {companyName}</h2>
           <Card className="flex flex-col gap-4 p-4">
             {gap.have.length > 0 && (
               <div>
-                <h3 className="mb-2 text-xs font-bold tracking-wide text-[#878a8c] uppercase">
+                <h3 className="mb-2 text-xs font-bold tracking-wide text-muted uppercase">
                   You already have
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
@@ -181,21 +181,21 @@ export function RoadmapSection({
 
             {gap.missing.length > 0 && (
               <div>
-                <h3 className="mb-2 text-xs font-bold tracking-wide text-[#878a8c] uppercase">
+                <h3 className="mb-2 text-xs font-bold tracking-wide text-muted uppercase">
                   Common here, missing from your profile
                 </h3>
                 <ul className="flex flex-col gap-1.5">
                   {gap.missing.map((s) => (
                     <li key={s.skill} className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="font-medium text-[#1c1c1c]">{s.skill}</span>
-                      <span className="text-[11px] text-[#878a8c]">
+                      <span className="font-medium text-ink">{s.skill}</span>
+                      <span className="text-[11px] text-muted">
                         {alumniCount(s.holders)} here {s.holders === 1 ? 'has' : 'have'} it
                       </span>
                       <a
                         href={LMS_URL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[11px] font-semibold text-[#ff4500] hover:underline"
+                        className="flex items-center gap-1 text-[11px] font-semibold text-brand hover:underline"
                       >
                         <BookOpen size={11} /> Learn on Rooman LMS
                       </a>
@@ -206,17 +206,17 @@ export function RoadmapSection({
             )}
 
             {gap.missingCertifications.length > 0 && (
-              <p className="text-xs text-[#6b6e70]">
+              <p className="text-xs text-muted">
                 Certifications held here that you do not list:{' '}
-                <span className="font-medium text-[#1c1c1c]">
+                <span className="font-medium text-ink">
                   {gap.missingCertifications.map((c) => c.name).join(', ')}
                 </span>
               </p>
             )}
 
             {mentorsForGaps.length > 0 && (
-              <div className="border-t border-[#edeff1] pt-3">
-                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-[#878a8c] uppercase">
+              <div className="border-t border-line pt-3">
+                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted uppercase">
                   <Users size={12} /> Mentors here who cover your gaps
                 </h3>
                 <ul className="flex flex-col gap-2">
@@ -226,11 +226,11 @@ export function RoadmapSection({
                       <div className="min-w-0 flex-1">
                         <Link
                           to={`/profile/${person.userId}`}
-                          className="text-sm font-semibold text-[#1c1c1c] hover:underline"
+                          className="text-sm font-semibold text-ink hover:underline"
                         >
                           {person.name}
                         </Link>
-                        <p className="truncate text-[11px] text-[#878a8c]">
+                        <p className="truncate text-[11px] text-muted">
                           Mentors {covers.join(', ')}
                         </p>
                       </div>
@@ -241,8 +241,8 @@ export function RoadmapSection({
             )}
 
             {referrers.length > 0 && (
-              <div className="border-t border-[#edeff1] pt-3">
-                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-[#878a8c] uppercase">
+              <div className="border-t border-line pt-3">
+                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted uppercase">
                   <Handshake size={12} /> Open to referring you
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -250,10 +250,10 @@ export function RoadmapSection({
                     <Link
                       key={r.userId}
                       to={`/profile/${r.userId}`}
-                      className="flex items-center gap-1.5 rounded-full border border-[#edeff1] py-1 pr-3 pl-1 transition-colors hover:border-[#ff4500]"
+                      className="flex items-center gap-1.5 rounded-full border border-line py-1 pr-3 pl-1 transition-colors hover:border-brand"
                     >
                       <Avatar name={r.name} src={r.photo} size={22} />
-                      <span className="text-xs font-medium text-[#1c1c1c]">{r.name}</span>
+                      <span className="text-xs font-medium text-ink">{r.name}</span>
                     </Link>
                   ))}
                 </div>

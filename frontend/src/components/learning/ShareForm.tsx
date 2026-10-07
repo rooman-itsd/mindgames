@@ -133,10 +133,10 @@ export function ShareForm({
       <Card className="max-h-[90vh] w-full max-w-lg overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-[#1c1c1c]">Share what helped you</h2>
-            <p className="text-xs text-[#878a8c]">Everyone can find it in All Resources, with your name on it.</p>
+            <h2 className="text-lg font-bold text-ink">Share what helped you</h2>
+            <p className="text-xs text-muted">Everyone can find it in All Resources, with your name on it.</p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -147,7 +147,7 @@ export function ShareForm({
             value={topicKey}
             onChange={(e) => setTopicKey(e.target.value)}
             aria-label="Stage"
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           >
             {stages.map((s) => (
               <option key={s.topicKey} value={s.topicKey}>
@@ -157,7 +157,7 @@ export function ShareForm({
             ))}
           </select>
           {stage && stage.membersWaiting > 0 && (
-            <p className="-mt-1 text-[11px] text-[#ff4500]">{waitingLabel(stage.membersWaiting)}.</p>
+            <p className="-mt-1 text-[11px] text-brand">{waitingLabel(stage.membersWaiting)}.</p>
           )}
 
           <Label>Type</Label>
@@ -167,7 +167,7 @@ export function ShareForm({
                 key={t.value}
                 onClick={() => setKind(t.value)}
                 className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                  kind === t.value ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]' : 'border-[#edeff1] text-[#878a8c]'
+                  kind === t.value ? 'border-brand bg-brand-50 text-brand' : 'border-line text-muted'
                 }`}
               >
                 {KIND_LABEL[t.value]}
@@ -181,14 +181,14 @@ export function ShareForm({
             placeholder={isProject ? 'Project title — what should they build?' : 'Title — e.g. AWS VPC deep dive'}
             aria-label="Title"
             maxLength={160}
-            className="mt-1 rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="mt-1 rounded-lg border border-line px-3 py-2 text-sm"
           />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder={isProject ? 'Link to the brief, repo or doc (or describe it below)' : 'https://…'}
             aria-label="Link"
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           />
 
           {isProject && (
@@ -205,9 +205,9 @@ export function ShareForm({
                 aria-label="About the project"
                 maxLength={5000}
                 rows={6}
-                className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+                className="rounded-lg border border-line px-3 py-2 text-sm"
               />
-              <p className="-mt-1 text-[11px] text-[#878a8c]">
+              <p className="-mt-1 text-[11px] text-muted">
                 {url.trim()
                   ? 'Optional with a link — but it helps people decide before they open it.'
                   : `${Math.max(0, ABOUT_MIN - about.trim().length)} more characters needed without a link.`}
@@ -227,18 +227,18 @@ export function ShareForm({
             aria-label="Why it helped you"
             maxLength={500}
             rows={2}
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           />
           {whyHelped.trim().length < WHY_MIN && (
-            <p className="text-[11px] text-[#878a8c]">
+            <p className="text-[11px] text-muted">
               {WHY_MIN - whyHelped.trim().length} more characters — what did it teach you?
             </p>
           )}
 
           <Label>Skills it covers</Label>
-          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[#edeff1] px-2 py-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-line px-2 py-1.5">
             {tags.map((t) => (
-              <span key={t} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-1.5 py-0.5 text-xs text-[#ff4500]">
+              <span key={t} className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-1.5 py-0.5 text-xs text-brand">
                 {t}
                 <button onClick={() => setTags((prev) => prev.filter((x) => x !== t))} aria-label={`Remove ${t}`}>
                   <X size={10} />
@@ -273,7 +273,7 @@ export function ShareForm({
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value as ProjectDifficulty)}
                 aria-label="Difficulty"
-                className="rounded-lg border border-[#edeff1] px-2 py-2 text-sm"
+                className="rounded-lg border border-line px-2 py-2 text-sm"
               >
                 {DIFFICULTY_FILTERS.map((d) => (
                   <option key={d.value} value={d.value}>
@@ -291,7 +291,7 @@ export function ShareForm({
                   placeholder="e.g. 6"
                   inputMode="numeric"
                   aria-label="Estimated hours"
-                  className="w-24 rounded-lg border border-[#edeff1] px-2 py-2 text-sm"
+                  className="w-24 rounded-lg border border-line px-2 py-2 text-sm"
                 />
               </div>
             )}
@@ -307,7 +307,7 @@ export function ShareForm({
                 aria-checked={audience === a}
                 onClick={() => setAudience(a)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                  audience === a ? 'bg-[#ff4500] text-white' : 'bg-gray-100 text-[#878a8c] hover:bg-gray-200'
+                  audience === a ? 'bg-brand text-white' : 'bg-gray-100 text-muted hover:bg-gray-200'
                 }`}
               >
                 {AUDIENCE_LABEL[a]}
@@ -332,5 +332,5 @@ export function ShareForm({
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="mt-1 text-[11px] font-semibold text-[#878a8c]">{children}</label>
+  return <label className="mt-1 text-[11px] font-semibold text-muted">{children}</label>
 }

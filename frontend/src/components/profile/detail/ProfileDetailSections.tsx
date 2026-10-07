@@ -337,7 +337,7 @@ export function ProfileDetailSections({
             value={v.dateOfBirth}
             onChange={(e) => set({ dateOfBirth: e.target.value })}
           />
-          <p className="mt-1 text-xs text-[#878a8c]">
+          <p className="mt-1 text-xs text-muted">
             Only your age is ever shown, never the exact date.
           </p>
         </div>

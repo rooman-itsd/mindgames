@@ -80,30 +80,30 @@ export function EditSessionModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Edit session</h2>
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <h2 className="text-lg font-bold text-ink">Edit session</h2>
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         </div>
-        <p className="mb-4 text-sm text-[#878a8c]">
+        <p className="mb-4 text-sm text-muted">
           With {session.menteeName}. They'll be told about any change you make.
         </p>
 
-        <label className="mb-1 block text-xs font-semibold text-[#1c1c1c]">Topic</label>
+        <label className="mb-1 block text-xs font-semibold text-ink">Topic</label>
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           maxLength={200}
-          className="mb-4 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-4 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
         <div className="mb-1 flex items-center gap-1.5">
-          <CalendarClock size={14} className="text-[#ff4500]" />
-          <span className="text-xs font-semibold text-[#1c1c1c]">Date and time</span>
+          <CalendarClock size={14} className="text-brand" />
+          <span className="text-xs font-semibold text-ink">Date and time</span>
         </div>
-        <p className="mb-2 text-xs text-[#878a8c]">
+        <p className="mb-2 text-xs text-muted">
           Currently shown as “{session.date}, {session.time}”. Setting a real date and time here also
           turns on the reminder both of you get 6 hours before.
         </p>
@@ -112,17 +112,17 @@ export function EditSessionModal({
             type="date"
             value={date}
             onChange={(e) => { setDate(e.target.value); setError('') }}
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
           <input
             type="time"
             value={time}
             onChange={(e) => { setTime(e.target.value); setError('') }}
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
         </div>
 
-        <label className="mb-1 block text-xs font-semibold text-[#1c1c1c]">
+        <label className="mb-1 block text-xs font-semibold text-ink">
           Meeting link <span className="text-red-500">*</span>
         </label>
         <input
@@ -130,7 +130,7 @@ export function EditSessionModal({
           onChange={(e) => setLink(e.target.value)}
           placeholder="https://meet.google.com/…"
           maxLength={500}
-          className="mb-4 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-4 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
         {error && <p className="mb-3 text-xs font-semibold text-red-600">{error}</p>}

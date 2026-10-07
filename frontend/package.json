@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "check": "tsx src/lib/csv.check.ts && tsx src/lib/profileCompleteness.check.ts && tsx src/lib/profileRequired.check.ts && tsx src/lib/companyMatch.check.ts && tsx src/lib/careerDiff.check.ts && tsx src/lib/careerProgress.check.ts && tsx src/lib/careerResources.check.ts && tsx src/lib/confirmations.check.ts && tsx src/lib/links.check.ts && tsx src/lib/learningHub.check.ts"
+    "check": "tsx src/lib/csv.check.ts && tsx src/lib/profileCompleteness.check.ts && tsx src/lib/profileRequired.check.ts && tsx src/lib/companyMatch.check.ts && tsx src/lib/careerDiff.check.ts && tsx src/lib/careerProgress.check.ts && tsx src/lib/careerResources.check.ts && tsx src/lib/confirmations.check.ts && tsx src/lib/links.check.ts && tsx src/lib/learningHub.check.ts && tsx src/lib/homeGreeting.check.ts"
   },
   "dependencies": {
     "lucide-react": "^1.21.0",

@@ -26,6 +26,7 @@ import {
   type Domain,
   type EmploymentType,
 } from '../types'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 const STATUS_OPTIONS: CurrentStatus[] = [
   'Working Professional',
@@ -49,6 +50,7 @@ function toBase64(file: File): Promise<string> {
 }
 
 export function Onboarding() {
+  useDocumentTitle('Set up your profile · Root Connect')
   const { updateProfile, notify, currentUser } = useApp()
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -253,31 +255,31 @@ export function Onboarding() {
   const next = () => (step < STEPS.length - 1 ? setStep((s) => s + 1) : finish())
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6f7f8] px-4 py-8">
-      <div className="w-full max-w-lg rounded-2xl border border-[#edeff1] bg-white p-6 shadow-sm sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-page px-4 py-8">
+      <div className="w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
         {/* Progress */}
         <div className="mb-6 flex items-center gap-2">
           {STEPS.map((s, i) => (
             <div key={s} className="flex flex-1 flex-col gap-1.5">
-              <div className={`h-1.5 rounded-full ${i <= step ? 'bg-[#ff4500]' : 'bg-[#edeff1]'}`} />
-              <span className={`text-[11px] font-medium ${i === step ? 'text-[#ff4500]' : 'text-[#878a8c]'}`}>
+              <div className={`h-1.5 rounded-full ${i <= step ? 'bg-brand' : 'bg-line'}`} />
+              <span className={`text-[11px] font-medium ${i === step ? 'text-brand' : 'text-muted'}`}>
                 {s}
               </span>
             </div>
           ))}
         </div>
 
-        <h1 className="text-2xl font-bold text-[#1c1c1c]">{STEPS[step]}</h1>
-        <p className="mb-5 text-sm text-[#878a8c]">Step {step + 1} of {STEPS.length}</p>
+        <h1 className="text-2xl font-bold text-ink">{STEPS[step]}</h1>
+        <p className="mb-5 text-sm text-muted">Step {step + 1} of {STEPS.length}</p>
 
         {/* Step content */}
         {step === 0 && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
-              <p className="font-semibold text-[#1c1c1c]">
+            <div className="rounded-xl border border-brand-100 bg-brand-50 p-4">
+              <p className="font-semibold text-ink">
                 Welcome{form.name ? `, ${form.name.split(' ')[0]}` : ''}! 👋
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-[#1c1c1c]/70">
+              <p className="mt-1 text-sm leading-relaxed text-ink/70">
                 Drop your resume and AI fills in your whole profile — batch, course, company,
                 skills, everything. You review each step before it's saved. No resume handy?
                 Skip and fill it in manually.
@@ -291,14 +293,14 @@ export function Onboarding() {
           <div className="flex flex-col gap-3">
             <Field label="Full Name" value={form.name} onChange={(v) => set('name', v)} placeholder="Aarav Sharma" />
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#1c1c1c]">Email</label>
+              <label className="mb-1 block text-sm font-medium text-ink">Email</label>
               <input
                 type="email"
                 value={form.email}
                 disabled
-                className="w-full cursor-not-allowed rounded-lg border border-[#edeff1] bg-[#f6f7f8] px-3 py-2 text-sm text-[#878a8c]"
+                className="w-full cursor-not-allowed rounded-lg border border-line bg-page px-3 py-2 text-sm text-muted"
               />
-              <p className="mt-1 text-xs text-[#878a8c]">This is your sign-in email (set at signup).</p>
+              <p className="mt-1 text-xs text-muted">This is your sign-in email (set at signup).</p>
             </div>
             <Field label="Phone" value={form.phone} onChange={(v) => set('phone', v)} placeholder="+91 …" />
             <div className="grid grid-cols-2 gap-3">
@@ -311,7 +313,7 @@ export function Onboarding() {
         {step === 2 && (
           <div className="flex flex-col gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#1c1c1c]">Current Status</label>
+              <label className="mb-1 block text-sm font-medium text-ink">Current Status</label>
               <div className="grid grid-cols-2 gap-2">
                 {STATUS_OPTIONS.map((s) => (
                   <button
@@ -320,15 +322,15 @@ export function Onboarding() {
                     onClick={() => pickStatus(s)}
                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                       status === s
-                        ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                        : 'border-[#edeff1] text-[#1c1c1c] hover:bg-gray-50'
+                        ? 'border-brand bg-brand-50 text-brand'
+                        : 'border-line text-ink hover:bg-gray-50'
                     }`}
                   >
                     {s}
                   </button>
                 ))}
               </div>
-              <p className="mt-1 text-xs text-[#878a8c]">Optional — pick what applies, or skip this step entirely.</p>
+              <p className="mt-1 text-xs text-muted">Optional — pick what applies, or skip this step entirely.</p>
             </div>
 
             {status === 'Working Professional' && (
@@ -362,14 +364,14 @@ export function Onboarding() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => fileRef.current?.click()}
-                className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#edeff1] bg-[#f6f7f8]"
+                className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-line bg-page"
               >
                 {photo ? (
                   <img src={photo} alt="" className="h-full w-full object-cover" />
                 ) : form.name ? (
                   <Avatar name={form.name} size={76} />
                 ) : (
-                  <Camera size={24} className="text-[#878a8c]" />
+                  <Camera size={24} className="text-muted" />
                 )}
               </button>
               <input
@@ -388,20 +390,20 @@ export function Onboarding() {
                 }}
               />
               <div>
-                <p className="text-sm font-semibold text-[#1c1c1c]">Profile Photo</p>
-                <p className="text-xs text-[#878a8c]">Click the circle to upload (optional)</p>
+                <p className="text-sm font-semibold text-ink">Profile Photo</p>
+                <p className="text-xs text-muted">Click the circle to upload (optional)</p>
               </div>
             </div>
             <Field label="LinkedIn URL" value={form.linkedin} onChange={(v) => set('linkedin', v)} placeholder="https://linkedin.com/in/…" />
             <Field label="City" value={form.city} onChange={(v) => set('city', v)} placeholder="Bengaluru" />
             <div>
-              <label className="mb-1 block text-sm font-medium text-[#1c1c1c]">Short Bio</label>
+              <label className="mb-1 block text-sm font-medium text-ink">Short Bio</label>
               <textarea
                 value={form.bio}
                 onChange={(e) => set('bio', e.target.value)}
                 rows={3}
                 placeholder="Tell the network about yourself…"
-                className="w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                className="w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
             </div>
             <Field label="Key Skills (comma separated)" value={form.expertise} onChange={(v) => set('expertise', v)} placeholder="React, AWS, Node.js" />
@@ -427,7 +429,7 @@ export function Onboarding() {
               value={form.interestedInStartup}
               onChange={(v) => set('interestedInStartup', v)}
             />
-            <p className="text-xs text-[#878a8c]">
+            <p className="text-xs text-muted">
               Say yes and the next step asks a couple of follow-ups — that's what makes mentor
               booking and startup matching actually work.
             </p>
@@ -436,7 +438,7 @@ export function Onboarding() {
 
         {step === 5 && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-[#878a8c]">
+            <p className="text-sm text-muted">
               {parsed
                 ? "Your resume filled in everything it could. Anything still listed below it couldn't find — add it here."
                 : 'A fuller profile is what gets you found for referrals, mentorship and jobs.'}
@@ -500,13 +502,13 @@ export function Onboarding() {
                 : []
           if (outstanding.length === 0) return null
           return (
-            <div className="mt-5 rounded-xl border border-orange-100 bg-orange-50 p-3">
-              <p className="text-xs font-semibold text-[#1c1c1c]">
+            <div className="mt-5 rounded-xl border border-brand-100 bg-brand-50 p-3">
+              <p className="text-xs font-semibold text-ink">
                 {parsed ? "Not on your resume — please add" : 'Still needed'}
               </p>
               <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                 {outstanding.map((m) => (
-                  <li key={m.label} className="text-xs text-[#878a8c]">
+                  <li key={m.label} className="text-xs text-muted">
                     • {m.label}
                   </li>
                 ))}
@@ -519,14 +521,14 @@ export function Onboarding() {
         <div className="mt-7 flex items-center justify-between">
           <button
             onClick={() => (step === 0 ? navigate('/') : setStep((s) => s - 1))}
-            className="flex items-center gap-1.5 text-sm font-semibold text-[#878a8c] hover:text-[#1c1c1c]"
+            className="flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink"
           >
             <ArrowLeft size={16} /> Back
           </button>
           <button
             onClick={next}
             disabled={!canNext() || saving || (step === 0 && parsing)}
-            className="flex items-center gap-2 rounded-full bg-[#ff4500] px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#ff6534] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-full btn-primary px-6 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {step === STEPS.length - 1 ? (
               <>{saving ? 'Saving…' : 'Finish'} <Check size={16} /></>
@@ -557,13 +559,13 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-[#1c1c1c]">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-ink">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+        className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
       />
     </div>
   )
@@ -582,11 +584,11 @@ function Select<T extends string>({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-[#1c1c1c]">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-ink">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm text-[#1c1c1c] outline-none focus:border-[#ff4500]"
+        className="w-full rounded-lg border border-line px-3 py-2 text-sm text-ink outline-none focus:border-brand"
       >
         <option value="">Select…</option>
         {options.map((o) => (
@@ -615,18 +617,18 @@ function Toggle({
       onClick={() => onChange(!value)}
       disabled={disabled && !value}
       className={`flex items-center justify-between rounded-xl border p-4 text-left transition-colors ${
-        value ? 'border-[#ff4500] bg-orange-50' : 'border-[#edeff1] hover:bg-gray-50'
+        value ? 'border-brand bg-brand-50' : 'border-line hover:bg-gray-50'
       } ${disabled && !value ? 'cursor-not-allowed opacity-60 hover:bg-transparent' : ''}`}
     >
       <div>
-        <p className="font-semibold text-[#1c1c1c]">{label}</p>
-        <p className="text-xs text-[#878a8c]">{hint}</p>
+        <p className="font-semibold text-ink">{label}</p>
+        <p className="text-xs text-muted">{hint}</p>
       </div>
       <span
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${value ? 'bg-[#ff4500]' : 'bg-gray-300'}`}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${value ? 'bg-brand' : 'bg-gray-300'}`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${value ? 'left-[22px]' : 'left-0.5'}`}
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface transition-all ${value ? 'left-[22px]' : 'left-0.5'}`}
         />
       </span>
     </button>

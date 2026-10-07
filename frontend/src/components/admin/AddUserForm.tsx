@@ -4,7 +4,7 @@ import { isValidEmail } from '../../lib/csv'
 import { Button } from '../ui'
 
 const FIELD =
-  'w-full rounded-lg border border-[#edeff1] bg-white px-3 py-2 text-sm text-[#1c1c1c] placeholder-[#878a8c] focus:border-[#ff4500] focus:outline-none focus:ring-2 focus:ring-orange-100'
+  'w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-100'
 
 export function AddUserForm({
   onAdd,
@@ -30,15 +30,15 @@ export function AddUserForm({
   return (
     <form onSubmit={submit} className="space-y-3">
       <div>
-        <label className="mb-1 block text-xs font-medium text-[#878a8c]">Name</label>
+        <label className="mb-1 block text-xs font-medium text-muted">Name</label>
         <input className={FIELD} value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-[#878a8c]">Phone Number</label>
+        <label className="mb-1 block text-xs font-medium text-muted">Phone Number</label>
         <input className={FIELD} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98000 00000" />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-[#878a8c]">Email ID</label>
+        <label className="mb-1 block text-xs font-medium text-muted">Email ID</label>
         <input className={FIELD} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" />
       </div>
       {error && <p className="text-sm text-red-500">{error}</p>}

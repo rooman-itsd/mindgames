@@ -32,14 +32,14 @@ export function AdminLayout({
   children: ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-[#f6f7f8] text-[#1c1c1c]">
+    <div className="flex min-h-screen bg-page text-ink">
       {/* Sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-[#edeff1] bg-white md:flex">
-        <div className="flex items-center gap-2.5 border-b border-[#edeff1] px-6 py-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff4500] text-lg font-black text-white">R</span>
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <div className="flex items-center gap-2.5 border-b border-line px-6 py-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-lg font-black text-white">R</span>
           <div>
-            <p className="text-sm font-bold text-[#1c1c1c]">Rooman Admin</p>
-            <p className="text-xs text-[#878a8c]">Alumni Network</p>
+            <p className="text-sm font-bold text-ink">Rooman Admin</p>
+            <p className="text-xs text-muted">Alumni Network</p>
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3">
@@ -50,8 +50,8 @@ export function AdminLayout({
               className={cx(
                 'flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 text-sm font-medium transition-colors',
                 view === item.key
-                  ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                  : 'border-transparent text-[#1c1c1c] hover:bg-gray-100',
+                  ? 'border-brand bg-brand-50 text-brand'
+                  : 'border-transparent text-ink hover:bg-gray-100',
               )}
             >
               {item.icon}
@@ -61,7 +61,7 @@ export function AdminLayout({
         </nav>
         <Link
           to="/home"
-          className="flex items-center gap-2 border-t border-[#edeff1] p-4 text-xs font-medium text-[#878a8c] hover:text-[#ff4500]"
+          className="flex items-center gap-2 border-t border-line p-4 text-xs font-medium text-muted hover:text-brand"
         >
           <ArrowLeft size={14} /> Back to network
         </Link>
@@ -69,16 +69,16 @@ export function AdminLayout({
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b border-[#edeff1] bg-white px-4 py-4 md:px-8">
+        <header className="border-b border-line bg-surface px-4 py-4 md:px-8">
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="text-lg font-bold text-[#1c1c1c]">{NAV.find((n) => n.key === view)?.label}</h1>
+            <h1 className="text-lg font-bold text-ink">{NAV.find((n) => n.key === view)?.label}</h1>
             <div className="flex gap-1 md:hidden">
               {NAV.map((item) => (
                 <button
                   key={item.key}
                   onClick={() => onViewChange(item.key)}
                   aria-label={item.label}
-                  className={cx('rounded-lg p-2', view === item.key ? 'bg-orange-50 text-[#ff4500]' : 'text-[#878a8c]')}
+                  className={cx('rounded-lg p-2', view === item.key ? 'bg-brand-50 text-brand' : 'text-muted')}
                 >
                   {item.icon}
                 </button>

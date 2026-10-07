@@ -67,16 +67,17 @@ export function NetworkMatches() {
             </button>
             <button
               onClick={() => openQuickView(u.id)}
-              className="mt-3 font-semibold text-[#1c1c1c] hover:underline"
+              className="mt-3 font-semibold text-ink hover:underline"
             >
               {u.name}
             </button>
-            {roleLine(u) && <p className="text-xs text-[#878a8c]">{roleLine(u)}</p>}
-            <p className="mt-0.5 flex items-center gap-1 text-xs text-[#878a8c]">
+            {roleLine(u) && <p className="text-xs text-muted">{roleLine(u)}</p>}
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
               <MapPin size={12} /> {u.city} · Batch {u.batchYear}
             </p>
             <Button
-              variant={connectionState(u.id) === 'pending' ? 'subtle' : 'outline'}
+              variant="social"
+              aria-pressed={connectionState(u.id) === 'pending'}
               className="mt-3 w-full"
               disabled={connectionState(u.id) === 'pending'}
               onClick={() => {
@@ -89,7 +90,7 @@ export function NetworkMatches() {
           </Card>
         ))}
         {suggestions.length === 0 && (
-          <p className="text-sm text-[#878a8c]">No suggestions match your filters.</p>
+          <p className="text-sm text-muted">No suggestions match your filters.</p>
         )}
       </div>
       </div>
@@ -97,17 +98,17 @@ export function NetworkMatches() {
       {/* Connection note modal */}
       {noteModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4" onClick={() => setNoteModal(null)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#1c1c1c]">Add a note to your invitation</h2>
+              <h2 className="text-lg font-bold text-ink">Add a note to your invitation</h2>
               <button
                 onClick={() => setNoteModal(null)}
-                className="text-[#878a8c] hover:text-[#1c1c1c]"
+                className="text-muted hover:text-ink"
               >
                 <X size={20} />
               </button>
             </div>
-            <p className="mb-4 text-sm text-[#6b6e70]">
+            <p className="mb-4 text-sm text-muted">
               Write a personal note (minimum 25 words). Root Connect members are more likely to accept connection requests that include a thoughtful message.
             </p>
             <textarea
@@ -115,26 +116,26 @@ export function NetworkMatches() {
               onChange={(e) => setNote(e.target.value)}
               placeholder={`Hi ${noteModal.name}, I'd love to connect with you because…`}
               maxLength={500}
-              className="mb-2 w-full rounded-lg border border-[#edeff1] p-3 text-sm text-[#1c1c1c] placeholder-[#878a8c] focus:border-[#ff4500] focus:outline-none focus:ring-2 focus:ring-[#ff4500]/20"
+              className="mb-2 w-full rounded-lg border border-line p-3 text-sm text-ink placeholder-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
               rows={5}
             />
             <div className="mb-4 flex justify-between">
               <span className={`text-xs font-medium ${note.split(/\s+/).filter(Boolean).length < 25 ? 'text-red-500' : 'text-green-600'}`}>
                 {note.split(/\s+/).filter(Boolean).length} / 25 words
               </span>
-              <span className="text-xs text-[#878a8c]">{note.length}/500</span>
+              <span className="text-xs text-muted">{note.length}/500</span>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setNoteModal(null)}
-                className="flex-1 rounded-full border border-[#edeff1] px-4 py-2.5 font-medium text-[#1c1c1c] transition-colors hover:bg-[#f6f7f8]"
+                className="flex-1 rounded-full border border-line px-4 py-2.5 font-medium text-ink transition-colors hover:bg-page"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSendWithNote}
                 disabled={note.split(/\s+/).filter(Boolean).length < 25}
-                className="flex-1 rounded-full bg-[#ff4500] px-4 py-2.5 font-medium text-white transition-colors hover:bg-[#d13a00] disabled:bg-[#c2c2c2] disabled:cursor-not-allowed"
+                className="flex-1 rounded-full btn-primary px-4 py-2.5 font-medium text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Send
               </button>

@@ -2,26 +2,128 @@
 
 /* ---------------------------------------------------------------------------
    Root Connect — Rooman Alumni Network
-   Strict design system: white surfaces, light-gray page, Reddit-orange accent.
+   "Emerald Grove" design system.
+
+   - Brand: deep emerald #0f5a47 (white on it 8.16:1). Green marks what you can
+     DO — buttons, links, the logo — not every surface.
+   - Family: nine sibling hues (jade … saffron) used for section identity
+     (LeftSidebar), stat tiles and accents. Each step shares the SAME OKLCH
+     lightness and chroma and only rotates hue, which is why they read as one
+     family instead of a rainbow:  50 = L .972 C .02 · 100 = L .935 C .045 ·
+     600 = L .53 C .12 · 700 = L .45 C .105.  Every 700-on-50/100 text pairing
+     and white-on-600 is >= 5.04:1.
+   - Neutrals: warm stone. The page sits a step deeper than the white cards so
+     surfaces separate instead of washing out.
+
+   Every colour in the app comes from these tokens. Components use the token
+   names (bg-brand, text-ink, border-line, text-iris-700 …), never raw hex, so a
+   re-theme is an edit to this block alone.
 --------------------------------------------------------------------------- */
 @theme {
-  /* Brand accent */
-  --color-brand: #ff4500;
-  --color-brand-hover: #ff6534;
+  /* Brand — deep emerald, generated along one OKLCH hue (171°). */
+  --color-brand: #0f5a47;
+  --color-brand-hover: #034938; /* hover / pressed / dark CTA base */
+  --color-brand-50: #ecfbf5;
+  --color-brand-100: #d2f4e7;
+  --color-brand-200: #ade6d2;
+  --color-brand-300: #80cdb3;
+  --color-brand-400: #4aa98d;
+  --color-brand-500: #21876c; /* fills and gradients only */
+  --color-brand-600: #0f5a47;
+  --color-brand-700: #034938;
+  --color-brand-800: #01372a;
+  --color-brand-900: #01261c;
+
+  /* Highlight — marigold. Fills take ink text (8.32:1); never white on it. */
+  --color-marigold: #f2a81d;
+  --color-marigold-light: #f8c95a;
+  --color-marigold-50: #fdf6e3;
+  --color-marigold-100: #fcebc4;
+  --color-marigold-800: #7a4f00; /* marigold text on light tints (6.05:1) */
+
+  /* Sibling family (see header). */
+  /* jade — oklch hue 140 */
+  --color-jade-50: #eff9ed;
+  --color-jade-100: #daf1d5;
+  --color-jade-600: #427c35;
+  --color-jade-700: #326327;
+  /* lagoon — oklch hue 200 */
+  --color-lagoon-50: #e7fafb;
+  --color-lagoon-100: #c8f3f5;
+  --color-lagoon-600: #017b80;
+  --color-lagoon-700: #066166;
+  /* ocean — oklch hue 240 */
+  --color-ocean-50: #eef7fe;
+  --color-ocean-100: #d7edfe;
+  --color-ocean-600: #0573aa;
+  --color-ocean-700: #005b88;
+  /* iris — oklch hue 275 */
+  --color-iris-50: #f3f5fe;
+  --color-iris-100: #e3e8ff;
+  --color-iris-600: #5864b0;
+  --color-iris-700: #454f8f;
+  /* amethyst — oklch hue 305 */
+  --color-amethyst-50: #f8f3ff;
+  --color-amethyst-100: #efe4fe;
+  --color-amethyst-600: #7c58a3;
+  --color-amethyst-700: #634484;
+  /* plum — oklch hue 340 */
+  --color-plum-50: #fff1fa;
+  --color-plum-100: #fedff3;
+  --color-plum-600: #984d81;
+  --color-plum-700: #7a3b67;
+  /* rosewood — oklch hue 15 */
+  --color-rosewood-50: #fef3f3;
+  --color-rosewood-100: #ffe1e2;
+  --color-rosewood-600: #a54b55;
+  --color-rosewood-700: #853942;
+  /* clay — oklch hue 45 */
+  --color-clay-50: #fff3ee;
+  --color-clay-100: #ffe3d7;
+  --color-clay-600: #a3522a;
+  --color-clay-700: #833f1d;
+  /* saffron — oklch hue 80 */
+  --color-saffron-50: #fdf5e7;
+  --color-saffron-100: #fae7c8;
+  --color-saffron-600: #8c6306;
+  --color-saffron-700: #704e00;
+
+  /* Dark bands (landing hero scrim, testimonials) */
+  --color-night: #0b211b;
+  --color-scrim: #06120e;
 
   /* Post-type badge palette */
   --color-hiring: #16a34a;
   --color-opentowork: #2563eb;
-  --color-mentorship: #ff4500;
+  --color-mentorship: #f2a81d;
   --color-startup: #7c3aed;
 
-  /* Neutrals */
-  --color-ink: #1c1c1c; /* text primary */
-  --color-muted: #878a8c; /* text secondary / icons */
-  --color-line: #edeff1; /* borders / dividers */
-  --color-page: #f6f7f8; /* page background */
+  /* Neutrals — warm stone, deliberately not green-tinted. */
+  --color-ink: #1c1b18; /* text primary (14.7:1 on page) */
+  --color-muted: #5e5a54; /* text secondary / icons (5.85:1 on page, 6.85:1 on white) */
+  --color-line: #dfddd7; /* borders / dividers */
+  --color-page: #eeede9; /* page — one step deeper than the white cards */
+  --color-surface: #ffffff; /* cards and panels — white; dark mode redefines it */
+  --color-on-gold: #1c1b18; /* text on gold / marigold fills — never flips in dark mode */
+  --color-panel: #eaf1ec; /* side bars — soft sage (ink 15:1, muted 5.97:1, brand 7.11:1) */
+
+  /* Tailwind's gray scale, re-tinted to the same warm stone so every existing
+     gray-* class matches the palette without touching the components. */
+  --color-gray-50: #f7f6f3;
+  --color-gray-100: #efeeea;
+  --color-gray-200: #e4e2dc;
+  --color-gray-300: #d1cdc5;
+  --color-gray-400: #a9a49b;
+  --color-gray-500: #7f7a71;
+  --color-gray-600: #5e5a54;
+  --color-gray-700: #48443e;
+  --color-gray-800: #2f2c28;
+  --color-gray-900: #1c1b18;
+  --color-gray-950: #12110f;
 
   --font-sans: 'Inter', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  /* Display face, used sparingly (the Home greeting name). */
+  --font-display: 'Bricolage Grotesque', 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -41,7 +143,7 @@ body,
    below the breakpoint.
 --------------------------------------------------------------------------- */
 :root {
-  --shell-max: 1400px;
+  --shell-max: 1536px; /* was 1400 — less dead margin on wide monitors */
   --shell-gutter: max(0px, calc((100vw - var(--shell-max)) / 2));
 }
 
@@ -59,11 +161,157 @@ body {
    mouse click. The white companion ring keeps it legible on dark surfaces
    (hero video, testimonials band) as well as on light ones.
 --------------------------------------------------------------------------- */
-:focus-visible {
+/* Text fields are excluded: they get the softer border + glow in the "Forms"
+   block below, which reads better inside a form than a detached ring. */
+:focus-visible:not(textarea, select, input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'])) {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgb(255 255 255 / 0.85);
   border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Forms. In @layer base so any utility a field already sets (its own border,
+   focus:ring-*) still wins — this only fills in what a field doesn't declare.
+--------------------------------------------------------------------------- */
+@layer base {
+  :root {
+    accent-color: var(--color-brand); /* native checkboxes, radios, ranges */
+    caret-color: var(--color-brand);
+  }
+  textarea,
+  select,
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='file']) {
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease;
+  }
+  textarea:focus,
+  select:focus,
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='file']):focus {
+    outline: none;
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px rgb(15 90 71 / 0.16);
+  }
+  ::selection {
+    background: var(--color-brand-100);
+    color: var(--color-ink);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons. One class owns the primary look so the shared <Button> and the
+   hand-built action buttons stay identical: emerald gradient, a light sweep
+   on hover, 1px lift, squash on press. In @layer components so a caller's
+   utilities (w-full, absolute, px-*) still win.
+
+   The gradient is a background IMAGE, so a caller's bg-* colour sits under it;
+   :disabled drops the image so disabled:bg-* colours show again.
+--------------------------------------------------------------------------- */
+@layer components {
+  .btn-primary {
+    position: relative;
+    isolation: isolate; /* lets the ::after sweep sit between fill and label */
+    overflow: hidden;
+    background-color: var(--color-brand);
+    background-image: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-800) 100%);
+    color: #fff;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 1px 2px rgb(1 55 42 / 0.25);
+    transition:
+      translate 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+      scale 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.2s ease;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.26) 50%, transparent 65%);
+    translate: -120% 0;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-image: linear-gradient(135deg, var(--color-brand-hover) 0%, var(--color-brand-900) 100%);
+    translate: 0 -1px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 8px 18px -8px rgb(15 90 71 / 0.6);
+  }
+  .btn-primary:hover:not(:disabled)::after {
+    translate: 120% 0;
+    transition: translate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .btn-primary:active:not(:disabled) {
+    translate: 0 0;
+    scale: 0.97;
+  }
+  /* Genuinely disabled only — a busy (submitting) button keeps its gradient. */
+  .btn-primary:disabled:not([aria-busy='true']) {
+    background-image: none;
+    box-shadow: none;
+  }
+
+  /* Press feedback for every other <Button> variant. */
+  .btn-press {
+    transition:
+      scale 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .btn-press:active:not(:disabled) {
+    scale: 0.97;
+  }
+
+  /* Submit slide: while `loading`, the label slides up and out and a spinner
+     slides in from below. The label stays in the DOM (only hidden), so the
+     button keeps its width and its accessible name. */
+  .btn-label,
+  .btn-spinner {
+    transition:
+      translate 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.2s ease;
+  }
+  .btn-label.is-out {
+    translate: 0 -130%;
+    opacity: 0;
+  }
+  .btn-spinner {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    translate: 0 130%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn-spinner.is-in {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary,
+  .btn-primary::after,
+  .btn-press,
+  .btn-label,
+  .btn-spinner {
+    transition: none;
+  }
+  .btn-primary::after {
+    display: none;
+  }
+  .btn-primary:hover:not(:disabled),
+  .btn-primary:active:not(:disabled),
+  .btn-press:active:not(:disabled) {
+    translate: none;
+    scale: none;
+  }
 }
 
 /* Skip link: first tab stop, off-screen until focused. */
@@ -94,14 +342,14 @@ body {
 /* Thin scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d6d7d8 transparent;
+  scrollbar-color: var(--color-gray-300) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #d6d7d8;
+  background: var(--color-gray-300);
   border-radius: 9999px;
 }
 
@@ -354,4 +602,479 @@ body {
     transform: none;
     transition: none;
   }
+}
+
+/* ===========================================================================
+   Emerald Grove — motion kit + button categories (light, no background art).
+   All motion is transform/opacity only (cheap on phones) and is switched off
+   under prefers-reduced-motion at the end of this block.
+=========================================================================== */
+
+@layer components {
+  /* Rotating family-colour ring — Create Post only (one per screen). */
+  .ring-glow {
+    position: relative;
+    display: inline-flex;
+    border-radius: 9999px;
+    padding: 2px;
+  }
+  .ring-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: conic-gradient(from var(--ring-angle), var(--color-marigold), var(--color-brand-300), var(--color-amethyst-600), var(--color-brand), var(--color-marigold));
+    animation: ring-spin 3.5s linear infinite;
+  }
+  .ring-glow > * {
+    position: relative;
+  }
+
+  /* ---- Button categories (Button variants + hand-built buttons) --------- */
+  /* Call to action: marigold, ink text (8.32:1), sweep + lift. */
+  .btn-cta {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: var(--color-marigold);
+    background-image: linear-gradient(135deg, var(--color-marigold-light), var(--color-marigold));
+    color: var(--color-on-gold);
+    box-shadow: 0 8px 20px -10px rgb(242 168 29 / 0.9);
+    transition:
+      translate 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+      scale 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.2s ease;
+  }
+  /* Social: lagoon outline that fills once done (aria-pressed / .is-done). */
+  .btn-social {
+    background-color: var(--color-surface);
+    color: var(--color-lagoon-700);
+    box-shadow: inset 0 0 0 1.5px var(--color-lagoon-600);
+    transition:
+      scale 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .btn-social:hover:not(:disabled) {
+    background-color: var(--color-lagoon-50);
+  }
+  .btn-social[aria-pressed='true'],
+  .btn-social.is-done {
+    background-color: var(--color-lagoon-600);
+    color: #fff;
+    box-shadow: none;
+  }
+  /* "Request sent" is also disabled; the filled state IS the signal, so it
+     must not fade with the generic disabled:opacity-50 utility. */
+  .btn-social[aria-pressed='true']:disabled {
+    opacity: 1 !important;
+    cursor: default;
+  }
+  /* Destructive: solid rosewood, no sweep. White on it: 5.04:1+. */
+  .btn-danger {
+    background-color: var(--color-rosewood-600);
+    color: #fff;
+    transition:
+      scale 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.2s ease;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: var(--color-rosewood-700);
+  }
+  /* AI: amethyst -> iris with a slow twinkle on the leading icon. */
+  .btn-ai {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: var(--color-iris-600);
+    background-image: linear-gradient(135deg, var(--color-amethyst-600), var(--color-iris-600));
+    color: #fff;
+    box-shadow: 0 8px 20px -10px var(--color-iris-600);
+    transition:
+      translate 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+      scale 0.12s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .btn-ai svg:first-child {
+    animation: ai-twinkle 2.4s ease-in-out infinite;
+  }
+  /* Shared sweep + lift + press for the gradient categories. */
+  .btn-cta::after,
+  .btn-ai::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.3) 50%, transparent 65%);
+    translate: -120% 0;
+  }
+  .btn-cta:hover:not(:disabled)::after,
+  .btn-ai:hover:not(:disabled)::after {
+    translate: 120% 0;
+    transition: translate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .btn-cta:hover:not(:disabled),
+  .btn-ai:hover:not(:disabled) {
+    translate: 0 -1px;
+  }
+  .btn-cta:active:not(:disabled),
+  .btn-social:active:not(:disabled),
+  .btn-danger:active:not(:disabled),
+  .btn-ai:active:not(:disabled) {
+    translate: 0 0;
+    scale: 0.97;
+  }
+  .btn-cta:disabled:not([aria-busy='true']),
+  .btn-ai:disabled:not([aria-busy='true']) {
+    background-image: none;
+    box-shadow: none;
+  }
+
+  /* Reaction burst (celebrate.ts heartBurst). */
+  .grove-heart {
+    position: fixed;
+    z-index: 60;
+    pointer-events: none;
+    font-size: 14px;
+    color: var(--color-rosewood-600);
+    animation: heart-fly 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+}
+
+@property --ring-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ring-spin { to { --ring-angle: 360deg; } }
+@keyframes ai-twinkle { 50% { opacity: 0.5; scale: 0.85; } }
+@keyframes heart-fly {
+  from { opacity: 1; translate: 0 0; scale: 0.6; }
+  to { opacity: 0; translate: var(--dx) var(--dy); scale: 1.2; rotate: var(--rot); }
+}
+
+/* ---- Page entrance: the page's sections rise in, staggered. -------------
+   `backwards` (not `both`): once finished the animation leaves no transform
+   behind, so position:fixed modals inside a page are never re-anchored.
+   The page root itself does NOT animate: while an element is mid-animation it
+   becomes the containing block and stacking context for everything inside, so
+   a modal open on arrival (Career Guidance intro, Explore's create dialog from
+   the palette) would sit offset and under the navbar until it finished.
+   `.fixed` children are skipped too, so a modal opens instantly with its own
+   fade instead of waiting out a stagger delay. */
+.page-enter > * > *:not(.fixed):nth-child(1) { animation: page-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.04s backwards; }
+.page-enter > * > *:not(.fixed):nth-child(2) { animation: page-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s backwards; }
+.page-enter > * > *:not(.fixed):nth-child(3) { animation: page-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.16s backwards; }
+.page-enter > * > *:not(.fixed):nth-child(4) { animation: page-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.22s backwards; }
+.page-enter > * > *:not(.fixed):nth-child(n + 5) { animation: page-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.28s backwards; }
+@keyframes page-rise {
+  from { opacity: 0; translate: 0 16px; }
+}
+
+/* ---- Signed-out screens behind the tree (AuthBackdrop.tsx): light only. */
+.grove-auth {
+  /* Signed-out screens only (AuthBackdrop.tsx): a midnight sky at the edge of
+     dawn. Indigo at the top, teal through the middle, an emerald horizon at
+     the bottom, and a marigold sunrise behind the root of the tree. The
+     sign-in card stays white on top. */
+  background:
+    radial-gradient(38% 30% at 50% 4%, rgb(242 168 29 / 0.28), transparent 70%),
+    radial-gradient(90% 55% at 50% 112%, rgb(33 135 108 / 0.55), transparent 72%),
+    linear-gradient(180deg, #070b1f 0%, #0c1534 32%, #0f2a3d 62%, #0b2b24 100%);
+}
+/* Aurora: three slow glows drifting behind the tree. */
+.grove-auth .auth-aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  will-change: transform;
+}
+.grove-auth .auth-aurora.a1 { width: 55vmax; height: 30vmax; left: -12vmax; top: 6vh; background: #21876c; opacity: 0.35; animation: auth-drift-1 24s ease-in-out infinite alternate; }
+.grove-auth .auth-aurora.a2 { width: 48vmax; height: 28vmax; right: -14vmax; top: 2vh; background: #7c58a3; opacity: 0.32; animation: auth-drift-2 30s ease-in-out infinite alternate; }
+.grove-auth .auth-aurora.a3 { width: 50vmax; height: 26vmax; left: 25vw; top: 30vh; background: #017b80; opacity: 0.22; animation: auth-drift-1 34s ease-in-out infinite alternate-reverse; }
+@keyframes auth-drift-1 { to { transform: translate3d(8vw, 4vh, 0) scale(1.08); } }
+@keyframes auth-drift-2 { to { transform: translate3d(-9vw, 6vh, 0) scale(0.94); } }
+/* Stars: two tiled layers of tiny dots; the second one twinkles. Fading out
+   toward the horizon so the bottom glow stays clean. */
+.grove-auth .auth-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / 0.85), transparent 60%),
+    radial-gradient(1px 1px at 37% 64%, rgb(255 255 255 / 0.6), transparent 60%),
+    radial-gradient(1.4px 1.4px at 71% 29%, rgb(255 255 255 / 0.8), transparent 60%),
+    radial-gradient(1px 1px at 88% 77%, rgb(255 255 255 / 0.55), transparent 60%),
+    radial-gradient(1.2px 1.2px at 54% 9%, rgb(248 201 90 / 0.8), transparent 60%);
+  background-size: 260px 260px;
+  mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 90%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 90%);
+}
+.grove-auth .auth-stars.twinkle {
+  background-image:
+    radial-gradient(1.3px 1.3px at 23% 42%, rgb(255 255 255 / 0.9), transparent 60%),
+    radial-gradient(1px 1px at 63% 81%, rgb(255 255 255 / 0.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 81% 12%, rgb(200 230 255 / 0.9), transparent 60%),
+    radial-gradient(1px 1px at 6% 70%, rgb(255 255 255 / 0.6), transparent 60%);
+  background-size: 410px 410px;
+  animation: auth-twinkle 4.5s ease-in-out infinite;
+}
+@keyframes auth-twinkle { 50% { opacity: 0.25; } }
+/* Doodle wallpaper, like WhatsApp's default chat background: 26 alumni
+   line icons (lucide, ISC) tiled in faint mint, under the tree. */
+.grove-auth .auth-doodles {
+  position: absolute;
+  inset: 0;
+  background: url('/auth-doodles.svg') repeat;
+  background-size: 360px 360px;
+}
+/* Film grain and a soft vignette for depth. */
+.grove-auth .auth-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.grove-auth .auth-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgb(3 6 18 / 0.55) 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .grove-auth .auth-aurora,
+  .grove-auth .auth-stars.twinkle {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-glow::before,
+  .btn-ai svg:first-child,
+  /* Same specificity as the page-rise rules (and later), or they would win. */
+  .page-enter > * > *:not(.fixed):nth-child(n) {
+    animation: none;
+  }
+  .btn-cta,
+  .btn-ai,
+  .btn-social,
+  .btn-danger {
+    transition: none;
+  }
+  .btn-cta::after,
+  .btn-ai::after {
+    display: none;
+  }
+  .btn-cta:hover:not(:disabled),
+  .btn-ai:hover:not(:disabled),
+  .btn-cta:active:not(:disabled),
+  .btn-social:active:not(:disabled),
+  .btn-danger:active:not(:disabled),
+  .btn-ai:active:not(:disabled) {
+    translate: none;
+    scale: none;
+  }
+  .grove-heart {
+    display: none;
+  }
+}
+
+/* Loading placeholders (components/ui/Skeleton.tsx): a soft light sweep. */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-gray-100) 0%, var(--color-gray-50) 40%, var(--color-gray-100) 80%);
+  background-size: 300% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* Toast action countdown (Toaster.tsx): runs as long as the action stays available. */
+.toast-countdown {
+  width: 100%;
+  animation: toast-countdown 6s linear forwards;
+}
+@keyframes toast-countdown {
+  to { width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-countdown { animation: none; }
+}
+
+/* ===========================================================================
+   Dark mode (opt-in: Settings → Appearance). The `dark` class sits on <html>
+   only while the signed-in app is mounted (useApplyTheme in AppLayout), so
+   Landing and the sign-in screens never change. Every text pairing below was
+   measured: main text 14:1+, secondary 7.4:1+, section text 8.5:1+.
+=========================================================================== */
+html.dark {
+  color-scheme: dark;
+  --color-page: #0f1613;
+  --color-surface: #17201c;
+  --color-panel: #1a2621;
+  --color-ink: #e8eeea;
+  --color-muted: #a2b1a9;
+  --color-line: #2b3a33;
+  /* Greys flip: 50 is now the darkest raised surface, 900 the lightest text. */
+  --color-gray-50: #1b2420;
+  --color-gray-100: #212c27;
+  --color-gray-200: #2b3a33;
+  --color-gray-300: #3b4c44;
+  --color-gray-400: #5d6e66;
+  --color-gray-500: #7f8f87;
+  --color-gray-600: #a2b1a9;
+  --color-gray-700: #c3cec8;
+  --color-gray-800: #dde5e0;
+  --color-gray-900: #e8eeea;
+  --color-gray-950: #f3f7f4;
+  /* Pale tints become deep tints; buttons keep their deep fills. */
+  --color-brand-50: #123a2c;
+  --color-brand-100: #164634;
+  --color-brand-200: #1d5a43;
+  --color-marigold-50: #2b220d;
+  --color-marigold-100: #33270b;
+  --color-jade-50: #1a2a14;
+  --color-jade-100: #22381b;
+  --color-lagoon-50: #11302f;
+  --color-lagoon-100: #164240;
+  --color-ocean-50: #10283a;
+  --color-ocean-100: #15344b;
+  --color-iris-50: #1f2442;
+  --color-iris-100: #283057;
+  --color-amethyst-50: #281f36;
+  --color-amethyst-100: #33284a;
+  --color-plum-50: #331a2c;
+  --color-plum-100: #43223a;
+  --color-rosewood-50: #331a1d;
+  --color-rosewood-100: #452327;
+  --color-clay-50: #331d12;
+  --color-clay-100: #45271a;
+  --color-saffron-50: #2e2410;
+  --color-saffron-100: #3d3016;
+  /* Tailwind's built-in palettes (badges, alerts, hovers): pale tints become
+     deep tints and text shades become light — generated along each hue in
+     OKLCH; text on them measures 7.86:1 or better. 500/600 stay as they are
+     because they back white-text buttons and icons. */
+  --color-red-50: #3a1d1b;
+  --color-red-100: #4a2321;
+  --color-red-200: #5d2d2a;
+  --color-red-700: #febab4;
+  --color-red-800: #fecdc8;
+  --color-orange-50: #381f12;
+  --color-orange-100: #492614;
+  --color-orange-200: #5b301a;
+  --color-orange-700: #ffbd9d;
+  --color-orange-800: #fecfb8;
+  --color-amber-50: #34220b;
+  --color-amber-100: #432a08;
+  --color-amber-200: #54360b;
+  --color-amber-700: #f8c384;
+  --color-amber-800: #fdd2a1;
+  --color-yellow-50: #302509;
+  --color-yellow-100: #3e2e04;
+  --color-yellow-200: #4d3a06;
+  --color-yellow-700: #ebca80;
+  --color-yellow-800: #f2d89e;
+  --color-lime-50: #1f2b13;
+  --color-lime-100: #253614;
+  --color-lime-200: #30441b;
+  --color-lime-700: #b7dc96;
+  --color-lime-800: #c8e6af;
+  --color-green-50: #152d1a;
+  --color-green-100: #17391f;
+  --color-green-200: #1e4729;
+  --color-green-700: #9ee1ab;
+  --color-green-800: #b6eabf;
+  --color-emerald-50: #0e2d20;
+  --color-emerald-100: #0a3a27;
+  --color-emerald-200: #0e4832;
+  --color-emerald-700: #8ee3bb;
+  --color-emerald-800: #aaeccc;
+  --color-teal-50: #042d28;
+  --color-teal-100: #033932;
+  --color-teal-200: #014840;
+  --color-teal-700: #7ce3d3;
+  --color-teal-800: #9eeddf;
+  --color-cyan-50: #032c34;
+  --color-cyan-100: #013741;
+  --color-cyan-200: #044551;
+  --color-cyan-700: #7adff7;
+  --color-cyan-800: #9ce9fc;
+  --color-sky-50: #0d293a;
+  --color-sky-100: #0a344b;
+  --color-sky-200: #0e425d;
+  --color-sky-700: #99d7fe;
+  --color-sky-800: #b6e2fe;
+  --color-blue-50: #19273c;
+  --color-blue-100: #1d304e;
+  --color-blue-200: #263d62;
+  --color-blue-700: #b1d0ff;
+  --color-blue-800: #c7dcfe;
+  --color-indigo-50: #21243c;
+  --color-indigo-100: #292d4e;
+  --color-indigo-200: #343961;
+  --color-indigo-700: #c1caff;
+  --color-indigo-800: #d1d8fe;
+  --color-violet-50: #27223a;
+  --color-violet-100: #322a4c;
+  --color-violet-200: #3f355e;
+  --color-violet-700: #cfc5fe;
+  --color-violet-800: #dbd4ff;
+  --color-purple-50: #2b2138;
+  --color-purple-100: #372849;
+  --color-purple-200: #45335b;
+  --color-purple-700: #dac0fe;
+  --color-purple-800: #e4d1fe;
+  --color-pink-50: #371d28;
+  --color-pink-100: #472332;
+  --color-pink-200: #592c40;
+  --color-pink-700: #feb5d2;
+  --color-pink-800: #fecade;
+  --color-rose-50: #391d1f;
+  --color-rose-100: #4a2326;
+  --color-rose-200: #5c2c30;
+  --color-rose-700: #ffb8bc;
+  --color-rose-800: #ffccce;
+  /* 900 is only ever used as text here (amber/blue/green notices). */
+  --color-amber-900: #fedfbb;
+  --color-blue-900: #d6e6ff;
+  --color-green-900: #c4f2cc;
+}
+/* Text shades lighten only where they are used as text (the same shades also
+   back a few white-text hovers, which must stay deep). */
+html.dark .text-brand,
+html.dark .hover\:text-brand:hover { color: #7fd1ac; }
+html.dark .text-jade-700 { color: #a8dc98; }
+html.dark .text-lagoon-700 { color: #7fd8dc; }
+html.dark .text-ocean-700 { color: #90cdf2; }
+html.dark .text-iris-700,
+html.dark .hover\:text-iris-700:hover { color: #b7c0f5; }
+html.dark .text-amethyst-700 { color: #d3bdf0; }
+html.dark .text-plum-700 { color: #efb2dd; }
+html.dark .text-rosewood-700,
+html.dark .hover\:text-rosewood-700:hover { color: #f3a9b1; }
+html.dark .text-clay-700 { color: #f5b79a; }
+html.dark .text-saffron-700 { color: #f3cf7a; }
+html.dark .text-marigold-800 { color: #f8c95a; }
+/* Pale text that sits on green / violet headers stays pale. */
+html.dark .text-brand-50 { color: #ecfbf5; }
+html.dark .text-brand-100 { color: #d2f4e7; }
+html.dark .text-iris-100 { color: #e3e8ff; }
+/* Panels painted in ink (tour sidebar, badge tooltips) stay dark. */
+html.dark .bg-ink { background-color: #0a100d; }
+
+/* Home greeting (HomeGreeting.tsx): the name in an emerald → lagoon gradient,
+   with its own dark-mode colours. */
+.greeting-name {
+  background-image: linear-gradient(100deg, var(--color-brand) 0%, #21876c 45%, var(--color-lagoon-600) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding-bottom: 0.08em; /* keeps descenders inside the clipped gradient */
+}
+html.dark .greeting-name {
+  background-image: linear-gradient(100deg, #7fd1ac 0%, #80cdb3 45%, #7fd8dc 100%);
 }

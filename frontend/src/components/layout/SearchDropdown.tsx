@@ -55,15 +55,15 @@ export function SearchDropdown({ onClose }: { onClose: () => void }) {
     people.length + matchedPosts.length + matchedCommunities.length === 0
 
   return (
-    <div className="absolute top-full right-0 left-0 z-50 mt-2 max-h-[70vh] overflow-y-auto rounded-2xl border border-[#edeff1] bg-white shadow-2xl">
+    <div className="absolute top-full right-0 left-0 z-50 mt-2 max-h-[70vh] overflow-y-auto rounded-2xl border border-line bg-surface shadow-2xl">
       {/* Category tabs */}
-      <div className="sticky top-0 flex flex-wrap items-center gap-1 border-b border-[#edeff1] bg-white px-3 py-2">
+      <div className="sticky top-0 flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              tab === t ? 'bg-[#ff4500] text-white' : 'bg-gray-100 text-[#878a8c] hover:bg-gray-200'
+              tab === t ? 'bg-brand text-white' : 'bg-gray-100 text-muted hover:bg-gray-200'
             }`}
           >
             {t}
@@ -73,8 +73,8 @@ export function SearchDropdown({ onClose }: { onClose: () => void }) {
 
       {empty ? (
         <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-          <SearchX size={28} className="text-[#d6d7d8]" />
-          <p className="text-sm text-[#878a8c]">No results for “{q}”.</p>
+          <SearchX size={28} className="text-gray-300" />
+          <p className="text-sm text-muted">No results for “{q}”.</p>
         </div>
       ) : (
         <div className="pb-2">
@@ -84,8 +84,8 @@ export function SearchDropdown({ onClose }: { onClose: () => void }) {
                 <Row key={u.id} onClick={() => go(`/profile/${u.id}`)}>
                   <Avatar name={u.name} src={u.photo} size={36} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#1c1c1c]">{u.name}</p>
-                    <p className="truncate text-xs text-[#878a8c]">
+                    <p className="truncate text-sm font-semibold text-ink">{u.name}</p>
+                    <p className="truncate text-xs text-muted">
                       {u.designation}{u.company ? ` · ${u.company}` : ''}{u.city ? ` · ${u.city}` : ''}
                     </p>
                   </div>
@@ -100,12 +100,12 @@ export function SearchDropdown({ onClose }: { onClose: () => void }) {
                 const author = users.find((u) => u.id === p.authorId)
                 return (
                   <Row key={p.id} onClick={() => go(`/home#post-${p.id}`)}>
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f6f7f8] text-[#878a8c]">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-page text-muted">
                       <FileText size={16} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-[#1c1c1c]">{p.content}</p>
-                      <p className="flex items-center gap-1.5 text-xs text-[#878a8c]">
+                      <p className="truncate text-sm text-ink">{p.content}</p>
+                      <p className="flex items-center gap-1.5 text-xs text-muted">
                         {author?.name} <PostTypeBadge type={p.type} />
                       </p>
                     </div>
@@ -123,8 +123,8 @@ export function SearchDropdown({ onClose }: { onClose: () => void }) {
                     <Briefcase size={16} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#1c1c1c]">{p.role ?? 'Open role'}</p>
-                    <p className="truncate text-xs text-[#878a8c]">
+                    <p className="truncate text-sm font-semibold text-ink">{p.role ?? 'Open role'}</p>
+                    <p className="truncate text-xs text-muted">
                       {p.company}{p.city ? ` · ${p.city}` : ''} · {p.applicantsCount ?? 0} applicant{(p.applicantsCount ?? 0) === 1 ? '' : 's'}
                     </p>
                   </div>
@@ -139,13 +139,13 @@ export function SearchDropdown({ onClose }: { onClose: () => void }) {
                 <Row key={u.id} onClick={() => go(`/profile/${u.id}`)}>
                   <Avatar name={u.name} src={u.photo} size={36} />
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-[#1c1c1c]">
+                    <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink">
                       {u.name}
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-[#ff4500]">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold text-brand">
                         <Award size={10} /> Mentor
                       </span>
                     </p>
-                    <p className="truncate text-xs text-[#878a8c]">
+                    <p className="truncate text-xs text-muted">
                       {u.domain} · {u.sessionsConducted ?? 0} sessions conducted
                     </p>
                   </div>
@@ -162,8 +162,8 @@ export function SearchDropdown({ onClose }: { onClose: () => void }) {
                     <Hash size={16} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#1c1c1c]">{c.name}</p>
-                    <p className="truncate text-xs text-[#878a8c]">
+                    <p className="truncate text-sm font-semibold text-ink">{c.name}</p>
+                    <p className="truncate text-xs text-muted">
                       {c.category} · {c.memberCount} member{c.memberCount === 1 ? '' : 's'}
                     </p>
                   </div>
@@ -200,9 +200,9 @@ function Section({
   return (
     <div className="pt-2">
       <div className="flex items-center justify-between px-4 py-1">
-        <p className="text-xs font-bold tracking-wide text-[#878a8c] uppercase">{title}</p>
+        <p className="text-xs font-bold tracking-wide text-muted uppercase">{title}</p>
         {showAll && count > 3 && (
-          <button onClick={onSeeAll} className="text-xs font-semibold text-[#ff4500] hover:underline">
+          <button onClick={onSeeAll} className="text-xs font-semibold text-brand hover:underline">
             See all {count}
           </button>
         )}
@@ -214,12 +214,12 @@ function Section({
 
 function Row({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-[#f6f7f8]">
+    <button onClick={onClick} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-page">
       {children}
     </button>
   )
 }
 
 function TabEmpty({ label, q }: { label: string; q: string }) {
-  return <p className="px-4 py-8 text-center text-sm text-[#878a8c]">No {label} match “{q}”.</p>
+  return <p className="px-4 py-8 text-center text-sm text-muted">No {label} match “{q}”.</p>
 }

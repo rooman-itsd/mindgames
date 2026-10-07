@@ -48,8 +48,8 @@ export function PendingConfirmationsPanel() {
 
   return (
     <Card className="p-5">
-      <h2 className="text-base font-bold text-[#1c1c1c]">Sessions Awaiting Confirmation ({rows.length})</h2>
-      <p className="mt-1 text-sm text-[#878a8c]">
+      <h2 className="text-base font-bold text-ink">Sessions Awaiting Confirmation ({rows.length})</h2>
+      <p className="mt-1 text-sm text-muted">
         The mentor marked these completed, but the mentee hasn't confirmed they happened. Until they
         do, the session counts toward nobody's hours or badges.
       </p>
@@ -63,33 +63,33 @@ export function PendingConfirmationsPanel() {
       )}
 
       {loading ? (
-        <p className="mt-4 text-sm text-[#878a8c]">Loading…</p>
+        <p className="mt-4 text-sm text-muted">Loading…</p>
       ) : rows.length === 0 ? (
-        <p className="mt-4 text-sm text-[#878a8c]">Nothing waiting — every completed session is confirmed.</p>
+        <p className="mt-4 text-sm text-muted">Nothing waiting — every completed session is confirmed.</p>
       ) : (
         <div className="mt-3 flex flex-col gap-2">
           {rows.map((r) => {
             const days = daysWaiting(r.completedAt, now)
             const allowed = canRemind(r.remindedAt, now)
             return (
-              <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-[#edeff1] p-3">
+              <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-3">
                 <Avatar name={r.menteeName} size={38} to={`/profile/${r.menteeId}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#1c1c1c]">{r.topic}</p>
-                  <p className="truncate text-xs text-[#878a8c]">
+                  <p className="truncate text-sm font-semibold text-ink">{r.topic}</p>
+                  <p className="truncate text-xs text-muted">
                     {r.mentorName} → {r.menteeName} · {r.date}
                   </p>
                 </div>
                 {days !== null && (
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      days >= 7 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-[#878a8c]'
+                      days >= 7 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-muted'
                     }`}
                   >
                     {days === 0 ? 'Completed today' : `Waiting ${days}d`}
                   </span>
                 )}
-                <span className="shrink-0 text-xs text-[#878a8c]">
+                <span className="shrink-0 text-xs text-muted">
                   {r.remindedAt ? `Reminded ${timeAgo(r.remindedAt)}` : 'Not reminded yet'}
                 </span>
                 <Button

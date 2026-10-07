@@ -9,7 +9,7 @@ import { SERVICE_LABELS } from '../types'
 /** Icon + accent colour per service type, so a service looks the same
  *  wherever it is rendered (matched list, full marketplace, manage panel). */
 export const SERVICE_ICONS: Record<ServiceType, { icon: LucideIcon; classes: string }> = {
-  career_guidance: { icon: Compass, classes: 'bg-orange-50 text-[#ff4500]' },
+  career_guidance: { icon: Compass, classes: 'bg-brand-50 text-brand' },
   technical_mentoring: { icon: Code2, classes: 'bg-blue-50 text-blue-600' },
   resume_review: { icon: FileText, classes: 'bg-sky-50 text-sky-600' },
   interview_preparation: { icon: Users, classes: 'bg-indigo-50 text-indigo-600' },

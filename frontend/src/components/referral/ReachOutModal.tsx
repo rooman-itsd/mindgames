@@ -77,15 +77,15 @@ export function ReachOutModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="animate-slidein w-full max-w-md rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[#edeff1] px-5 py-4">
+      <div className="animate-slidein w-full max-w-md rounded-2xl bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">
-            <Handshake size={18} className="text-[#ff4500]" />
-            <h2 className="font-bold text-[#1c1c1c]">
+            <Handshake size={18} className="text-brand" />
+            <h2 className="font-bold text-ink">
               {extended ? `Reach out to ${user.name}` : 'Request a referral'}
             </h2>
           </div>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -95,7 +95,7 @@ export function ReachOutModal({
             <button
               onClick={() => setMode('guidance')}
               className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                mode === 'guidance' ? 'bg-[#ff4500] text-white' : 'bg-[#f6f7f8] text-[#878a8c] hover:bg-gray-100'
+                mode === 'guidance' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100'
               }`}
             >
               Ask Guidance
@@ -103,7 +103,7 @@ export function ReachOutModal({
             <button
               onClick={() => setMode('referral')}
               className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                mode === 'referral' ? 'bg-[#ff4500] text-white' : 'bg-[#f6f7f8] text-[#878a8c] hover:bg-gray-100'
+                mode === 'referral' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100'
               }`}
             >
               Request Referral
@@ -114,16 +114,16 @@ export function ReachOutModal({
         <div className="space-y-3 px-5 py-4">
           {activeMode === 'referral' ? (
             <>
-              <p className="text-sm text-[#878a8c]">
-                Ask <span className="font-semibold text-[#1c1c1c]">{user.name}</span> to refer you at{' '}
-                <span className="font-semibold text-[#1c1c1c]">{user.company}</span>. It lands in your
+              <p className="text-sm text-muted">
+                Ask <span className="font-semibold text-ink">{user.name}</span> to refer you at{' '}
+                <span className="font-semibold text-ink">{user.company}</span>. It lands in your
                 chat so you can continue the conversation there.
               </p>
               <input
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 placeholder="Role you're interested in (optional)"
-                className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
               {extended && (
                 <>
@@ -131,17 +131,17 @@ export function ReachOutModal({
                     value={why}
                     onChange={(e) => setWhy(e.target.value)}
                     placeholder="Why this company? (optional)"
-                    className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
                   />
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-[#878a8c]">Taken the Hire AI test?</span>
+                    <span className="text-xs font-medium text-muted">Taken the Hire AI test?</span>
                     {(['yes', 'no'] as const).map((v) => (
                       <button
                         key={v}
                         type="button"
                         onClick={() => setHireAiTested((cur) => (cur === v ? null : v))}
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                          hireAiTested === v ? 'bg-[#ff4500] text-white' : 'bg-[#f6f7f8] text-[#878a8c] hover:bg-gray-100'
+                          hireAiTested === v ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100'
                         }`}
                       >
                         {v === 'yes' ? 'Yes' : 'Not yet'}
@@ -152,8 +152,8 @@ export function ReachOutModal({
               )}
             </>
           ) : (
-            <p className="text-sm text-[#878a8c]">
-              Ask <span className="font-semibold text-[#1c1c1c]">{user.name}</span> for advice — career
+            <p className="text-sm text-muted">
+              Ask <span className="font-semibold text-ink">{user.name}</span> for advice — career
               path, interview tips, whatever you're curious about. It lands in your chat.
             </p>
           )}
@@ -162,10 +162,10 @@ export function ReachOutModal({
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             placeholder="A short note — your experience, why you're a fit… (optional)"
-            className="w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+            className="w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
           />
         </div>
-        <div className="flex items-center justify-end gap-2 border-t border-[#edeff1] px-5 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button disabled={sending} onClick={send}>
             {sending ? 'Sending…' : activeMode === 'referral' ? 'Send request' : 'Send'}

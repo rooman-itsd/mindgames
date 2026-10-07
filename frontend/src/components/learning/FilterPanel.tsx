@@ -68,15 +68,15 @@ export function FilterPanel({
   }
 
   return (
-    <section className="rounded-xl border border-[#edeff1] bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-line bg-surface p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-[#1c1c1c]">
+        <h2 className="flex items-center gap-2 text-sm font-bold text-ink">
           <Funnel size={15} /> Filter by
         </h2>
         {isFiltering({ ...filters, q: '' }) && (
           <button
             onClick={() => onChange({ ...filters, tags: [], types: [], difficulty: [] })}
-            className="text-xs font-semibold text-[#ff4500] hover:underline"
+            className="text-xs font-semibold text-brand hover:underline"
           >
             Clear all
           </button>
@@ -84,8 +84,8 @@ export function FilterPanel({
       </div>
 
       <Group title="Skill / Topic">
-        <label className="mb-2 flex items-center gap-2 rounded-lg border border-[#edeff1] px-2.5 py-1.5 focus-within:border-[#ff4500]/50">
-          <Search size={13} className="shrink-0 text-[#878a8c]" />
+        <label className="mb-2 flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 focus-within:border-brand/50">
+          <Search size={13} className="shrink-0 text-muted" />
           <input
             value={skillQuery}
             onChange={(e) => setSkillQuery(e.target.value)}
@@ -103,12 +103,12 @@ export function FilterPanel({
             onChange={() => toggleTag(s)}
           />
         ))}
-        {found && found.length === 0 && <p className="text-[11px] text-[#878a8c]">No skills match.</p>}
-        {!found && popular.length === 0 && <p className="text-[11px] text-[#878a8c]">No skills tagged yet.</p>}
+        {found && found.length === 0 && <p className="text-[11px] text-muted">No skills match.</p>}
+        {!found && popular.length === 0 && <p className="text-[11px] text-muted">No skills tagged yet.</p>}
         {!found && popular.length > SKILLS_COLLAPSED && (
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="mt-1 flex items-center gap-1 text-xs font-semibold text-[#ff4500]"
+            className="mt-1 flex items-center gap-1 text-xs font-semibold text-brand"
           >
             {expanded ? 'Show less' : 'Show more'} <ChevronDown size={12} className={expanded ? 'rotate-180' : ''} />
           </button>
@@ -146,24 +146,24 @@ export function SavedResourcesLink({ count, active, onClick }: { count: number; 
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`flex w-full items-center gap-3 rounded-xl border bg-white p-4 text-left shadow-sm ${
-        active ? 'border-[#ff4500]/50' : 'border-[#edeff1] hover:border-[#ff4500]/30'
+      className={`flex w-full items-center gap-3 rounded-xl border bg-surface p-4 text-left shadow-sm ${
+        active ? 'border-brand/50' : 'border-line hover:border-brand/30'
       }`}
     >
-      <Bookmark size={16} className="shrink-0 text-[#1c1c1c]" />
+      <Bookmark size={16} className="shrink-0 text-ink" />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-[#1c1c1c]">Saved Resources</span>
-        <span className="block text-xs text-[#878a8c]">{count} saved</span>
+        <span className="block text-sm font-semibold text-ink">Saved Resources</span>
+        <span className="block text-xs text-muted">{count} saved</span>
       </span>
-      <ChevronRight size={16} className="text-[#878a8c]" />
+      <ChevronRight size={16} className="text-muted" />
     </button>
   )
 }
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-4 border-t border-[#edeff1] pt-3">
-      <h3 className="mb-2 text-xs font-bold text-[#1c1c1c]">{title}</h3>
+    <div className="mt-4 border-t border-line pt-3">
+      <h3 className="mb-2 text-xs font-bold text-ink">{title}</h3>
       <div className="flex flex-col gap-1.5">{children}</div>
     </div>
   )
@@ -181,10 +181,10 @@ function Check({
   count?: number
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-xs text-[#1c1c1c]">
-      <input type="checkbox" checked={checked} onChange={onChange} className="h-3.5 w-3.5 accent-[#ff4500]" />
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-ink">
+      <input type="checkbox" checked={checked} onChange={onChange} className="h-3.5 w-3.5 accent-brand" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      {count != null && <span className="text-[10px] text-[#878a8c]">{count}</span>}
+      {count != null && <span className="text-[10px] text-muted">{count}</span>}
     </label>
   )
 }

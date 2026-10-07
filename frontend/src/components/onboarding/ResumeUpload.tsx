@@ -48,20 +48,20 @@ export function ResumeUpload({
         className={cx(
           'flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors',
           parsing ? 'cursor-default' : 'cursor-pointer',
-          dragging ? 'border-[#ff4500] bg-orange-50' : 'border-[#edeff1] bg-[#f6f7f8] hover:border-[#ff6534]',
+          dragging ? 'border-brand bg-brand-50' : 'border-line bg-page hover:border-brand-400',
         )}
       >
-        <div className="grid h-12 w-12 place-items-center rounded-full bg-orange-100 text-[#ff4500]">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-brand-100 text-brand">
           {file ? <FileText size={24} /> : <UploadCloud size={24} />}
         </div>
         {file ? (
-          <p className="font-medium text-[#1c1c1c]">{file.name}</p>
+          <p className="font-medium text-ink">{file.name}</p>
         ) : (
           <div>
-            <p className="font-medium text-[#1c1c1c]">
-              Drop your resume here, or <span className="text-[#ff4500]">browse</span>
+            <p className="font-medium text-ink">
+              Drop your resume here, or <span className="text-brand">browse</span>
             </p>
-            <p className="mt-1 text-xs text-[#878a8c]">PDF or Word (.docx)</p>
+            <p className="mt-1 text-xs text-muted">PDF or Word (.docx)</p>
           </div>
         )}
         <input
@@ -79,6 +79,7 @@ export function ResumeUpload({
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
 
       <Button
+        variant="ai"
         className="mt-4 w-full"
         icon={<Sparkles size={16} />}
         disabled={!file}

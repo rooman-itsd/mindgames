@@ -41,15 +41,15 @@ export function ProfileCompletenessMeter({
     <>
       <div className="flex items-center gap-4">
         <ProgressRing percent={percent}>
-          <span className="text-sm font-bold text-[#1c1c1c]">
+          <span className="text-sm font-bold text-ink">
             <CountUp to={percent} />%
           </span>
         </ProgressRing>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-[#1c1c1c]">
+          <p className="text-sm font-bold text-ink">
             {done ? 'Your profile is complete 🎉' : 'Complete your profile'}
           </p>
-          <p className="mt-0.5 text-xs text-[#878a8c]">
+          <p className="mt-0.5 text-xs text-muted">
             {done
               ? "You're visible everywhere in the network and ranked highest in search."
               : locked.length > 0
@@ -60,7 +60,7 @@ export function ProfileCompletenessMeter({
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 onClick={onEdit}
-                className="rounded-full bg-[#ff4500] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#ff6534]"
+                className="rounded-full btn-primary px-3 py-1.5 text-xs font-bold text-white"
               >
                 Finish your profile
               </button>
@@ -69,7 +69,7 @@ export function ProfileCompletenessMeter({
                   reach it here rather than having to redo onboarding. */}
               <button
                 onClick={onEdit}
-                className="flex items-center gap-1 text-xs font-semibold text-[#ff4500] hover:underline"
+                className="flex items-center gap-1 text-xs font-semibold text-brand hover:underline"
               >
                 <Sparkles size={12} /> or autofill from your resume
               </button>
@@ -92,8 +92,8 @@ export function ProfileCompletenessMeter({
                 transition={{ duration: 0.2 }}
                 className="flex items-center justify-between gap-2 text-sm"
               >
-                <span className="min-w-0 truncate text-[#1c1c1c]">{m.label}</span>
-                <span className="shrink-0 rounded-full bg-[#f6f7f8] px-2 py-0.5 text-xs font-bold text-[#ff4500]">
+                <span className="min-w-0 truncate text-ink">{m.label}</span>
+                <span className="shrink-0 rounded-full bg-page px-2 py-0.5 text-xs font-bold text-brand">
                   +{Math.max(1, Math.round(m.delta))}%
                 </span>
               </motion.li>
@@ -104,17 +104,17 @@ export function ProfileCompletenessMeter({
       {missing.length > 3 && (
         <button
           onClick={() => setShowAll((s) => !s)}
-          className="mt-2 text-xs font-semibold text-[#ff4500] hover:underline"
+          className="mt-2 text-xs font-semibold text-brand hover:underline"
         >
           {showAll ? 'Show less' : `Show all ${missing.length}`}
         </button>
       )}
 
       {/* What the percentage actually changes. */}
-      <details className="group mt-3 border-t border-[#edeff1] pt-3">
-        <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-[#1c1c1c]">
+      <details className="group mt-3 border-t border-line pt-3">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-ink">
           What you get at 100%
-          <ChevronDown size={14} className="text-[#878a8c] transition-transform group-open:rotate-180" />
+          <ChevronDown size={14} className="text-muted transition-transform group-open:rotate-180" />
         </summary>
         <ul className="mt-2 flex flex-col gap-1.5">
           {enforced.map((g) => (
@@ -122,19 +122,19 @@ export function ProfileCompletenessMeter({
               {g.met ? (
                 <Check size={13} className="mt-0.5 shrink-0 text-green-600" />
               ) : (
-                <Lock size={12} className="mt-0.5 shrink-0 text-[#878a8c]" />
+                <Lock size={12} className="mt-0.5 shrink-0 text-muted" />
               )}
-              <span className={g.met ? 'text-[#878a8c] line-through' : 'text-[#1c1c1c]'}>{g.label}</span>
+              <span className={g.met ? 'text-muted line-through' : 'text-ink'}>{g.label}</span>
             </li>
           ))}
           {ranking.map((g) => (
             <li key={g.label} className="flex items-start gap-2 text-xs">
-              <TrendingUp size={12} className="mt-0.5 shrink-0 text-[#ff4500]" />
-              <span className={g.met ? 'text-[#878a8c] line-through' : 'text-[#1c1c1c]'}>{g.label}</span>
+              <TrendingUp size={12} className="mt-0.5 shrink-0 text-brand" />
+              <span className={g.met ? 'text-muted line-through' : 'text-ink'}>{g.label}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-[11px] leading-relaxed text-[#878a8c]">
+        <p className="mt-2 text-[11px] leading-relaxed text-muted">
           <Lock size={10} className="mr-0.5 inline" /> is a real requirement —
           <TrendingUp size={10} className="mx-0.5 inline" /> improves how you rank, it isn't a lock.
         </p>
@@ -142,7 +142,7 @@ export function ProfileCompletenessMeter({
 
       {/* Scoring is deliberately narrow, and saying so is the point: nobody
           should think the small optional fields are holding them back. */}
-      <p className="mt-3 text-[11px] leading-relaxed text-[#878a8c]">
+      <p className="mt-3 text-[11px] leading-relaxed text-muted">
         Only your photo and basics, bio and skills, education, projects and certifications, a
         first post and one link count toward this score. Everything else on your profile —
         industry, work mode, languages, interests, achievements, extra links — is optional and
@@ -157,7 +157,7 @@ export function ProfileCompletenessMeter({
   )
 
   if (variant === 'compact') {
-    return <div className="rounded-xl border border-[#edeff1] p-4">{body}</div>
+    return <div className="rounded-xl border border-line p-4">{body}</div>
   }
   return <Card className="p-5">{body}</Card>
 }

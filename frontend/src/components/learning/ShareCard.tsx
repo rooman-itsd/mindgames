@@ -150,26 +150,26 @@ export function ShareCard({
   }
 
   return (
-    <article className="flex h-full flex-col rounded-xl border border-[#edeff1] bg-white p-3.5 shadow-sm">
+    <article className="flex h-full flex-col rounded-xl border border-line bg-surface p-3.5 shadow-sm">
       {/* The person, first. */}
       <div className="flex items-start gap-2.5">
         <Avatar name={share.sharedBy.name} size={36} to={`/profile/${share.sharedBy.id}`} />
         <div className="min-w-0 flex-1">
           <Link
             to={`/profile/${share.sharedBy.id}`}
-            className="block truncate text-xs font-bold text-[#1c1c1c] hover:underline"
+            className="block truncate text-xs font-bold text-ink hover:underline"
           >
             {share.sharedBy.name}
-            {share.sharedBy.isMentor && <span className="ml-1 text-[10px] font-semibold text-[#ff4500]">Mentor</span>}
+            {share.sharedBy.isMentor && <span className="ml-1 text-[10px] font-semibold text-brand">Mentor</span>}
           </Link>
-          <p className="truncate text-[11px] text-[#878a8c]">{roleLine(share.sharedBy)}</p>
+          <p className="truncate text-[11px] text-muted">{roleLine(share.sharedBy)}</p>
         </div>
         <KindBadge kind={share.kind} label={KIND_LABEL[share.kind] ?? 'Link'} />
       </div>
 
       {/* Your own share: who you shared it with. */}
       {mine && (
-        <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#878a8c]">
+        <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-muted">
           {share.audience === 'connections' ? <Users size={11} /> : <Globe size={11} />}
           Shared with {AUDIENCE_LABEL[share.audience]}
         </p>
@@ -181,21 +181,21 @@ export function ShareCard({
       )}
 
       {/* Their reason — the recommendation itself. */}
-      <p className="mt-2.5 line-clamp-3 text-xs italic text-[#1c1c1c]">“{share.whyHelped}”</p>
+      <p className="mt-2.5 line-clamp-3 text-xs italic text-ink">“{share.whyHelped}”</p>
 
       {/* The thing. */}
       <div className="mt-2.5 flex items-start gap-2 rounded-lg bg-gray-50 p-2">
         <KindIcon kind={share.kind} size={30} />
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-xs font-bold text-[#1c1c1c]">{share.title}</p>
+          <p className="line-clamp-2 text-xs font-bold text-ink">{share.title}</p>
           {share.url && (
-            <p className="flex min-w-0 items-center gap-1 text-[10px] text-[#878a8c]">
+            <p className="flex min-w-0 items-center gap-1 text-[10px] text-muted">
               <Link2 size={9} className="shrink-0" />
               <span className="truncate">{displayLink(share.url)}</span>
             </p>
           )}
-          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#878a8c]">
-            <span className="rounded-full bg-white px-1.5 py-0.5 font-semibold">{DIFFICULTY[share.difficulty]}</span>
+          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted">
+            <span className="rounded-full bg-surface px-1.5 py-0.5 font-semibold">{DIFFICULTY[share.difficulty]}</span>
             {isProject && share.estHours != null && (
               <span className="inline-flex items-center gap-0.5">
                 <Clock size={9} /> ~{share.estHours}h
@@ -207,7 +207,7 @@ export function ShareCard({
       {share.skills.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {share.skills.slice(0, 4).map((s) => (
-            <span key={s} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[10px] text-[#1c1c1c]">
+            <span key={s} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[10px] text-ink">
               {s}
             </span>
           ))}
@@ -215,7 +215,7 @@ export function ShareCard({
       )}
 
       <div className="mt-auto pt-3">
-        <div className="flex items-center justify-between gap-2 text-[11px] text-[#878a8c]">
+        <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
           <span className="flex min-w-0 items-center gap-1.5">
             {share.rating !== null && share.ratingCount > 0 ? (
               <span
@@ -236,7 +236,7 @@ export function ShareCard({
               aria-pressed={saved}
               aria-label={saved ? `Unsave ${share.title}` : `Save ${share.title}`}
               title={saved ? 'In Saved Resources' : 'Save to Saved Resources'}
-              className={`rounded-full p-1 hover:bg-gray-50 ${saved ? 'text-[#ff4500]' : ''}`}
+              className={`rounded-full p-1 hover:bg-gray-50 ${saved ? 'text-brand' : ''}`}
             >
               {saved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
             </button>
@@ -254,7 +254,7 @@ export function ShareCard({
                 onClick={() => void report()}
                 aria-label={`Report ${share.title}`}
                 title="Report a broken or unhelpful share"
-                className="rounded-full p-1 text-[#c4c6c8] hover:bg-gray-50 hover:text-red-500"
+                className="rounded-full p-1 text-gray-300 hover:bg-gray-50 hover:text-red-500"
               >
                 <Flag size={12} />
               </button>
@@ -268,7 +268,7 @@ export function ShareCard({
           {isProject && share.about ? (
             <button
               onClick={() => setReading(true)}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[#ff4500]/40 py-1.5 text-xs font-semibold text-[#ff4500] hover:bg-orange-50"
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-brand/40 py-1.5 text-xs font-semibold text-brand hover:bg-brand-50"
             >
               <FileText size={11} /> Read brief
             </button>
@@ -277,7 +277,7 @@ export function ShareCard({
               href={share.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-[#ff4500]/40 py-1.5 text-xs font-semibold text-[#ff4500] hover:bg-orange-50"
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-brand/40 py-1.5 text-xs font-semibold text-brand hover:bg-brand-50"
             >
               {isProject ? 'Open brief' : 'View'} <ExternalLink size={11} />
             </a>
@@ -300,7 +300,7 @@ export function ShareCard({
                   className={`flex items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${
                     share.iHelped
                       ? 'border-green-200 bg-green-50 text-green-700'
-                      : 'border-[#edeff1] text-[#878a8c] hover:text-[#1c1c1c]'
+                      : 'border-line text-muted hover:text-ink'
                   }`}
                 >
                   <HandHeart size={13} />
@@ -319,10 +319,10 @@ export function ShareCard({
                   <div
                     role="dialog"
                     aria-label="How much did it help?"
-                    className="absolute bottom-9 right-0 z-20 w-48 rounded-lg border border-[#edeff1] bg-white p-2 shadow-lg"
+                    className="absolute bottom-9 right-0 z-20 w-48 rounded-lg border border-line bg-surface p-2 shadow-lg"
                   >
-                    <p className="text-[11px] font-semibold text-[#1c1c1c]">How much did it help?</p>
-                    <p className="mb-1 text-[10px] text-[#878a8c]">Your rating is final once given.</p>
+                    <p className="text-[11px] font-semibold text-ink">How much did it help?</p>
+                    <p className="mb-1 text-[10px] text-muted">Your rating is final once given.</p>
                     <div className="flex justify-between">
                       {[1, 2, 3, 4, 5].map((n) => (
                         <button
@@ -367,30 +367,30 @@ function BriefModal({ share, mine, onClose }: { share: LearningShare; mine: bool
   return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={onClose}>
       <div
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-[#edeff1] bg-white p-5 shadow-sm"
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-line bg-surface p-5 shadow-sm"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold text-emerald-600">Project brief · {DIFFICULTY[share.difficulty]}</p>
-            <h2 className="text-lg font-bold text-[#1c1c1c]">{share.title}</h2>
-            <p className="text-xs text-[#878a8c]">
+            <h2 className="text-lg font-bold text-ink">{share.title}</h2>
+            <p className="text-xs text-muted">
               From {share.sharedBy.name}
               {share.sharedBy.designation ? `, ${share.sharedBy.designation}` : ''}
               {share.estHours != null ? ` · about ${share.estHours} hours` : ''}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
-        <p className="mt-3 text-xs italic text-[#1c1c1c]">“{share.whyHelped}”</p>
-        <h3 className="mt-4 text-xs font-bold text-[#1c1c1c]">About the project</h3>
-        <p className="mt-1 whitespace-pre-line text-sm text-[#1c1c1c]">{share.about}</p>
+        <p className="mt-3 text-xs italic text-ink">“{share.whyHelped}”</p>
+        <h3 className="mt-4 text-xs font-bold text-ink">About the project</h3>
+        <p className="mt-1 whitespace-pre-line text-sm text-ink">{share.about}</p>
         {share.skills.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1">
             {share.skills.map((s) => (
-              <span key={s} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[11px] text-[#1c1c1c]">
+              <span key={s} className="rounded-md bg-gray-50 px-1.5 py-0.5 text-[11px] text-ink">
                 {s}
               </span>
             ))}
@@ -402,7 +402,7 @@ function BriefModal({ share, mine, onClose }: { share: LearningShare; mine: bool
               href={share.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-[#ff4500] px-4 py-2 text-sm font-semibold text-[#ff4500] hover:bg-orange-50"
+              className="inline-flex items-center gap-1 rounded-full border border-brand px-4 py-2 text-sm font-semibold text-brand hover:bg-brand-50"
             >
               Open reference <ExternalLink size={13} />
             </a>

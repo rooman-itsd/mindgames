@@ -68,10 +68,10 @@ export function AssignResourceModal({
       <Card className="max-h-[85vh] w-full max-w-md overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-[#1c1c1c]">Assign a resource</h2>
-            <p className="truncate text-sm text-[#878a8c]">To {menteeName} — shows in their Learning Resources.</p>
+            <h2 className="text-lg font-bold text-ink">Assign a resource</h2>
+            <p className="truncate text-sm text-muted">To {menteeName} — shows in their Learning Resources.</p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100">
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-muted hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -82,14 +82,14 @@ export function AssignResourceModal({
             placeholder="Title"
             aria-label="Resource title"
             maxLength={160}
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Link (required) — https://…"
             aria-label="Resource link"
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           />
           <textarea
             value={note}
@@ -98,13 +98,13 @@ export function AssignResourceModal({
             aria-label="Note"
             maxLength={1000}
             rows={2}
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           />
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as CareerResourceKind)}
             aria-label="Resource type"
-            className="rounded-lg border border-[#edeff1] px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           >
             {KINDS.map((k) => (
               <option key={k.value} value={k.value}>
@@ -112,7 +112,7 @@ export function AssignResourceModal({
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-xs text-[#1c1c1c]">
+          <label className="flex items-center gap-2 text-xs text-ink">
             <input type="checkbox" checked={proof} onChange={(e) => setProof(e.target.checked)} />
             Ask them to send back a link to their work
           </label>

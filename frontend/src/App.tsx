@@ -48,8 +48,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useApp()
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#f6f7f8]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#ff4500] border-t-transparent" />
+      <div className="grid min-h-screen place-items-center bg-page">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
       </div>
     )
   }

@@ -52,7 +52,7 @@ function InviteStatusBadge({ a }: { a: Alumni }) {
     )
   }
   return (
-    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-[#878a8c]">
+    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-muted">
       Not sent
     </span>
   )
@@ -72,7 +72,7 @@ function InviteStatusBadge({ a }: { a: Alumni }) {
  */
 function AccountStateBadge({ a }: { a: Alumni }) {
   if (!a.hasAccount) {
-    return <span className="text-xs text-[#878a8c]">No account</span>
+    return <span className="text-xs text-muted">No account</span>
   }
   return (
     <div className="space-y-1">
@@ -91,11 +91,11 @@ function AccountStateBadge({ a }: { a: Alumni }) {
           Signed in earlier
         </span>
       ) : (
-        <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-[#ff4500]">
+        <span className="inline-block rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand">
           Never signed in
         </span>
       )}
-      <p className="text-xs text-[#878a8c]">
+      <p className="text-xs text-muted">
         {a.passwordChanged ? 'own password' : 'still on emailed password'}
       </p>
     </div>
@@ -117,7 +117,7 @@ function CopyLinkButton({ link }: { link: string }) {
           /* clipboard blocked — the title attribute still shows the full link */
         }
       }}
-      className="inline-flex items-center gap-1 rounded-lg border border-[#edeff1] px-2 py-1 text-xs font-medium text-[#878a8c] transition-colors hover:border-[#ff4500] hover:text-[#ff4500]"
+      className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs font-medium text-muted transition-colors hover:border-brand hover:text-brand"
     >
       {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? 'Copied' : 'Copy link'}
     </button>
@@ -191,18 +191,18 @@ export function SentInvitesPanel({
         {[
           { label: 'Invites delivered', value: stats.sent, tone: 'text-green-700' },
           { label: 'Delivery failed', value: stats.failed, tone: 'text-red-700' },
-          { label: 'Never invited', value: stats.notSent, tone: 'text-[#878a8c]' },
-          { label: 'Signed in', value: stats.signedIn, tone: 'text-[#ff4500]' },
+          { label: 'Never invited', value: stats.notSent, tone: 'text-muted' },
+          { label: 'Signed in', value: stats.signedIn, tone: 'text-brand' },
         ].map((s) => (
           <Card key={s.label} className="p-4">
             <p className={cx('text-2xl font-bold', s.tone)}>{s.value}</p>
-            <p className="text-xs text-[#878a8c]">{s.label}</p>
+            <p className="text-xs text-muted">{s.label}</p>
           </Card>
         ))}
       </div>
 
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#edeff1] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
           <div className="flex flex-wrap gap-1.5">
             {TABS.map((t) => (
               <button
@@ -212,8 +212,8 @@ export function SentInvitesPanel({
                 className={cx(
                   'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                   filter === t.key
-                    ? 'bg-[#ff4500] text-white'
-                    : 'bg-[#f6f7f8] text-[#878a8c] hover:text-[#1c1c1c]',
+                    ? 'bg-brand text-white'
+                    : 'bg-page text-muted hover:text-ink',
                 )}
               >
                 {t.label} ({t.count})
@@ -221,12 +221,12 @@ export function SentInvitesPanel({
             ))}
           </div>
           <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#878a8c]" />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search name or email"
-              className="w-56 rounded-lg border border-[#edeff1] py-1.5 pl-8 pr-3 text-sm outline-none focus:border-[#ff4500]"
+              className="w-56 rounded-lg border border-line py-1.5 pl-8 pr-3 text-sm outline-none focus:border-brand"
             />
           </div>
         </div>
@@ -234,7 +234,7 @@ export function SentInvitesPanel({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead>
-              <tr className="border-b border-[#edeff1] text-xs uppercase tracking-wide text-[#878a8c]">
+              <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Recipient</th>
                 <th className="px-4 py-3 font-medium">Email delivery</th>
                 <th className="px-4 py-3 font-medium">Sent</th>
@@ -246,7 +246,7 @@ export function SentInvitesPanel({
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-[#878a8c]">
+                  <td colSpan={6} className="px-4 py-10 text-center text-muted">
                     {alumni.length === 0
                       ? 'No alumni yet. Upload a CSV or add someone to get started.'
                       : 'Nothing matches this filter.'}
@@ -254,23 +254,23 @@ export function SentInvitesPanel({
                 </tr>
               ) : (
                 rows.map((a) => (
-                  <tr key={a.id} className="border-b border-[#edeff1] align-top hover:bg-gray-50">
+                  <tr key={a.id} className="border-b border-line align-top hover:bg-gray-50">
                     <td className="px-4 py-3">
                       {/* Clicking a recipient shows the invite they were sent. */}
                       <button
                         type="button"
                         onClick={() => setViewing(a.id)}
-                        className="text-left font-medium text-[#1c1c1c] hover:text-[#ff4500] hover:underline"
+                        className="text-left font-medium text-ink hover:text-brand hover:underline"
                         title="View the invite email sent to this person"
                       >
                         {a.name}
                       </button>
-                      <p className="text-xs text-[#878a8c]">{a.email}</p>
+                      <p className="text-xs text-muted">{a.email}</p>
                     </td>
                     <td className="px-4 py-3">
                       <InviteStatusBadge a={a} />
                       {a.inviteCount > 1 && (
-                        <p className="mt-1 text-xs text-[#878a8c]">sent {a.inviteCount}×</p>
+                        <p className="mt-1 text-xs text-muted">sent {a.inviteCount}×</p>
                       )}
                       {a.inviteError && (
                         <p className="mt-1 max-w-[220px] break-words text-xs text-red-600">
@@ -278,14 +278,14 @@ export function SentInvitesPanel({
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#878a8c]">
+                    <td className="px-4 py-3 text-xs text-muted">
                       {a.invitedAt ? new Date(a.invitedAt).toLocaleString() : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <AccountStateBadge a={a} />
                     </td>
                     <td className="max-w-[240px] px-4 py-3">
-                      <p className="truncate font-mono text-xs text-[#878a8c]" title={a.inviteLink}>
+                      <p className="truncate font-mono text-xs text-muted" title={a.inviteLink}>
                         {a.inviteLink}
                       </p>
                       <div className="mt-1">
@@ -320,7 +320,7 @@ export function SentInvitesPanel({
 
       {viewing && <SentInviteDetailModal inviteeId={viewing} onClose={() => setViewing(null)} />}
 
-      <p className="px-1 text-xs text-[#878a8c]">
+      <p className="px-1 text-xs text-muted">
         &ldquo;Sent&rdquo; means your mail server accepted the message — a recipient can still not
         receive it (full mailbox, spam filter). &ldquo;Simulated&rdquo; means SMTP isn&rsquo;t
         configured, so the email was written to the server log instead of delivered. Passwords are

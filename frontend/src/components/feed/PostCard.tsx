@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Award,
@@ -14,17 +14,41 @@ import {
   Rocket,
   Send,
   Share2,
+  Sparkles,
   Users,
 } from 'lucide-react'
 import { useApp } from '../../store/AppStore'
-import { Avatar, Card, PostTypeBadge, VerifiedBadge } from '../ui'
+import { Avatar, AvatarStack, Card, PostTypeBadge, VerifiedBadge } from '../ui'
 import { ReportModal } from '../ReportModal'
 import { Markdown } from '../../lib/markdown'
 import { roleLine, safeUrl, timeAgo } from '../../lib/format'
 import { REACTIONS, type Post } from '../../types'
+import { heartBurst } from '../ui/celebrate'
+import { openShareWin } from './shareWin'
+
+/** A coloured left edge per post type, so the feed scans by colour. Written
+ *  out in full because Tailwind only generates classes it finds verbatim. */
+const TYPE_EDGE: Partial<Record<Post['type'], string>> = {
+  Hiring: 'border-l-4 border-l-brand',
+  'Open to Work': 'border-l-4 border-l-blue-600',
+  Mentorship: 'border-l-4 border-l-marigold',
+  StartupVarsity: 'border-l-4 border-l-amethyst-600',
+  Achievement: 'border-l-4 border-l-pink-500',
+  Project: 'border-l-4 border-l-indigo-500',
+  Article: 'border-l-4 border-l-sky-600',
+  Meetup: 'border-l-4 border-l-rose-500',
+}
 
 export function PostCard({ post }: { post: Post }) {
-  const { userById, react, toggleSave, addComment, communities, currentUser, notify } = useApp()
+  const { userById, users, react, toggleSave, addComment, communities, currentUser, notify } = useApp()
+  // Social proof on job posts: members who already work at the hiring company.
+  const insiders = useMemo(() => {
+    const company = post.type === 'Hiring' ? post.company?.trim().toLowerCase() : undefined
+    if (!company) return []
+    // Not the author, and not the viewer: "N alumni work here" means other people.
+    return users.filter((u) => u.id !== post.authorId && u.id !== currentUser.id && u.company?.trim().toLowerCase() === company)
+  }, [users, post.type, post.company, post.authorId, currentUser.id])
+  const insidersFromBatch = currentUser.batchYear ? insiders.filter((u) => u.batchYear === currentUser.batchYear).length : 0
   const author = userById(post.authorId)
   const community = post.communityId ? communities.find((c) => c.id === post.communityId) : undefined
 
@@ -54,9 +78,9 @@ export function PostCard({ post }: { post: Post }) {
   }
 
   return (
-    <Card id={`post-${post.id}`} className={`overflow-hidden ${post.pinned ? 'ring-1 ring-[#ff4500]/30' : ''}`}>
+    <Card id={`post-${post.id}`} className={`overflow-hidden ${TYPE_EDGE[post.type] ?? ''} ${post.pinned ? 'ring-1 ring-brand/30' : ''}`}>
       {post.pinned && (
-        <div className="flex items-center gap-1.5 border-b border-orange-100 bg-orange-50 px-4 py-1.5 text-xs font-semibold text-[#ff4500]">
+        <div className="flex items-center gap-1.5 border-b border-brand-100 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand">
           <Pin size={13} /> Pinned by Rooman
         </div>
       )}
@@ -67,7 +91,7 @@ export function PostCard({ post }: { post: Post }) {
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <Link
               to={`/profile/${author.id}`}
-              className="inline-flex items-center gap-1 text-[15px] font-bold text-[#1c1c1c] transition-colors hover:text-[#ff4500]"
+              className="inline-flex items-center gap-1 text-[15px] font-bold text-ink transition-colors hover:text-brand"
             >
               {author.name}
               <VerifiedBadge verified={author.emailVerified} size={15} />
@@ -75,14 +99,14 @@ export function PostCard({ post }: { post: Post }) {
             <PostTypeBadge type={post.type} />
           </div>
           {roleLine(author) && (
-            <p className="truncate text-[13px] text-[#878a8c]">{roleLine(author)}</p>
+            <p className="truncate text-[13px] text-muted">{roleLine(author)}</p>
           )}
-          <p className="mt-0.5 text-xs text-[#a5a8ab]">
+          <p className="mt-0.5 text-xs text-gray-400">
             {timeAgo(post.createdAt)}
             {community && (
               <>
                 {' · in '}
-                <Link to={`/community/${community.id}`} className="font-medium text-[#ff4500] hover:underline">
+                <Link to={`/community/${community.id}`} className="font-medium text-brand hover:underline">
                   {community.name}
                 </Link>
               </>
@@ -99,10 +123,10 @@ export function PostCard({ post }: { post: Post }) {
               post.type === 'Hiring' ? 'border-green-500 bg-green-50/70' : 'border-blue-500 bg-blue-50/70'
             }`}
           >
-            <p className="text-[15px] font-bold text-[#1c1c1c]">
+            <p className="text-[15px] font-bold text-ink">
               {post.role ?? author.designation}
             </p>
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[#5c6063]">
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
               <span className="inline-flex items-center gap-1">
                 <Briefcase size={13} /> {post.company ?? author.company}
               </span>
@@ -112,7 +136,7 @@ export function PostCard({ post }: { post: Post }) {
                 </span>
               )}
               {post.domain && (
-                <span className="rounded-full border border-[#edeff1] bg-white px-2 py-0.5 text-xs font-semibold text-[#5c6063]">
+                <span className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-semibold text-muted">
                   {post.domain}
                 </span>
               )}
@@ -123,7 +147,7 @@ export function PostCard({ post }: { post: Post }) {
         {post.type === 'Article' ? (
           <Markdown text={post.content} className="mt-1" />
         ) : (
-          <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-[#1c1c1c]">{post.content}</p>
+          <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{post.content}</p>
         )}
 
         {(post.domain || post.city || post.batch) && !isProfileCard && (
@@ -131,6 +155,16 @@ export function PostCard({ post }: { post: Post }) {
             {post.domain && <Tag>#{post.domain}</Tag>}
             {post.city && <Tag>#{post.city}</Tag>}
             {post.batch && <Tag>#Batch{post.batch}</Tag>}
+          </div>
+        )}
+
+        {insiders.length > 0 && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-muted">
+            <AvatarStack people={insiders.map((u) => ({ id: u.id, name: u.name, photo: u.photo ?? undefined }))} total={insiders.length} size={22} max={3} />
+            <span>
+              <b className="text-ink">{insiders.length}</b> {insiders.length === 1 ? 'alumnus works' : 'alumni work'} at {post.company}
+              {insidersFromBatch > 0 && <> · {insidersFromBatch} from your batch</>}
+            </span>
           </div>
         )}
       </div>
@@ -143,7 +177,7 @@ export function PostCard({ post }: { post: Post }) {
       <ReactionSummary post={post} />
 
       {/* Action bar */}
-      <div className="mx-3 mt-1 mb-1.5 flex items-center gap-1 border-t border-[#edeff1] pt-1.5 text-[#878a8c]">
+      <div className="mx-3 mt-1 mb-1.5 flex items-center gap-1 border-t border-line pt-1.5 text-muted">
         <ReactionControl post={post} react={react} />
         <ActionButton hover="hover:bg-blue-50 hover:text-blue-600" onClick={() => setShowComments((v) => !v)}>
           <MessageCircle size={18} />
@@ -155,17 +189,33 @@ export function PostCard({ post }: { post: Post }) {
         </ActionButton>
         <ActionButton
           active={post.saved}
-          hover="hover:bg-orange-50 hover:text-[#ff4500]"
+          hover="hover:bg-brand-50 hover:text-brand"
           onClick={() => toggleSave(post.id)}
         >
-          <Bookmark size={18} className={post.saved ? 'fill-[#ff4500] text-[#ff4500]' : ''} />
-          <span className={`hidden sm:inline ${post.saved ? 'text-[#ff4500]' : ''}`}>{post.saved ? 'Saved' : 'Save'}</span>
+          <Bookmark size={18} className={post.saved ? 'fill-brand text-brand' : ''} />
+          <span className={`hidden sm:inline ${post.saved ? 'text-brand' : ''}`}>{post.saved ? 'Saved' : 'Save'}</span>
         </ActionButton>
+        {/* Your own wins can be turned into a share card for LinkedIn. */}
+        {author.id === currentUser.id && post.type === 'Achievement' && (
+          <ActionButton
+            hover="hover:bg-marigold-50 hover:text-marigold-800"
+            onClick={() =>
+              openShareWin({
+                headline: post.content.trim().split('\n')[0].slice(0, 120),
+                name: author.name,
+                role: [author.designation, author.company].filter(Boolean).join(' · '),
+              })
+            }
+          >
+            <Sparkles size={18} />
+            <span className="hidden sm:inline">Share as image</span>
+          </ActionButton>
+        )}
         {author.id !== currentUser.id && (
           <button
             onClick={() => setReporting(true)}
             // ml-auto: report stays pinned right, away from the action cluster.
-            className="ml-auto rounded-lg p-2 text-[#c3c6c9] transition-colors hover:bg-red-50 hover:text-red-500"
+            className="ml-auto rounded-lg p-2 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
             title="Report this post"
             aria-label="Report this post"
           >
@@ -185,7 +235,7 @@ export function PostCard({ post }: { post: Post }) {
 
       {/* Comments */}
       {showComments && (
-        <div className="border-t border-[#edeff1] px-4 py-3">
+        <div className="border-t border-line px-4 py-3">
           <div className="mb-3 flex items-center gap-2">
             <Avatar name={currentUser.name} src={currentUser.photo} size={32} />
             <input
@@ -193,11 +243,11 @@ export function PostCard({ post }: { post: Post }) {
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submitComment()}
               placeholder="Add a comment…"
-              className="flex-1 rounded-full border border-[#edeff1] bg-[#f6f7f8] px-4 py-2 text-sm outline-none focus:border-[#ff4500]"
+              className="flex-1 rounded-full border border-line bg-page px-4 py-2 text-sm outline-none focus:border-brand"
             />
             <button
               onClick={submitComment}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ff4500] text-white hover:bg-[#ff6534]"
+              className="flex h-9 w-9 items-center justify-center rounded-full btn-primary text-white"
             >
               <Send size={15} />
             </button>
@@ -208,15 +258,15 @@ export function PostCard({ post }: { post: Post }) {
               return (
                 <div key={c.id} className="flex gap-2">
                   <Avatar name={cu?.name ?? '?'} src={cu?.photo} size={32} />
-                  <div className="rounded-2xl bg-[#f6f7f8] px-3 py-2">
-                    <p className="text-xs font-semibold text-[#1c1c1c]">{cu?.name ?? 'Member'}</p>
-                    <p className="text-sm text-[#1c1c1c]">{c.text}</p>
+                  <div className="rounded-2xl bg-page px-3 py-2">
+                    <p className="text-xs font-semibold text-ink">{cu?.name ?? 'Member'}</p>
+                    <p className="text-sm text-ink">{c.text}</p>
                   </div>
                 </div>
               )
             })}
             {post.comments.length === 0 && (
-              <p className="text-sm text-[#878a8c]">Be the first to comment.</p>
+              <p className="text-sm text-muted">Be the first to comment.</p>
             )}
           </div>
         </div>
@@ -242,7 +292,7 @@ function ActionButton({
       // Sized to its content, not flex-1: the actions group together at the left
       // of the bar instead of each stretching to a quarter of the card width.
       className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors ${hover} ${
-        active ? 'text-[#ff4500]' : ''
+        active ? 'text-brand' : ''
       }`}
     >
       {children}
@@ -252,7 +302,7 @@ function ActionButton({
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-[#ff4500]/90">
+    <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand/90">
       {children}
     </span>
   )
@@ -267,9 +317,19 @@ function ReactionSummary({ post }: { post: Post }) {
   // Show emojis in the canonical order, only those actually used.
   const emojis = REACTIONS.filter((e) => reactions[e])
   return (
-    <div className="flex items-center gap-1.5 px-4 pt-2 text-xs text-[#878a8c]">
-      <span className="text-sm leading-none">{emojis.join('')}</span>
-      <span>{total}</span>
+    <div className="flex items-center gap-2 px-4 pt-2 text-xs text-muted">
+      {/* Overlapping emoji bubbles, LinkedIn style. */}
+      <span className="flex">
+        {emojis.map((e, i) => (
+          <span
+            key={e}
+            className={`grid h-6 w-6 place-items-center rounded-full border-2 border-surface bg-gray-50 text-[13px] leading-none shadow-sm ${i ? '-ml-2' : ''}`}
+          >
+            {e}
+          </span>
+        ))}
+      </span>
+      <span className="font-medium">{total}</span>
     </div>
   )
 }
@@ -280,23 +340,30 @@ function ReactionControl({ post, react }: { post: Post; react: (id: string, emoj
   const mine = post.myReaction
   return (
     <div className="group relative">
-      <div className="pointer-events-none absolute bottom-full left-0 mb-1 flex gap-0.5 rounded-full border border-[#edeff1] bg-white p-1 opacity-0 shadow-lg transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+      <div className="pointer-events-none absolute bottom-full left-0 mb-1 flex gap-0.5 rounded-full border border-line bg-surface p-1 opacity-0 shadow-lg transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
         {REACTIONS.map((e) => (
           <button
             key={e}
-            onClick={() => react(post.id, e)}
+            onClick={(ev) => {
+              // Adding (not removing) a reaction throws a few of that emoji.
+              if (mine !== e) heartBurst(ev.currentTarget, e)
+              react(post.id, e)
+            }}
             title={`React ${e}`}
             aria-label={`React ${e}`}
-            className={`rounded-full px-1.5 py-0.5 text-xl leading-none transition-transform hover:scale-125 ${mine === e ? 'bg-orange-50' : ''}`}
+            className={`rounded-full px-1.5 py-0.5 text-xl leading-none transition-transform hover:scale-125 ${mine === e ? 'bg-rosewood-50' : ''}`}
           >
             {e}
           </button>
         ))}
       </div>
       <button
-        onClick={() => react(post.id, mine ?? '👍')}
-        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors hover:bg-orange-50 hover:text-[#ff4500] ${
-          mine ? 'text-[#ff4500]' : ''
+        onClick={(ev) => {
+          if (!mine) heartBurst(ev.currentTarget, '👍')
+          react(post.id, mine ?? '👍')
+        }}
+        className={`btn-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold hover:bg-rosewood-50 hover:text-rosewood-700 ${
+          mine ? 'bg-rosewood-50 text-rosewood-700' : ''
         }`}
       >
         <span className="text-base leading-none">{mine ?? '👍'}</span>
@@ -317,7 +384,7 @@ function NewsMeta({ post }: { post: Post }) {
     return (
       <div className="mb-3 rounded-xl border-l-4 border-amber-400 bg-amber-50/70 px-3.5 py-2.5">
         {(m.jobTitle || m.achievementCompany) && (
-          <p className="flex items-center gap-2 text-[15px] font-bold text-[#1c1c1c]">
+          <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
             <Award size={16} className="text-amber-500" />
             {m.jobTitle}
             {m.jobTitle && m.achievementCompany ? ' · ' : ''}
@@ -325,7 +392,7 @@ function NewsMeta({ post }: { post: Post }) {
           </p>
         )}
         {m.collaborators?.length ? (
-          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[#5c6063]">
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted">
             <Users size={13} /> with {m.collaborators.join(', ')}
           </p>
         ) : null}
@@ -338,7 +405,7 @@ function NewsMeta({ post }: { post: Post }) {
     return (
       <div className="mb-3 rounded-xl border-l-4 border-indigo-400 bg-indigo-50/60 px-3.5 py-2.5">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="flex items-center gap-2 text-[15px] font-bold text-[#1c1c1c]">
+          <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
             <Rocket size={16} className="text-indigo-500" />
             {m.projectName || 'Project'}
           </p>
@@ -351,7 +418,7 @@ function NewsMeta({ post }: { post: Post }) {
         {m.techStack?.length ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {m.techStack.map((t) => (
-              <span key={t} className="rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-xs font-medium text-indigo-700">
+              <span key={t} className="rounded-full border border-indigo-200 bg-surface px-2 py-0.5 text-xs font-medium text-indigo-700">
                 {t}
               </span>
             ))}
@@ -362,7 +429,7 @@ function NewsMeta({ post }: { post: Post }) {
             href={demo}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#ff4500] hover:underline"
+            className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline"
           >
             <ExternalLink size={14} /> View demo
           </a>
@@ -375,11 +442,11 @@ function NewsMeta({ post }: { post: Post }) {
     const rsvp = safeUrl(m.rsvpLink)
     return (
       <div className="mb-3 rounded-xl border-l-4 border-rose-400 bg-rose-50/60 px-3.5 py-2.5">
-        <p className="flex items-center gap-2 text-[15px] font-bold text-[#1c1c1c]">
+        <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
           <CalendarDays size={16} className="text-rose-500" />
           {m.title || 'Meetup'}
         </p>
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[#5c6063]">
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
           {m.date && <span className="inline-flex items-center gap-1"><Clock size={13} /> {m.date}</span>}
           {m.location && <span className="inline-flex items-center gap-1"><MapPin size={13} /> {m.location}</span>}
           {m.capacity ? <span className="inline-flex items-center gap-1"><Users size={13} /> {m.capacity} spots</span> : null}
@@ -402,8 +469,8 @@ function NewsMeta({ post }: { post: Post }) {
     const mins = Math.max(1, Math.round(post.content.trim().split(/\s+/).filter(Boolean).length / 200))
     return (
       <div className="mb-1.5">
-        {m.title && <h2 className="text-lg font-bold leading-snug text-[#1c1c1c]">{m.title}</h2>}
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#878a8c]">
+        {m.title && <h2 className="text-lg font-bold leading-snug text-ink">{m.title}</h2>}
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           {m.category && <span className="rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700">{m.category}</span>}
           <span className="inline-flex items-center gap-1"><Clock size={12} /> {mins} min read</span>
         </p>

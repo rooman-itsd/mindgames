@@ -33,8 +33,8 @@ export function News() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Newspaper size={24} className="text-[#ff4500]" />
-          <h1 className="text-2xl font-bold text-[#1c1c1c]">News &amp; Updates</h1>
+          <Newspaper size={24} className="text-brand" />
+          <h1 className="text-2xl font-bold text-ink">News &amp; Updates</h1>
         </div>
         <Button onClick={() => setComposing(true)} icon={<Plus size={18} />}>
           Create news
@@ -43,11 +43,11 @@ export function News() {
 
       {/* Rooman highlight banner */}
       <Card className="overflow-hidden">
-        <div className="flex items-center gap-3 bg-gradient-to-r from-[#ff4500] to-[#ff6534] px-5 py-4 text-white">
+        <div className="flex items-center gap-3 bg-gradient-to-r from-brand to-brand-hover px-5 py-4 text-white">
           <Megaphone size={22} />
           <div>
             <p className="font-bold">Rooman Technologies · {roomanStats.years} Years</p>
-            <p className="text-sm text-orange-50">{roomanStats.alumni} alumni trained · {roomanStats.reach}</p>
+            <p className="text-sm text-brand-50">{roomanStats.alumni} alumni trained · {roomanStats.reach}</p>
           </div>
         </div>
       </Card>
@@ -56,7 +56,7 @@ export function News() {
         <PostCard key={p.id} post={p} />
       ))}
       {news.length === 0 && (
-        <div className="rounded-xl border border-[#edeff1] bg-white py-12 text-center text-sm text-[#878a8c] shadow-sm">
+        <div className="rounded-xl border border-line bg-surface py-12 text-center text-sm text-muted shadow-sm">
           No news yet — be the first to share an update.
         </div>
       )}

@@ -37,7 +37,7 @@ export function MatchScoreRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#edeff1"
+          stroke="var(--color-line)"
           strokeWidth={stroke}
         />
         <circle
@@ -45,7 +45,7 @@ export function MatchScoreRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#ff4500"
+          stroke="var(--color-brand)"
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${filled} ${circumference}`}
@@ -53,7 +53,7 @@ export function MatchScoreRing({
         />
       </svg>
       <span
-        className="absolute inset-0 flex items-center justify-center font-bold text-[#1c1c1c]"
+        className="absolute inset-0 flex items-center justify-center font-bold text-ink"
         style={{ fontSize: size <= 46 ? 12 : 14 }}
       >
         {score}

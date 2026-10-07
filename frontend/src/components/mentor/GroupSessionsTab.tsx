@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  Calendar, Check, Clock, Crown, Loader2, Lock, Plus, Repeat, Users, Video, X,
-} from 'lucide-react'
+import { Calendar, Check, Clock, Crown, Lock, Plus, Repeat, Users, Video, X } from 'lucide-react'
 import { Avatar, Button, Card } from '../ui'
 import { api, isPaymentRequired } from '../../lib/api'
 import { roleLine } from '../../lib/format'
@@ -10,6 +8,9 @@ import { useApp } from '../../store/AppStore'
 import { CompleteSessionModal } from './CompleteSessionModal'
 import { SubscriptionPlans } from '../subscription/SubscriptionPlans'
 import { DOMAINS, type GroupSession, type GroupSessionAttendee } from '../../types'
+import { SkeletonRows } from '../ui/Skeleton'
+import { EmptyState } from '../ui/EmptyState'
+import { UsersRound } from 'lucide-react'
 
 /**
  * Group sessions: one mentor, many mentees, a capacity and a roster —
@@ -93,17 +94,15 @@ export function GroupSessionsTab() {
 
   if (loading) {
     return (
-      <div className="grid place-items-center py-16">
-        <Loader2 size={26} className="animate-spin text-[#ff4500]" />
-      </div>
+      <SkeletonRows count={4} className="py-6" />
     )
   }
 
   return (
     <div className="flex flex-col gap-5">
       {currentUser.isMentor && (
-        <div className="flex items-center justify-between rounded-xl border border-[#edeff1] bg-white p-4">
-          <p className="text-sm text-[#878a8c]">
+        <div className="flex items-center justify-between rounded-xl border border-line bg-surface p-4">
+          <p className="text-sm text-muted">
             Host one session, many mentees join with a capacity you set.
           </p>
           <Button icon={<Plus size={15} />} onClick={() => setShowCreate(true)}>
@@ -114,7 +113,7 @@ export function GroupSessionsTab() {
 
       {hosting.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">You're hosting</h2>
+          <h2 className="mb-3 text-lg font-bold text-ink">You're hosting</h2>
           <div className="flex flex-col gap-2">
             {hosting.map((g) => (
               <HostRow
@@ -132,7 +131,7 @@ export function GroupSessionsTab() {
 
       {invited.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">Invited</h2>
+          <h2 className="mb-3 text-lg font-bold text-ink">Invited</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {invited.map((g) => (
               <BrowseCard key={g.id} session={g} onJoin={() => join(g)} />
@@ -143,7 +142,7 @@ export function GroupSessionsTab() {
 
       {joined.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">You've joined</h2>
+          <h2 className="mb-3 text-lg font-bold text-ink">You've joined</h2>
           <div className="flex flex-col gap-2">
             {joined.map((g) => (
               <JoinedRow key={g.id} session={g} onLeave={() => leave(g)} onConfirm={() => confirm(g)} />
@@ -153,11 +152,14 @@ export function GroupSessionsTab() {
       )}
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-[#1c1c1c]">Open sessions</h2>
+        <h2 className="mb-3 text-lg font-bold text-ink">Open sessions</h2>
         {browsable.length === 0 ? (
-          <Card className="px-4 py-8 text-center text-sm text-[#878a8c]">
-            No group sessions open right now.
-          </Card>
+          <EmptyState
+            icon={<UsersRound size={28} />}
+            title="No group sessions open right now"
+            body="Mentors post them here. Meanwhile you can book a one-to-one session."
+            action={{ label: 'Find a mentor', to: '/network/mentors' }}
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {browsable.map((g) => (
@@ -232,8 +234,8 @@ function BrowseCard({ session, onJoin }: { session: GroupSession; onJoin: () => 
       <div className="flex items-start gap-2.5">
         <Avatar name={session.mentorName} src={session.mentorPhoto} size={36} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-[#1c1c1c]">{session.topic}</p>
-          <p className="text-xs text-[#878a8c]">by {session.mentorName}</p>
+          <p className="truncate text-sm font-bold text-ink">{session.topic}</p>
+          <p className="text-xs text-muted">by {session.mentorName}</p>
         </div>
         {session.visibility === 'invite_only' && (
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-700">
@@ -241,13 +243,13 @@ function BrowseCard({ session, onJoin }: { session: GroupSession; onJoin: () => 
           </span>
         )}
         {session.domain && (
-          <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-[#ff4500]">
+          <span className="shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand">
             {session.domain}
           </span>
         )}
       </div>
-      {session.description && <p className="line-clamp-2 text-xs text-[#878a8c]">{session.description}</p>}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#878a8c]">
+      {session.description && <p className="line-clamp-2 text-xs text-muted">{session.description}</p>}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1"><Calendar size={12} /> {fmt(session.scheduledAt)}</span>
         <span className="flex items-center gap-1"><Clock size={12} /> {session.durationMinutes} min</span>
         <span className="flex items-center gap-1">
@@ -255,10 +257,10 @@ function BrowseCard({ session, onJoin }: { session: GroupSession; onJoin: () => 
         </span>
       </div>
       <div className="mt-1 flex items-center justify-between">
-        <span className="text-sm font-bold text-[#1c1c1c]">
+        <span className="text-sm font-bold text-ink">
           {session.pricingMode === 'paid' ? `₹${session.pricePerSeat.toLocaleString('en-IN')}/seat` : 'Free'}
         </span>
-        <Button className="!px-3 !py-1.5 !text-xs" disabled={full} onClick={onJoin}>
+        <Button variant="social" className="!px-3 !py-1.5 !text-xs" disabled={full} onClick={onJoin}>
           {full ? 'Full' : 'Join'}
         </Button>
       </div>
@@ -273,8 +275,8 @@ function JoinedRow({
     <Card className="flex flex-wrap items-center gap-3 p-3.5">
       <Avatar name={session.mentorName} src={session.mentorPhoto} size={36} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#1c1c1c]">{session.topic}</p>
-        <p className="text-xs text-[#878a8c]">
+        <p className="truncate text-sm font-semibold text-ink">{session.topic}</p>
+        <p className="text-xs text-muted">
           with {session.mentorName} · {fmt(session.scheduledAt)}
         </p>
       </div>
@@ -285,7 +287,7 @@ function JoinedRow({
       ) : (
         <>
           {session.meetingLink && (
-            <a href={session.meetingLink} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-semibold text-[#ff4500] hover:underline">
+            <a href={session.meetingLink} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-semibold text-brand hover:underline">
               <Video size={12} /> Join call
             </a>
           )}
@@ -309,15 +311,15 @@ function HostRow({
 }) {
   return (
     <Card className="flex flex-wrap items-center gap-3 p-3.5">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-orange-50 text-[#ff4500]">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand">
         <Users size={16} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-[#1c1c1c]">
+        <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink">
           {session.topic}
           {session.visibility === 'invite_only' && <Lock size={12} className="shrink-0 text-purple-600" />}
         </p>
-        <p className="text-xs text-[#878a8c]">
+        <p className="text-xs text-muted">
           {fmt(session.scheduledAt)} · {session.attendeeCount}/{session.capacity} joined
         </p>
       </div>
@@ -326,8 +328,8 @@ function HostRow({
           session.status === 'completed'
             ? 'bg-green-100 text-green-700'
             : session.status === 'cancelled'
-              ? 'bg-gray-100 text-[#878a8c]'
-              : 'bg-orange-100 text-[#ff4500]'
+              ? 'bg-gray-100 text-muted'
+              : 'bg-brand-100 text-brand'
         }`}
       >
         {session.status}
@@ -364,29 +366,29 @@ function RosterModal({ session, onClose }: { session: GroupSession; onClose: () 
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-[#1c1c1c]">Roster</h2>
-            <p className="text-sm text-[#878a8c]">{session.topic}</p>
+            <h2 className="text-lg font-bold text-ink">Roster</h2>
+            <p className="text-sm text-muted">{session.topic}</p>
           </div>
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         </div>
         {attendees === null ? (
-          <Loader2 size={20} className="mx-auto my-6 animate-spin text-[#ff4500]" />
+          <SkeletonRows count={3} className="py-4" />
         ) : attendees.length === 0 ? (
-          <p className="py-6 text-center text-sm text-[#878a8c]">No one has joined yet.</p>
+          <p className="py-6 text-center text-sm text-muted">No one has joined yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {attendees.map((a) => (
-              <div key={a.id} className="flex items-center gap-2.5 rounded-lg border border-[#edeff1] px-3 py-2">
+              <div key={a.id} className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2">
                 <Avatar name={a.name} src={a.photo} size={32} to={`/profile/${a.id}`} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-[#1c1c1c]">{a.name}</span>
+                  <span className="block truncate text-sm font-medium text-ink">{a.name}</span>
                   {roleLine(a) && (
-                    <span className="block truncate text-[11px] text-[#878a8c]">{roleLine(a)}</span>
+                    <span className="block truncate text-[11px] text-muted">{roleLine(a)}</span>
                   )}
                 </span>
                 {a.confirmed && (
@@ -411,7 +413,7 @@ function RepeatSessionModal({
   const [time, setTime] = useState('')
   const [meetingLink, setMeetingLink] = useState(session.meetingLink ?? '')
   const [saving, setSaving] = useState(false)
-  const field = 'w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]'
+  const field = 'w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
 
   async function submit() {
     if (!date || !time) return
@@ -424,30 +426,30 @@ function RepeatSessionModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-[#1c1c1c]">Repeat with the same group</h2>
-            <p className="text-sm text-[#878a8c]">{session.topic}</p>
+            <h2 className="text-lg font-bold text-ink">Repeat with the same group</h2>
+            <p className="text-sm text-muted">{session.topic}</p>
           </div>
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         </div>
-        <p className="mb-3 text-xs text-[#878a8c]">
+        <p className="mb-3 text-xs text-muted">
           Everyone who attended last time will be invited again. Pick a new date and time.
         </p>
         <div className="mb-3 grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Date</label>
+            <label className="mb-1 block text-xs font-semibold text-muted">Date</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Time</label>
+            <label className="mb-1 block text-xs font-semibold text-muted">Time</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
           </div>
         </div>
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Meeting link (optional)</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">Meeting link (optional)</label>
         <input
           value={meetingLink}
           onChange={(e) => setMeetingLink(e.target.value)}
@@ -539,77 +541,77 @@ function CreateGroupSessionModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/50 p-4 py-10" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-bold text-[#1c1c1c]">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
               <Crown size={16} className="text-amber-500" /> Host a group session
             </h2>
-            <p className="text-sm text-[#878a8c]">Requires the Pro plan or above.</p>
+            <p className="text-sm text-muted">Requires the Pro plan or above.</p>
           </div>
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Topic</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">Topic</label>
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="e.g. Intro to System Design"
-          className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">What will you cover? (optional)</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">What will you cover? (optional)</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
         <div className="mb-3 grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]" />
+            <label className="mb-1 block text-xs font-semibold text-muted">Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Time</label>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]" />
+            <label className="mb-1 block text-xs font-semibold text-muted">Time</label>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
         </div>
 
         <div className="mb-3 grid grid-cols-3 gap-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Duration (min)</label>
-            <input type="number" min={15} max={480} value={duration} onChange={(e) => setDuration(Number(e.target.value) || 60)} className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]" />
+            <label className="mb-1 block text-xs font-semibold text-muted">Duration (min)</label>
+            <input type="number" min={15} max={480} value={duration} onChange={(e) => setDuration(Number(e.target.value) || 60)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Capacity</label>
-            <input type="number" min={2} max={500} value={capacity} onChange={(e) => setCapacity(Number(e.target.value) || 10)} className="w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]" />
+            <label className="mb-1 block text-xs font-semibold text-muted">Capacity</label>
+            <input type="number" min={2} max={500} value={capacity} onChange={(e) => setCapacity(Number(e.target.value) || 10)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Domain</label>
-            <select value={domain} onChange={(e) => setDomain(e.target.value)} className="w-full rounded-lg border border-[#edeff1] px-2 py-2 text-sm outline-none focus:border-[#ff4500]">
+            <label className="mb-1 block text-xs font-semibold text-muted">Domain</label>
+            <select value={domain} onChange={(e) => setDomain(e.target.value)} className="w-full rounded-lg border border-line px-2 py-2 text-sm outline-none focus:border-brand">
               <option value="">—</option>
               {DOMAINS.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
         </div>
 
-        <label className="mb-1.5 block text-xs font-semibold text-[#878a8c]">Who can join</label>
+        <label className="mb-1.5 block text-xs font-semibold text-muted">Who can join</label>
         <div className="mb-3 flex items-center gap-2">
           <button
             type="button"
             onClick={() => setVisibility('public')}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${visibility === 'public' ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]' : 'border-[#edeff1] text-[#1c1c1c]'}`}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${visibility === 'public' ? 'border-brand bg-brand-50 text-brand' : 'border-line text-ink'}`}
           >
             Anyone
           </button>
           <button
             type="button"
             onClick={() => setVisibility('invite_only')}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${visibility === 'invite_only' ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]' : 'border-[#edeff1] text-[#1c1c1c]'}`}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${visibility === 'invite_only' ? 'border-brand bg-brand-50 text-brand' : 'border-line text-ink'}`}
           >
             Just my connections
           </button>
@@ -617,32 +619,32 @@ function CreateGroupSessionModal({
 
         {visibility === 'invite_only' && (
           <div className="mb-3">
-            <label className="mb-1 block text-xs font-semibold text-[#878a8c]">
+            <label className="mb-1 block text-xs font-semibold text-muted">
               Invite from your connections ({inviteeIds.size} selected)
             </label>
             {connections.length === 0 ? (
-              <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-xs text-[#878a8c]">
+              <p className="rounded-lg bg-gray-50 px-3 py-4 text-center text-xs text-muted">
                 You have no connections yet to invite.
               </p>
             ) : (
-              <div className="max-h-40 overflow-y-auto rounded-lg border border-[#edeff1]">
+              <div className="max-h-40 overflow-y-auto rounded-lg border border-line">
                 {connections.map((u) => (
                   <label
                     key={u.id}
-                    className="flex cursor-pointer items-center gap-2.5 border-b border-[#edeff1] px-3 py-2 last:border-b-0 hover:bg-gray-50"
+                    className="flex cursor-pointer items-center gap-2.5 border-b border-line px-3 py-2 last:border-b-0 hover:bg-gray-50"
                   >
                     <input
                       type="checkbox"
                       checked={inviteeIds.has(u.id)}
                       onChange={() => toggleInvitee(u.id)}
-                      className="h-4 w-4 shrink-0 accent-[#ff4500]"
+                      className="h-4 w-4 shrink-0 accent-brand"
                     />
                     <Avatar name={u.name} src={u.photo} size={28} />
-                    <span className="min-w-0 flex-1 truncate text-sm text-[#1c1c1c]">{u.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{u.name}</span>
                     {/* Names repeat across an alumni network — the role is
                         what tells two of the same name apart. */}
                     {roleLine(u) && (
-                      <span className="max-w-[45%] shrink-0 truncate text-right text-[11px] text-[#878a8c]">
+                      <span className="max-w-[45%] shrink-0 truncate text-right text-[11px] text-muted">
                         {roleLine(u)}
                       </span>
                     )}
@@ -653,41 +655,41 @@ function CreateGroupSessionModal({
           </div>
         )}
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Meeting link (optional)</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">Meeting link (optional)</label>
         <input
           value={meetingLink}
           onChange={(e) => setMeetingLink(e.target.value)}
           placeholder="https://meet.google.com/…"
-          className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
-        <label className="mb-1.5 block text-xs font-semibold text-[#878a8c]">Pricing</label>
+        <label className="mb-1.5 block text-xs font-semibold text-muted">Pricing</label>
         <div className="mb-4 flex items-center gap-2">
           <button
             type="button"
             onClick={() => setPaid(false)}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${!paid ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]' : 'border-[#edeff1] text-[#1c1c1c]'}`}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${!paid ? 'border-brand bg-brand-50 text-brand' : 'border-line text-ink'}`}
           >
             Free
           </button>
           <button
             type="button"
             onClick={() => setPaid(true)}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${paid ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]' : 'border-[#edeff1] text-[#1c1c1c]'}`}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${paid ? 'border-brand bg-brand-50 text-brand' : 'border-line text-ink'}`}
           >
             Paid
           </button>
           {paid && (
             <span className="flex items-center gap-1.5">
-              <span className="text-sm text-[#878a8c]">₹</span>
+              <span className="text-sm text-muted">₹</span>
               <input
                 type="number"
                 min={0}
                 value={price}
                 onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-24 rounded-lg border border-[#edeff1] px-2 py-1.5 text-sm outline-none focus:border-[#ff4500]"
+                className="w-24 rounded-lg border border-line px-2 py-1.5 text-sm outline-none focus:border-brand"
               />
-              <span className="text-xs text-[#878a8c]">/seat</span>
+              <span className="text-xs text-muted">/seat</span>
             </span>
           )}
         </div>

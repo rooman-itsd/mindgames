@@ -109,12 +109,12 @@ export function StageView({
                 aria-selected={active}
                 onClick={() => onSelect(s.stepKey)}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                  active ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]' : 'border-[#edeff1] bg-white text-[#878a8c] hover:text-[#1c1c1c]'
+                  active ? 'border-brand bg-brand-50 text-brand' : 'border-line bg-surface text-muted hover:text-ink'
                 }`}
               >
                 {s.status === 'completed' ? <CircleCheck size={12} className="text-green-600" /> : <span>{i + 1}.</span>}
                 <span className="max-w-[220px] truncate">{s.title}</span>
-                {s.stepKey === currentStepKey && <span className="rounded-full bg-[#ff4500] px-1.5 text-[9px] text-white">Now</span>}
+                {s.stepKey === currentStepKey && <span className="rounded-full bg-brand px-1.5 text-[9px] text-white">Now</span>}
               </button>
             )
           })}
@@ -124,18 +124,18 @@ export function StageView({
       {state === 'none' && (
         <Empty>
           Build your career roadmap and you'll see what alumni recommend for each stage.{' '}
-          <Link to="/career-guidance/assessment" className="font-semibold text-[#ff4500] hover:underline">
+          <Link to="/career-guidance/assessment" className="font-semibold text-brand hover:underline">
             Start
           </Link>
         </Empty>
       )}
-      {state === 'loading' && <p className="text-sm text-[#878a8c]">Loading…</p>}
+      {state === 'loading' && <p className="text-sm text-muted">Loading…</p>}
       {state === 'failed' && <p className="text-sm text-red-600">Could not load this stage.</p>}
 
       {state === 'ready' && shares.length === 0 && (
-        <div className="rounded-xl border border-dashed border-[#edeff1] bg-white p-4">
-          <p className="text-sm font-semibold text-[#1c1c1c]">No one has shared for this stage yet.</p>
-          <p className="mt-0.5 text-xs text-[#878a8c]">
+        <div className="rounded-xl border border-dashed border-line bg-surface p-4">
+          <p className="text-sm font-semibold text-ink">No one has shared for this stage yet.</p>
+          <p className="mt-0.5 text-xs text-muted">
             {alumni.length > 0
               ? 'These alumni have been where you are — ask them what helped.'
               : 'Ask in Mentorship, or share something yourself once you get through it.'}
@@ -143,14 +143,14 @@ export function StageView({
           {alumni.length > 0 && (
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {alumni.map((a) => (
-                <li key={a.id} className="flex items-center gap-2.5 rounded-lg border border-[#edeff1] p-2.5">
+                <li key={a.id} className="flex items-center gap-2.5 rounded-lg border border-line p-2.5">
                   <Avatar name={a.name} size={36} to={`/profile/${a.id}`} />
                   <div className="min-w-0 flex-1">
-                    <Link to={`/profile/${a.id}`} className="block truncate text-xs font-bold text-[#1c1c1c] hover:underline">
+                    <Link to={`/profile/${a.id}`} className="block truncate text-xs font-bold text-ink hover:underline">
                       {a.name}
-                      {a.isMentor && <span className="ml-1 text-[10px] font-semibold text-[#ff4500]">Mentor</span>}
+                      {a.isMentor && <span className="ml-1 text-[10px] font-semibold text-brand">Mentor</span>}
                     </Link>
-                    <p className="truncate text-[11px] text-[#878a8c]">{roleLine(a)}</p>
+                    <p className="truncate text-[11px] text-muted">{roleLine(a)}</p>
                   </div>
                   <AskOrConnect userId={a.id} name={a.name} />
                 </li>
@@ -160,7 +160,7 @@ export function StageView({
           {stepKey && (
             <button
               onClick={() => onShareHere(stepKey)}
-              className="mt-3 text-xs font-semibold text-[#ff4500] hover:underline"
+              className="mt-3 text-xs font-semibold text-brand hover:underline"
             >
               Been through this stage? Share what helped you →
             </button>
@@ -181,10 +181,10 @@ export function StageView({
           )}
           {related.length > 0 && (
             <>
-              <h3 className={`${sameStage.length ? 'mt-5' : ''} mb-1 text-xs font-bold uppercase tracking-wide text-[#878a8c]`}>
+              <h3 className={`${sameStage.length ? 'mt-5' : ''} mb-1 text-xs font-bold uppercase tracking-wide text-muted`}>
                 Related
               </h3>
-              <p className="mb-3 text-xs text-[#878a8c]">
+              <p className="mb-3 text-xs text-muted">
                 {sameStage.length
                   ? 'Shared for similar stages on other roadmaps.'
                   : 'Nobody has shared for this exact stage yet — these were shared for similar ones.'}
@@ -201,7 +201,7 @@ export function StageView({
           {stepKey && (
             <button
               onClick={() => onShareHere(stepKey)}
-              className="mt-3 text-xs font-semibold text-[#ff4500] hover:underline"
+              className="mt-3 text-xs font-semibold text-brand hover:underline"
             >
               Found something else that helped on this stage? Share it →
             </button>
@@ -213,5 +213,5 @@ export function StageView({
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-xl border border-dashed border-[#edeff1] bg-white p-4 text-sm text-[#878a8c]">{children}</p>
+  return <p className="rounded-xl border border-dashed border-line bg-surface p-4 text-sm text-muted">{children}</p>
 }

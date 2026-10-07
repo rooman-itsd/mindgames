@@ -64,11 +64,11 @@ export function NotificationsDropdown({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="animate-fadein absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-[#edeff1] bg-white shadow-lg">
-      <div className="flex items-center justify-between border-b border-[#edeff1] px-4 py-3">
-        <h3 className="font-bold text-[#1c1c1c]">Notifications</h3>
+    <div className="animate-fadein absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
+      <div className="flex items-center justify-between border-b border-line px-4 py-3">
+        <h3 className="font-bold text-ink">Notifications</h3>
         {unread.length > 0 && (
-          <button onClick={markNotificationsRead} className="text-xs font-semibold text-[#ff4500] hover:underline">
+          <button onClick={markNotificationsRead} className="text-xs font-semibold text-brand hover:underline">
             Mark all read
           </button>
         )}
@@ -80,14 +80,14 @@ export function NotificationsDropdown({ onClose }: { onClose: () => void }) {
             <button
               key={n.id}
               onClick={() => open(n)}
-              className="flex w-full gap-3 bg-orange-50/60 px-4 py-3 text-left hover:bg-orange-50"
+              className="flex w-full gap-3 bg-brand-50/60 px-4 py-3 text-left hover:bg-brand-50"
             >
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[#ff4500]">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand">
                 <Icon size={16} />
               </span>
               <div className="min-w-0">
-                <p className="text-sm text-[#1c1c1c]">{n.text}</p>
-                <p className="mt-0.5 text-xs text-[#878a8c]">{timeAgo(n.createdAt)}</p>
+                <p className="text-sm text-ink">{n.text}</p>
+                <p className="mt-0.5 text-xs text-muted">{timeAgo(n.createdAt)}</p>
               </div>
             </button>
           )
@@ -95,14 +95,14 @@ export function NotificationsDropdown({ onClose }: { onClose: () => void }) {
         {unread.length === 0 && (
           <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
             <CheckCheck size={22} className="text-green-600" />
-            <p className="text-sm text-[#878a8c]">You're all caught up.</p>
+            <p className="text-sm text-muted">You're all caught up.</p>
           </div>
         )}
       </div>
       <Link
         to="/notifications"
         onClick={onClose}
-        className="block border-t border-[#edeff1] py-2.5 text-center text-sm font-semibold text-[#ff4500] hover:bg-gray-50"
+        className="block border-t border-line py-2.5 text-center text-sm font-semibold text-brand hover:bg-gray-50"
       >
         See all notifications
       </Link>

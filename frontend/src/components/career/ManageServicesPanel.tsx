@@ -145,25 +145,25 @@ export function ManageServicesPanel({
     <Card ref={panelRef} className="p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          {!hideHeading && <h2 className="text-lg font-bold text-[#1c1c1c]">Services you offer</h2>}
-          <p className="text-sm text-[#878a8c]">
+          {!hideHeading && <h2 className="text-lg font-bold text-ink">Services you offer</h2>}
+          <p className="text-sm text-muted">
             Listed to members whose roadmap matches what you provide. Pricing is shown to them —
             payment is arranged with you directly.
           </p>
         </div>
         {!hideHeading && (
-          <button onClick={onClose} className="rounded-full p-1 text-[#878a8c] hover:bg-gray-100" aria-label="Close">
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
             <X size={18} />
           </button>
         )}
       </div>
 
       {loading ? (
-        <p className="py-4 text-sm text-[#878a8c]">Loading…</p>
+        <p className="py-4 text-sm text-muted">Loading…</p>
       ) : (
         <div className="mb-5 flex flex-col gap-2">
           {mine.length === 0 && (
-            <p className="rounded-lg bg-gray-50 px-4 py-4 text-sm text-[#878a8c]">
+            <p className="rounded-lg bg-gray-50 px-4 py-4 text-sm text-muted">
               You haven’t listed any services yet.
             </p>
           )}
@@ -174,15 +174,15 @@ export function ManageServicesPanel({
               <div
                 key={s.id}
                 className={`flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2.5 ${
-                  isEditing ? 'border-[#ff4500] bg-orange-50/40' : 'border-[#edeff1]'
+                  isEditing ? 'border-brand bg-brand-50/40' : 'border-line'
                 }`}
               >
                 <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${classes}`}>
                   <Icon size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#1c1c1c]">{serviceName(s)}</p>
-                  <p className="truncate text-xs text-[#878a8c]">
+                  <p className="truncate text-sm font-semibold text-ink">{serviceName(s)}</p>
+                  <p className="truncate text-xs text-muted">
                     {servicePrice(s)}
                     {s.tags.length > 0 && ` · ${s.tags.join(', ')}`}
                   </p>
@@ -191,7 +191,7 @@ export function ManageServicesPanel({
                   onClick={() => toggleActive(s)}
                   title={s.active ? 'Pause this service' : 'Make this service active again'}
                   className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    s.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-[#878a8c]'
+                    s.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-muted'
                   }`}
                 >
                   {s.active ? 'Active' : 'Paused'}
@@ -211,26 +211,26 @@ export function ManageServicesPanel({
         </div>
       )}
 
-      <div ref={formRef} className="border-t border-[#edeff1] pt-4">
+      <div ref={formRef} className="border-t border-line pt-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-bold text-[#1c1c1c]">
+          <h3 className="text-sm font-bold text-ink">
             {editingId ? 'Edit service' : 'Add a service'}
           </h3>
           {editingId && (
             <button
               onClick={resetForm}
-              className="text-xs font-semibold text-[#878a8c] hover:text-[#1c1c1c] hover:underline"
+              className="text-xs font-semibold text-muted hover:text-ink hover:underline"
             >
               Cancel edit
             </button>
           )}
         </div>
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Type</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">Type</label>
         <select
           value={form.serviceType}
           onChange={(e) => setForm({ ...form, serviceType: e.target.value as ServiceType })}
-          className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         >
           {SERVICE_CATEGORIES.map((cat) => (
             <optgroup key={cat.label} label={cat.label}>
@@ -243,33 +243,33 @@ export function ManageServicesPanel({
           ))}
         </select>
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Title (optional)</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">Title (optional)</label>
         <input
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           placeholder={SERVICE_LABELS[form.serviceType]}
-          className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">What you provide</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">What you provide</label>
         <textarea
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           rows={2}
-          className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">
+        <label className="mb-1 block text-xs font-semibold text-muted">
           Skills / domains it covers (comma separated)
         </label>
         <input
           value={tagText}
           onChange={(e) => setTagText(e.target.value)}
           placeholder="python, llm, rag"
-          className="mb-3 w-full rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+          className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
-        <label className="mb-1 block text-xs font-semibold text-[#878a8c]">Pricing</label>
+        <label className="mb-1 block text-xs font-semibold text-muted">Pricing</label>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(['free', 'paid', 'custom'] as const).map((mode) => (
             <button
@@ -278,8 +278,8 @@ export function ManageServicesPanel({
               onClick={() => setForm({ ...form, pricingMode: mode })}
               className={`rounded-lg border px-3 py-1.5 text-sm font-medium capitalize ${
                 form.pricingMode === mode
-                  ? 'border-[#ff4500] bg-orange-50 text-[#ff4500]'
-                  : 'border-[#edeff1] text-[#1c1c1c] hover:bg-gray-50'
+                  ? 'border-brand bg-brand-50 text-brand'
+                  : 'border-line text-ink hover:bg-gray-50'
               }`}
             >
               {mode === 'custom' ? 'On request' : mode}
@@ -287,18 +287,18 @@ export function ManageServicesPanel({
           ))}
           {form.pricingMode === 'paid' && (
             <>
-              <span className="text-sm text-[#878a8c]">₹</span>
+              <span className="text-sm text-muted">₹</span>
               <input
                 type="number"
                 min={0}
                 value={form.amount ?? ''}
                 onChange={(e) => setForm({ ...form, amount: e.target.value === '' ? undefined : Number(e.target.value) })}
-                className="w-24 rounded-lg border border-[#edeff1] px-3 py-1.5 text-sm outline-none focus:border-[#ff4500]"
+                className="w-24 rounded-lg border border-line px-3 py-1.5 text-sm outline-none focus:border-brand"
               />
               <select
                 value={form.pricingUnit ?? 'session'}
                 onChange={(e) => setForm({ ...form, pricingUnit: e.target.value as 'hour' | 'session' })}
-                className="rounded-lg border border-[#edeff1] px-2 py-1.5 text-sm outline-none focus:border-[#ff4500]"
+                className="rounded-lg border border-line px-2 py-1.5 text-sm outline-none focus:border-brand"
               >
                 <option value="hour">per hour</option>
                 <option value="session">per session</option>
@@ -345,10 +345,10 @@ function RowBtn({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#edeff1] transition-colors ${
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line transition-colors ${
         danger
-          ? 'text-[#878a8c] hover:border-red-200 hover:bg-red-50 hover:text-red-600'
-          : 'text-[#878a8c] hover:bg-gray-50'
+          ? 'text-muted hover:border-red-200 hover:bg-red-50 hover:text-red-600'
+          : 'text-muted hover:bg-gray-50'
       }`}
     >
       {children}
@@ -373,14 +373,14 @@ function ConfirmDeleteService({
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onCancel}>
       <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <Card className="p-5">
-          <h3 className="text-lg font-bold text-[#1c1c1c]">Delete “{serviceName(service)}”?</h3>
-          <p className="mt-1 text-sm text-[#878a8c]">
+          <h3 className="text-lg font-bold text-ink">Delete “{serviceName(service)}”?</h3>
+          <p className="mt-1 text-sm text-muted">
             This removes it from the marketplace permanently and cannot be undone. Sessions
             members already booked stay exactly as they are, at the price they were quoted.
           </p>
-          <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-[#878a8c]">
+          <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-muted">
             Only taking a break? Close this and use the{' '}
-            <span className="font-semibold text-[#1c1c1c]">Active</span> toggle instead — a paused
+            <span className="font-semibold text-ink">Active</span> toggle instead — a paused
             service is hidden from members but keeps everything you wrote.
           </p>
           <div className="mt-4 flex justify-end gap-2">
@@ -389,7 +389,7 @@ function ConfirmDeleteService({
             </Button>
             {/* Same destructive styling the admin dashboard uses for "remove". */}
             <Button
-              className="!border-transparent !bg-red-500 !text-white hover:!bg-red-600"
+              variant="danger"
               loading={busy}
               icon={<Trash2 size={14} />}
               onClick={onConfirm}

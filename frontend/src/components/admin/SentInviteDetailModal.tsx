@@ -71,7 +71,7 @@ export function SentInviteDetailModal({
       )
     }
     return (
-      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-[#878a8c]">
+      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-muted">
         Never sent
       </span>
     )
@@ -79,19 +79,19 @@ export function SentInviteDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center">
-      <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
-        <div className="flex items-start justify-between gap-3 border-b border-[#edeff1] px-5 py-4">
+      <div className="w-full max-w-2xl rounded-xl bg-surface shadow-xl">
+        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h2 className="flex items-center gap-2 text-base font-bold text-[#1c1c1c]">
-              <Mail size={18} className="text-[#ff4500]" /> Invite sent to {data?.name ?? '…'}
+            <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+              <Mail size={18} className="text-brand" /> Invite sent to {data?.name ?? '…'}
             </h2>
-            <p className="mt-0.5 truncate text-xs text-[#878a8c]">{data?.email}</p>
+            <p className="mt-0.5 truncate text-xs text-muted">{data?.email}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded-lg p-1.5 text-[#878a8c] transition-colors hover:bg-gray-100 hover:text-[#1c1c1c]"
+            className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:bg-gray-100 hover:text-ink"
           >
             <X size={18} />
           </button>
@@ -103,12 +103,12 @@ export function SentInviteDetailModal({
               {error}
             </p>
           )}
-          {!data && !error && <p className="py-8 text-center text-sm text-[#878a8c]">Loading…</p>}
+          {!data && !error && <p className="py-8 text-center text-sm text-muted">Loading…</p>}
 
           {data && (
             <>
               {/* status strip */}
-              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-[#edeff1] bg-[#f6f7f8] px-3 py-2.5 text-xs text-[#878a8c]">
+              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-page px-3 py-2.5 text-xs text-muted">
                 {statusBadge()}
                 {data.invitedAt && <span>{new Date(data.invitedAt).toLocaleString()}</span>}
                 {data.inviteCount > 1 && <span>sent {data.inviteCount}×</span>}
@@ -121,11 +121,11 @@ export function SentInviteDetailModal({
               )}
 
               {/* the sign-in link that was mailed */}
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#878a8c]">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
                 Sign-in link
               </label>
               <div className="flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-lg border border-[#edeff1] px-3 py-2 text-xs text-[#1c1c1c]">
+                <code className="min-w-0 flex-1 truncate rounded-lg border border-line px-3 py-2 text-xs text-ink">
                   {data.inviteLink}
                 </code>
                 <Button
@@ -139,34 +139,34 @@ export function SentInviteDetailModal({
 
               {/* the email itself */}
               <div className="mt-4 flex items-center justify-between">
-                <label className="block text-xs font-semibold uppercase tracking-wide text-[#878a8c]">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
                   Email content
                 </label>
                 <button
                   type="button"
                   onClick={() => copy(`${data.subject}\n\n${data.body}`, 'body')}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#ff4500] hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"
                 >
                   {copied === 'body' ? <Check size={12} /> : <Copy size={12} />}
                   {copied === 'body' ? 'Copied' : 'Copy email'}
                 </button>
               </div>
-              <div className="mt-1 rounded-lg border border-[#edeff1]">
-                <p className="border-b border-[#edeff1] bg-[#f6f7f8] px-3 py-2 text-sm font-semibold text-[#1c1c1c]">
+              <div className="mt-1 rounded-lg border border-line">
+                <p className="border-b border-line bg-page px-3 py-2 text-sm font-semibold text-ink">
                   {data.subject}
                 </p>
-                <pre className="overflow-x-auto whitespace-pre-wrap break-words px-3 py-3 font-sans text-sm leading-relaxed text-[#1c1c1c]">
+                <pre className="overflow-x-auto whitespace-pre-wrap break-words px-3 py-3 font-sans text-sm leading-relaxed text-ink">
                   {data.body}
                 </pre>
               </div>
 
               {/* honesty notes */}
               <div className="mt-3 space-y-2">
-                <p className="flex gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-[#1c1c1c]">
-                  <Info size={14} className="mt-0.5 shrink-0 text-[#ff4500]" />
+                <p className="flex gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-ink">
+                  <Info size={14} className="mt-0.5 shrink-0 text-brand" />
                   <span>
                     The password reads{' '}
-                    <code className="rounded bg-white px-1">{data.passwordRedacted}</code> here on
+                    <code className="rounded bg-surface px-1">{data.passwordRedacted}</code> here on
                     purpose. It's hashed when the account is created and never stored in readable
                     form, so it can't be shown back — if they lost the email, use{' '}
                     <span className="font-semibold">Resend</span> to issue a new one.
@@ -188,7 +188,7 @@ export function SentInviteDetailModal({
           )}
         </div>
 
-        <div className="flex justify-end border-t border-[#edeff1] px-5 py-4">
+        <div className="flex justify-end border-t border-line px-5 py-4">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

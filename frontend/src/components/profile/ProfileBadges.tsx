@@ -11,9 +11,9 @@ const TAG_CONFIG: Record<ProfileTag, {
 }> = {
   'Mentor': {
     label: 'Mentor',
-    classes: 'bg-orange-100 text-[#ff4500]',
-    verifiedClasses: 'bg-orange-100 text-[#ff4500]',
-    unverifiedClasses: 'bg-orange-50 text-orange-600 opacity-75',
+    classes: 'bg-brand-100 text-brand',
+    verifiedClasses: 'bg-brand-100 text-brand',
+    unverifiedClasses: 'bg-brand-50 text-brand-600 opacity-75',
     icon: <Award size={14} />,
     description: 'Listed on the Mentorship page',
   },
@@ -102,7 +102,7 @@ export function ProfileBadges({ user }: { user: User }) {
             </div>
 
             {/* Tooltip on hover */}
-            <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-lg bg-[#1c1c1c] px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 whitespace-nowrap">
+            <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-lg bg-ink px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 whitespace-nowrap">
               {isFlagged && 'This user has been flagged by the community'}
               {showWarning && 'Unverified — requires employer verification + 50 connections'}
               {!isFlagged && !showWarning && config.description}

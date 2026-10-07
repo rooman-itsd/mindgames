@@ -34,7 +34,7 @@ export function EventsUpcoming() {
       ))}
       {upcoming.length === 0 && (
         <EventsEmptyState title="No upcoming events yet">
-          <p className="max-w-sm text-sm text-[#878a8c]">
+          <p className="max-w-sm text-sm text-muted">
             Be the one who brings the network together — host a meetup, webinar or batch reunion.
           </p>
           <Button className="mt-1" onClick={() => navigate('../host')}>

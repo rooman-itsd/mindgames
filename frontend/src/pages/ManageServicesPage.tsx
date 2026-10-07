@@ -45,17 +45,17 @@ export function ManageServicesPage() {
       <div className="flex items-start gap-2">
         <button
           onClick={back}
-          className="mt-1 rounded-full p-1 text-[#878a8c] hover:bg-gray-100"
+          className="mt-1 rounded-full p-1 text-muted hover:bg-gray-100"
           aria-label="Back to your roadmap"
         >
           <ArrowLeft size={20} />
         </button>
-        <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#ff4500]">
+        <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand">
           <Briefcase size={20} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-[#1c1c1c]">Services you offer</h1>
-          <p className="text-sm text-[#878a8c]">
+          <h1 className="text-2xl font-bold text-ink">Services you offer</h1>
+          <p className="text-sm text-muted">
             Add, edit, pause or remove what you provide to other members.
           </p>
         </div>

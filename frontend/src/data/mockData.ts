@@ -444,7 +444,7 @@ export const communities: Community[] = [
     tag: 'Startup',
     memberCount: 466,
     joined: false,
-    color: 'from-orange-500 to-rose-600',
+    color: 'from-brand-500 to-rose-600',
   },
   {
     id: 'comm4',
@@ -464,7 +464,7 @@ export const communities: Community[] = [
     tag: 'Chennai',
     memberCount: 612,
     joined: false,
-    color: 'from-amber-500 to-orange-600',
+    color: 'from-amber-500 to-brand-600',
   },
   {
     id: 'comm6',

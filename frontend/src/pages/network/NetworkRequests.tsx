@@ -6,6 +6,7 @@ import { Avatar, Button, Card, SectionTitle } from '../../components/ui'
 import { roleLine } from '../../lib/format'
 import type { Post, User } from '../../types'
 import type { NetworkOutletContext } from './NetworkLayout'
+import { EmptyState } from '../../components/ui/EmptyState'
 
 // Priority tags on an incoming request: quick signals for why it might be
 // worth accepting. "Hiring" = the requester currently has an active job
@@ -56,7 +57,7 @@ export function NetworkRequests() {
       <section>
         <SectionTitle>Connection Requests ({pending.length})</SectionTitle>
         {pending.length === 0 && (
-          <p className="text-sm text-[#878a8c]">No pending requests right now.</p>
+          <EmptyState compact icon={<Check size={18} />} title="No requests waiting" body="When someone wants to connect, it'll show up here." />
         )}
         <div className="flex flex-col gap-3">
           {pending.map((u) => (
@@ -67,11 +68,11 @@ export function NetworkRequests() {
               <div className="min-w-0 flex-1">
                 <button
                   onClick={() => openQuickView(u.id)}
-                  className="font-semibold text-[#1c1c1c] hover:underline"
+                  className="font-semibold text-ink hover:underline"
                 >
                   {u.name}
                 </button>
-                {roleLine(u) && <p className="truncate text-xs text-[#878a8c]">{roleLine(u)}</p>}
+                {roleLine(u) && <p className="truncate text-xs text-muted">{roleLine(u)}</p>}
                 <RequestTags requester={u} me={currentUser} posts={posts} />
                 {connectionNotes[u.id] && (
                   <button
@@ -87,7 +88,7 @@ export function NetworkRequests() {
               </Button>
               <button
                 onClick={() => ignoreRequest(u.id)}
-                className="rounded-full p-2 text-[#878a8c] hover:bg-gray-100"
+                className="rounded-full p-2 text-muted hover:bg-gray-100"
               >
                 <X size={18} />
               </button>
@@ -99,7 +100,7 @@ export function NetworkRequests() {
       <section>
         <SectionTitle>Sent Requests ({sent.length})</SectionTitle>
         {sent.length === 0 && (
-          <p className="text-sm text-[#878a8c]">You haven't sent any pending requests.</p>
+          <EmptyState compact icon={<Users size={18} />} title="No requests out" body="Requests you send stay here until they're answered." />
         )}
         <div className="flex flex-col gap-3">
           {sent.map((u) => (
@@ -110,11 +111,11 @@ export function NetworkRequests() {
               <div className="min-w-0 flex-1">
                 <button
                   onClick={() => openQuickView(u.id)}
-                  className="font-semibold text-[#1c1c1c] hover:underline"
+                  className="font-semibold text-ink hover:underline"
                 >
                   {u.name}
                 </button>
-                {roleLine(u) && <p className="truncate text-xs text-[#878a8c]">{roleLine(u)}</p>}
+                {roleLine(u) && <p className="truncate text-xs text-muted">{roleLine(u)}</p>}
               </div>
               <Button
                 variant="ghost"
@@ -131,11 +132,11 @@ export function NetworkRequests() {
       {/* Connection note modal */}
       {selectedUser && selectedNote && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-lg">
             {/* Close button */}
             <button
               onClick={() => setSelectedRequest(null)}
-              className="absolute right-4 top-4 text-[#878a8c] hover:text-[#1c1c1c]"
+              className="absolute right-4 top-4 text-muted hover:text-ink"
             >
               <X size={20} />
             </button>
@@ -144,11 +145,11 @@ export function NetworkRequests() {
             <div className="mb-5 flex items-center gap-3">
               <Avatar name={selectedUser.name} src={selectedUser.photo} size={56} />
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-[#1c1c1c]">{selectedUser.name}</h3>
+                <h3 className="font-bold text-ink">{selectedUser.name}</h3>
                 {roleLine(selectedUser) && (
-                  <p className="truncate text-sm text-[#6b6e70]">{roleLine(selectedUser)}</p>
+                  <p className="truncate text-sm text-muted">{roleLine(selectedUser)}</p>
                 )}
-                <p className="mt-1 flex items-center gap-1 text-xs text-[#878a8c]">
+                <p className="mt-1 flex items-center gap-1 text-xs text-muted">
                   <Users size={12} />
                   {selectedUser.connectionsCount} connections
                 </p>
@@ -160,7 +161,7 @@ export function NetworkRequests() {
               <p className="mb-2 text-xs font-semibold tracking-widest text-blue-600 uppercase">
                 Connection Message
               </p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#1c1c1c]">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
                 {selectedNote}
               </p>
             </div>
@@ -178,7 +179,7 @@ export function NetworkRequests() {
               </Button>
               <button
                 onClick={() => openQuickView(selectedUser.id)}
-                className="rounded-full border border-[#edeff1] px-4 py-2.5 text-sm font-medium text-[#1c1c1c] transition-colors hover:bg-[#f6f7f8]"
+                className="rounded-full border border-line px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-page"
               >
                 View Full Profile
               </button>
@@ -187,7 +188,7 @@ export function NetworkRequests() {
                   ignoreRequest(selectedUser.id)
                   setSelectedRequest(null)
                 }}
-                className="rounded-full px-4 py-2.5 text-sm font-medium text-[#d13a00] transition-colors hover:bg-red-50"
+                className="rounded-full px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
               >
                 Ignore Request
               </button>

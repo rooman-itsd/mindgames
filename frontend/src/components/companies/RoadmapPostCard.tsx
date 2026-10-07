@@ -44,9 +44,9 @@ export function RoadmapPostCard({
       .join('  →  ')
 
   return (
-    <Card className={cx('overflow-hidden', isMine && 'border-[#ffd9cc]')}>
+    <Card className={cx('overflow-hidden', isMine && 'border-brand-200')}>
       {isMine && (
-        <div className="border-b border-orange-100 bg-orange-50 px-4 py-1.5 text-xs font-semibold text-[#ff4500]">
+        <div className="border-b border-brand-100 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand">
           Your roadmap — visible to everyone viewing {companyName}
         </div>
       )}
@@ -54,34 +54,34 @@ export function RoadmapPostCard({
       {/* Who and where */}
       <div className="flex items-center gap-2 px-4 pt-3">
         <CompanyLogo name={companyName} logoUrl={companyLogoUrl} size={22} />
-        <span className="text-xs font-bold text-[#1c1c1c]">{companyName}</span>
-        <span className="text-xs text-[#878a8c]">·</span>
+        <span className="text-xs font-bold text-ink">{companyName}</span>
+        <span className="text-xs text-muted">·</span>
         <Avatar name={roadmap.name} src={roadmap.photo} size={18} />
-        <span className="truncate text-xs text-[#878a8c]">
+        <span className="truncate text-xs text-muted">
           {roadmap.name}
           {roadmap.roleGoal || roadmap.currentRole ? ` · ${roadmap.roleGoal || roadmap.currentRole}` : ''}
         </span>
         {roadmap.updatedAt && (
           <>
-            <span className="text-xs text-[#878a8c]">·</span>
-            <span className="shrink-0 text-xs text-[#878a8c]">{timeAgo(roadmap.updatedAt)}</span>
+            <span className="text-xs text-muted">·</span>
+            <span className="shrink-0 text-xs text-muted">{timeAgo(roadmap.updatedAt)}</span>
           </>
         )}
         {roadmap.contributed && (
-          <span className="ml-auto shrink-0 rounded-full bg-[#fff1ec] px-2 py-0.5 text-[10px] font-semibold text-[#c2410c]">
+          <span className="ml-auto shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand">
             Shared their path
           </span>
         )}
       </div>
 
       {/* Title */}
-      <h3 className="px-4 pt-2 text-base font-bold text-[#1c1c1c]">{title}</h3>
+      <h3 className="px-4 pt-2 text-base font-bold text-ink">{title}</h3>
 
       {/* Body */}
-      {body && <p className="line-clamp-3 px-4 pt-1 text-sm text-[#6b6e70]">{body}</p>}
+      {body && <p className="line-clamp-3 px-4 pt-1 text-sm text-muted">{body}</p>}
 
       {/* Facts, then the way in */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[#edeff1] px-4 py-2.5 text-xs text-[#878a8c]">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-2.5 text-xs text-muted">
         {roadmap.steps.length > 0 && (
           <span className="flex items-center gap-1">
             <Route size={13} /> {roadmap.steps.length} step{roadmap.steps.length > 1 ? 's' : ''}
@@ -104,13 +104,13 @@ export function RoadmapPostCard({
           </span>
         )}
         {roadmap.openToReferrals && (
-          <span className="flex items-center gap-1 font-semibold text-[#c2410c]">
+          <span className="flex items-center gap-1 font-semibold text-brand">
             <Handshake size={13} /> Open to referrals
           </span>
         )}
         <button
           onClick={onOpen}
-          className="ml-auto shrink-0 font-semibold text-[#ff4500] hover:underline"
+          className="ml-auto shrink-0 font-semibold text-brand hover:underline"
         >
           Click here to see the full roadmap
         </button>

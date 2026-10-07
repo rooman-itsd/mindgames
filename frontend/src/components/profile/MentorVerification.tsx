@@ -82,11 +82,11 @@ export function MentorVerification({ user }: { user: User }) {
   // Verified: say so and stop asking.
   if (user.mentorVerified) {
     return (
-      <div className="mt-3 flex items-start gap-2 border-t border-[#edeff1] pt-3">
+      <div className="mt-3 flex items-start gap-2 border-t border-line pt-3">
         <BadgeCheck size={15} className="mt-0.5 shrink-0 text-green-600" />
         <div>
-          <p className="text-xs font-semibold text-[#1c1c1c]">Mentor credentials verified</p>
-          <p className="text-xs text-[#878a8c]">
+          <p className="text-xs font-semibold text-ink">Mentor credentials verified</p>
+          <p className="text-xs text-muted">
             {application?.claim
               ? `Approved on the strength of: ${MENTOR_CLAIM_LABELS[application.claim].toLowerCase()}.`
               : 'You can offer mentorship from Edit Profile.'}
@@ -103,26 +103,26 @@ export function MentorVerification({ user }: { user: User }) {
     // Anchor target: "Become a Mentor" elsewhere in the app links to
     // /profile#mentor-verification, since dropping someone on a long profile
     // page with no idea which part of it they were sent for is a dead end.
-    <div id="mentor-verification" ref={panelRef} className="mt-3 scroll-mt-24 border-t border-[#edeff1] pt-3">
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-[#1c1c1c]">
-        <Lock size={12} className="text-[#878a8c]" />
+    <div id="mentor-verification" ref={panelRef} className="mt-3 scroll-mt-24 border-t border-line pt-3">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+        <Lock size={12} className="text-muted" />
         To offer mentorship, submit proof of any one of these
       </p>
 
       <ul className="mt-1.5 flex flex-col gap-1">
         {requirements.map((r) => (
-          <li key={r.key} className="flex items-start gap-1.5 text-xs text-[#878a8c]">
+          <li key={r.key} className="flex items-start gap-1.5 text-xs text-muted">
             <span aria-hidden>•</span>
             <span>
               {r.label}
               {MENTOR_CLAIMS_COMING_SOON.includes(r.key) ? (
-                <span className="ml-1 rounded-full bg-[#f6f7f8] px-1.5 py-0.5 text-[10px] font-semibold text-[#878a8c]">
+                <span className="ml-1 rounded-full bg-page px-1.5 py-0.5 text-[10px] font-semibold text-muted">
                   Coming soon
                 </span>
               ) : (
                 // Nudge toward the claim their profile already backs up.
                 r.supportedByProfile && (
-                  <span className="ml-1 font-medium text-[#ff4500]">
+                  <span className="ml-1 font-medium text-brand">
                     — your profile already says this
                   </span>
                 )
@@ -133,11 +133,11 @@ export function MentorVerification({ user }: { user: User }) {
       </ul>
 
       {pending ? (
-        <div className="mt-2 flex items-start gap-2 rounded-lg bg-[#f6f7f8] p-3">
-          <Clock size={14} className="mt-0.5 shrink-0 text-[#878a8c]" />
+        <div className="mt-2 flex items-start gap-2 rounded-lg bg-page p-3">
+          <Clock size={14} className="mt-0.5 shrink-0 text-muted" />
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#1c1c1c]">Under review</p>
-            <p className="text-xs text-[#878a8c]">
+            <p className="text-xs font-semibold text-ink">Under review</p>
+            <p className="text-xs text-muted">
               {application?.documents.length ?? 0}{' '}
               {(application?.documents.length ?? 0) === 1 ? 'document' : 'documents'} submitted
               {application?.claim ? ` for "${MENTOR_CLAIM_LABELS[application.claim]}"` : ''}. An
@@ -161,7 +161,7 @@ export function MentorVerification({ user }: { user: User }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="mt-2 flex items-center gap-1.5 rounded-full bg-[#ff4500] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#ff6534]"
+            className="mt-2 flex items-center gap-1.5 rounded-full btn-primary px-3 py-1.5 text-xs font-bold text-white"
           >
             <Upload size={12} />
             {declined ? 'Submit new proof' : 'Submit proof'}
@@ -252,7 +252,7 @@ function MentorProofModal({
     }
   }
 
-  const label = 'mb-1 block text-sm font-medium text-[#1c1c1c]'
+  const label = 'mb-1 block text-sm font-medium text-ink'
 
   return (
     <div
@@ -260,16 +260,16 @@ function MentorProofModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#1c1c1c]">Verify your mentor credentials</h2>
+          <h2 className="text-lg font-bold text-ink">Verify your mentor credentials</h2>
           <button onClick={onClose} className="rounded-full p-1.5 hover:bg-gray-100">
-            <X size={18} className="text-[#878a8c]" />
+            <X size={18} className="text-muted" />
           </button>
         </div>
-        <p className="mb-4 text-xs text-[#878a8c]">
+        <p className="mb-4 text-xs text-muted">
           Pick the one requirement you meet and attach evidence. Only Rooman admins can open these
           files — they are never shown on your profile.
         </p>
@@ -288,19 +288,19 @@ function MentorProofModal({
                     onClick={() => setClaim(r.key)}
                     className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                       claim === r.key && !comingSoon
-                        ? 'border-[#ff4500] bg-orange-50 text-[#1c1c1c]'
-                        : 'border-[#edeff1] text-[#1c1c1c] hover:bg-gray-50'
+                        ? 'border-brand bg-brand-50 text-ink'
+                        : 'border-line text-ink hover:bg-gray-50'
                     } ${comingSoon ? 'cursor-not-allowed opacity-50 hover:bg-transparent' : ''}`}
                   >
                     <span className="flex items-center gap-1.5 font-medium">
                       {r.label}
                       {comingSoon && (
-                        <span className="rounded-full bg-[#f6f7f8] px-1.5 py-0.5 text-[10px] font-semibold text-[#878a8c]">
+                        <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-semibold text-muted">
                           Coming soon
                         </span>
                       )}
                     </span>
-                    <span className="block text-xs text-[#878a8c]">
+                    <span className="block text-xs text-muted">
                       {comingSoon
                         ? 'The Rooman assessment is not open yet.'
                         : MENTOR_CLAIM_PROOF_HINTS[r.key]}
@@ -317,7 +317,7 @@ function MentorProofModal({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={files.length >= MAX_DOCS}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#edeff1] py-4 text-sm font-medium text-[#ff4500] hover:border-[#ff6534] disabled:cursor-not-allowed disabled:text-[#878a8c]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line py-4 text-sm font-medium text-brand hover:border-brand-400 disabled:cursor-not-allowed disabled:text-muted"
             >
               <Upload size={15} />
               {files.length >= MAX_DOCS ? `Maximum ${MAX_DOCS} files` : 'Choose files'}
@@ -334,7 +334,7 @@ function MentorProofModal({
                 e.target.value = ''
               }}
             />
-            <p className="mt-1 text-xs text-[#878a8c]">
+            <p className="mt-1 text-xs text-muted">
               PDF, .docx, JPEG or PNG · up to {MAX_DOCS} files · 5MB each
             </p>
 
@@ -343,18 +343,18 @@ function MentorProofModal({
                 {files.map((f, i) => (
                   <li
                     key={`${f.name}-${i}`}
-                    className="flex items-center gap-2 rounded-lg bg-[#f6f7f8] px-3 py-2"
+                    className="flex items-center gap-2 rounded-lg bg-page px-3 py-2"
                   >
-                    <FileText size={14} className="shrink-0 text-[#878a8c]" />
-                    <span className="min-w-0 flex-1 truncate text-xs text-[#1c1c1c]">{f.name}</span>
-                    <span className="shrink-0 text-xs text-[#878a8c]">
+                    <FileText size={14} className="shrink-0 text-muted" />
+                    <span className="min-w-0 flex-1 truncate text-xs text-ink">{f.name}</span>
+                    <span className="shrink-0 text-xs text-muted">
                       {Math.max(1, Math.round(f.size / 1024))} KB
                     </span>
                     <button
                       type="button"
                       onClick={() => setFiles((cur) => cur.filter((_, idx) => idx !== i))}
                       aria-label={`Remove ${f.name}`}
-                      className="shrink-0 text-[#878a8c] hover:text-red-500"
+                      className="shrink-0 text-muted hover:text-red-500"
                     >
                       <X size={13} />
                     </button>
@@ -367,7 +367,7 @@ function MentorProofModal({
           <div>
             <label className={label}>Anything the reviewer should know? (optional)</label>
             <textarea
-              className="w-full resize-none rounded-lg border border-[#edeff1] px-3 py-2 text-sm outline-none focus:border-[#ff4500]"
+              className="w-full resize-none rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
               rows={2}
               maxLength={1000}
               value={note}

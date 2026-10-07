@@ -39,27 +39,27 @@ export function PublicResourcesSection({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#878a8c]">
+      <p className="text-xs font-bold uppercase tracking-wide text-muted">
         Recommended resources
       </p>
       <div className="flex flex-col gap-1.5">
         {items.map((r) => {
           const Icon = KIND_ICON[r.kind] ?? Link2
           return (
-            <div key={r.id} className="flex items-center gap-2 rounded-lg bg-[#f6f7f8] px-3 py-2">
-              <Icon size={14} className="shrink-0 text-[#878a8c]" />
+            <div key={r.id} className="flex items-center gap-2 rounded-lg bg-page px-3 py-2">
+              <Icon size={14} className="shrink-0 text-muted" />
               {r.url ? (
                 <a
                   href={r.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-w-0 items-center gap-1 truncate text-sm font-medium text-[#1c1c1c] hover:text-[#ff4500] hover:underline"
+                  className="inline-flex min-w-0 items-center gap-1 truncate text-sm font-medium text-ink hover:text-brand hover:underline"
                 >
                   <span className="truncate">{r.title}</span>
                   <ExternalLink size={10} className="shrink-0" />
                 </a>
               ) : (
-                <span className="truncate text-sm font-medium text-[#1c1c1c]">{r.title}</span>
+                <span className="truncate text-sm font-medium text-ink">{r.title}</span>
               )}
             </div>
           )

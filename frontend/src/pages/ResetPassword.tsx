@@ -3,9 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LockKeyhole } from 'lucide-react'
 import { api } from '../lib/api'
 import { Button, Card } from '../components/ui'
+import { AuthBackdrop } from '../components/layout/AuthBackdrop'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 // Set a new password from the emailed reset link (?token=…).
 export function ResetPassword() {
+  useDocumentTitle('Choose a new password · Root Connect')
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const token = params.get('token') ?? ''
@@ -33,17 +36,18 @@ export function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6f7f8] px-4">
+    <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AuthBackdrop />
       <Card className="w-full max-w-md p-6 sm:p-8">
-        <span className="grid h-11 w-11 place-items-center rounded-xl bg-orange-100 text-[#ff4500]">
+        <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-100 text-brand">
           <LockKeyhole size={22} />
         </span>
-        <h1 className="mt-4 text-xl font-semibold text-[#1c1c1c]">Set a new password</h1>
+        <h1 className="mt-4 text-xl font-semibold text-ink">Set a new password</h1>
 
         {!token ? (
-          <p className="mt-3 text-sm text-[#878a8c]">
+          <p className="mt-3 text-sm text-muted">
             This page needs the link from your reset email.{' '}
-            <Link to="/forgot-password" className="font-semibold text-[#ff4500] hover:underline">
+            <Link to="/forgot-password" className="font-semibold text-brand hover:underline">
               Request a new one
             </Link>
             .
@@ -59,14 +63,14 @@ export function ResetPassword() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="New password (min 6 characters)"
-              className="w-full rounded-lg border border-[#edeff1] bg-white px-3 py-2.5 text-sm text-[#1c1c1c] placeholder-[#878a8c] focus:border-[#ff4500] focus:ring-2 focus:ring-orange-100 focus:outline-none"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder-muted focus:border-brand focus:ring-2 focus:ring-brand-100 focus:outline-none"
             />
             <input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Confirm new password"
-              className="w-full rounded-lg border border-[#edeff1] bg-white px-3 py-2.5 text-sm text-[#1c1c1c] placeholder-[#878a8c] focus:border-[#ff4500] focus:ring-2 focus:ring-orange-100 focus:outline-none"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder-muted focus:border-brand focus:ring-2 focus:ring-brand-100 focus:outline-none"
             />
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button type="submit" className="w-full" loading={loading}>
@@ -75,8 +79,8 @@ export function ResetPassword() {
           </form>
         )}
 
-        <p className="mt-5 text-center text-sm text-[#878a8c]">
-          <Link to="/login" className="font-semibold text-[#ff4500] hover:underline">
+        <p className="mt-5 text-center text-sm text-muted">
+          <Link to="/login" className="font-semibold text-brand hover:underline">
             Back to sign in
           </Link>
         </p>

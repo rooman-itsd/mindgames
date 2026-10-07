@@ -15,14 +15,14 @@ export function SectionHeader({
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
       <div className="flex items-start gap-2">
-        <span className="mt-0.5 text-[#ff4500]">{icon}</span>
+        <span className="mt-0.5 text-brand">{icon}</span>
         <div>
-          <h2 className="text-base font-bold text-[#1c1c1c]">{title}</h2>
-          {sub && <p className="text-xs text-[#878a8c]">{sub}</p>}
+          <h2 className="text-base font-bold text-ink">{title}</h2>
+          {sub && <p className="text-xs text-muted">{sub}</p>}
         </div>
       </div>
       {onViewAll && (
-        <button onClick={onViewAll} className="shrink-0 text-xs font-semibold text-[#ff4500] hover:underline">
+        <button onClick={onViewAll} className="shrink-0 text-xs font-semibold text-brand hover:underline">
           View all →
         </button>
       )}
@@ -51,7 +51,7 @@ export function LoadMore({ loading, onClick }: { loading: boolean; onClick: () =
       <button
         onClick={onClick}
         disabled={loading}
-        className="rounded-full border border-[#edeff1] bg-white px-4 py-1.5 text-xs font-semibold text-[#1c1c1c] hover:bg-gray-50 disabled:opacity-50"
+        className="rounded-full border border-line bg-surface px-4 py-1.5 text-xs font-semibold text-ink hover:bg-gray-50 disabled:opacity-50"
       >
         {loading ? 'Loading…' : 'Load more'}
       </button>
