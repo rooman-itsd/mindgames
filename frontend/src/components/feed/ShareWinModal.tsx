@@ -72,7 +72,10 @@ function drawCard(canvas: HTMLCanvasElement, win: ShareWin) {
   // Logo mark, bottom right.
   ctx.fillStyle = '#ffffff'
   ctx.beginPath()
-  ctx.roundRect(W - 300, H - 108, 44, 44, 10)
+  // roundRect is missing before Safari 16 / Firefox 112; a throw here would
+  // blank the app (there is no error boundary), so fall back to a square tile.
+  if (typeof ctx.roundRect === 'function') ctx.roundRect(W - 300, H - 108, 44, 44, 10)
+  else ctx.rect(W - 300, H - 108, 44, 44)
   ctx.fill()
   ctx.fillStyle = '#0f5a47'
   ctx.font = '900 26px Inter, system-ui, sans-serif'

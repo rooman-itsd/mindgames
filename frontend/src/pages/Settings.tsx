@@ -177,7 +177,6 @@ export function Settings() {
         </form>
       </Card>
 
-      {/* Session */}
       {/* Appearance — opt-in dark mode, remembered on this device. */}
       <Card className="p-5">
         <div className="flex items-center justify-between gap-4">
@@ -203,6 +202,7 @@ export function Settings() {
         </div>
       </Card>
 
+      {/* Session */}
       <Card className="p-5">
         <h2 className="mb-3 text-base font-bold text-ink">Session</h2>
         <Button
