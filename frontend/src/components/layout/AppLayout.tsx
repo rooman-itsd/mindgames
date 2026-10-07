@@ -37,8 +37,10 @@ export function AppLayout() {
   // Resources), which takes the general rail's place on that page only.
   // Trailing slashes are trimmed first: React Router renders the same page for
   // "/learning-resources/", and that must not bring the general rail back.
+  // StartupVarsity is a single pitch that links out, so it needs no rail either.
   const isFullWidth =
-    pathname.startsWith('/career-guidance') || pathname.replace(/\/+$/, '') === '/learning-resources'
+    pathname.startsWith('/career-guidance') ||
+    ['/learning-resources', '/startupvarsity'].includes(pathname.replace(/\/+$/, ''))
   const showVerifyBanner =
     !verifyDismissed && !currentUser.isAdmin && currentUser.emailVerified === false
 
