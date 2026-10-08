@@ -4,9 +4,9 @@ import { query, withTransaction } from '../db/pool.js'
 import { requireAuth } from '../auth/middleware.js'
 import { ApiError, asyncHandler } from '../http.js'
 import { mapLearningShare, type LearningShareRow } from '../mappers.js'
-import { MAX_TAGS, PROJECT_DIFFICULTIES, SHARES_PER_DAY, WHY_HELPED_MIN, cleanTags } from '../learning.js'
+import { MAX_TAGS, PROJECT_DIFFICULTIES, WHY_HELPED_MIN, cleanTags } from '../learning.js'
 import { kickLearningEmbed } from '../learningEmbed.js'
-import { SHARE_AUDIENCE_OK, SHARE_SELECT, moveTagCounts } from './learning.routes.js'
+import { SHARE_AUDIENCE_OK, SHARE_SELECT, lockMemberAndCheckDailyCap, moveTagCounts } from './learning.routes.js'
 
 /**
  * "Add resource" on Learning Resources: a resource for any domain, made of
@@ -32,6 +32,10 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024
 /** Uploads a member may hold unattached at once — enough to swap a few files
  *  while filling the form, not enough to use this as free storage. */
 const MAX_PENDING = 20
+/** How long an upload may wait unattached before it counts as abandoned. */
+const OWN_PENDING_TTL = '3 hours'
+/** Abandoned uploads (anyone's) cleared per upload request. */
+const STALE_SWEEP_BATCH = 50
 
 /** Types a browser may show in place (opened in a tab). Everything else is
  *  sent as a download with a generic type, so an uploaded HTML or SVG file
@@ -78,10 +82,23 @@ learningResourcesRouter.post(
     // would count the others' files as not there yet and pass the cap.
     const id = await withTransaction(async (client) => {
       await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_upload:${me}`])
+      // This member's uploads not attached within 3 hours belong to a form
+      // that was abandoned (tab closed, navigated away) — no form is held open
+      // that long — so they never lock the member out for longer than that.
       await client.query(
         `DELETE FROM learning_share_files
-          WHERE owner_id = $1 AND share_id IS NULL AND created_at < now() - interval '1 day'`,
+          WHERE owner_id = $1 AND share_id IS NULL AND created_at < now() - interval '${OWN_PENDING_TTL}'`,
         [me],
+      )
+      // And anyone's left unattached for a day, so a member who never uploads
+      // again doesn't keep their abandoned files forever. A bounded batch
+      // (idx_learning_share_files_stale), skipping rows another request holds.
+      await client.query(
+        `DELETE FROM learning_share_files WHERE id IN (
+           SELECT id FROM learning_share_files
+            WHERE share_id IS NULL AND created_at < now() - interval '1 day'
+            ORDER BY created_at LIMIT ${STALE_SWEEP_BATCH}
+            FOR UPDATE SKIP LOCKED)`,
       )
       const pending = await client.query<{ n: number }>(
         `SELECT count(*)::int AS n FROM learning_share_files WHERE owner_id = $1 AND share_id IS NULL`,
@@ -145,17 +162,8 @@ learningResourcesRouter.post(
     if (!tags.length) throw new ApiError(400, 'Pick at least one domain')
 
     const id = await withTransaction(async (client) => {
-      // Same per-member lock and daily cap as POST /shares — both add to
-      // learning_shares, so they share one count.
-      await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_share:${me}`])
-      const recent = await client.query<{ n: number }>(
-        `SELECT count(*)::int AS n FROM learning_shares
-          WHERE shared_by = $1 AND created_at > now() - interval '1 day'`,
-        [me],
-      )
-      if (recent.rows[0].n >= SHARES_PER_DAY) {
-        throw new ApiError(429, `You can share up to ${SHARES_PER_DAY} a day — thank you, and please come back tomorrow`)
-      }
+      // Same per-member lock and daily cap as POST /shares (one shared count).
+      await lockMemberAndCheckDailyCap(client, me)
 
       const ins = await client.query<{ id: string }>(
         `INSERT INTO learning_shares
@@ -186,6 +194,13 @@ learningResourcesRouter.post(
   }),
 )
 
+/** A filename for Content-Disposition's filename* (RFC 8187): encodeURIComponent
+ *  leaves ' ( ) * as they are, and ' is that field's delimiter — so a name like
+ *  "Bob's notes (v2).pdf" broke the header. */
+function rfc8187(name: string): string {
+  return encodeURIComponent(name).replace(/['()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+}
+
 // GET /api/learning/shares/:id/files/:fileId — one attached file, to anyone
 // who may see the resource (the sharer always; others while it is not hidden
 // and its audience includes them). Sent with nosniff, and as a download
@@ -206,7 +221,7 @@ learningResourcesRouter.get(
     const f = r.rows[0]
     const inline = INLINE_TYPES.test(f.mime)
     res.setHeader('Content-Type', inline ? f.mime : 'application/octet-stream')
-    res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(f.name)}`)
+    res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${rfc8187(f.name)}`)
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Cache-Control', 'private, max-age=3600')
     res.send(f.data)

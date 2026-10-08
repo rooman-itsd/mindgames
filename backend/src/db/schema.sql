@@ -1587,13 +1587,18 @@ CREATE TABLE IF NOT EXISTS learning_share_topics (
 -- "The shares on this stage": one index range per stage, never a scan.
 CREATE INDEX IF NOT EXISTS idx_learning_share_topics_topic
   ON learning_share_topics (topic_key, share_id);
--- Backfill shares filed before this table existed. Re-runnable: a share
--- already listed is skipped, so after the first run this inserts nothing.
-INSERT INTO learning_share_topics (share_id, topic_key)
-  SELECT s.id, s.topic_key FROM learning_shares s
-   WHERE s.topic_key IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM learning_share_topics x WHERE x.share_id = s.id)
-ON CONFLICT DO NOTHING;
+-- Backfill shares filed before this table existed — only while the table is
+-- still empty (the first migrate after it was added). Every write path fills
+-- it from then on, so later migrates skip this instead of re-scanning every
+-- share on each deploy.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM learning_share_topics) THEN
+    INSERT INTO learning_share_topics (share_id, topic_key)
+      SELECT s.id, s.topic_key FROM learning_shares s WHERE s.topic_key IS NOT NULL
+    ON CONFLICT DO NOTHING;
+  END IF;
+END $$;
 
 -- Files attached to a resource ("Add resource": up to 10, any type). Stored
 -- in the database like chat attachments (messages.attachment_data).
@@ -1619,6 +1624,9 @@ CREATE INDEX IF NOT EXISTS idx_learning_share_files_share
 -- A member's not-yet-attached uploads: the per-member cap and the sweep.
 CREATE INDEX IF NOT EXISTS idx_learning_share_files_pending
   ON learning_share_files (owner_id, created_at) WHERE share_id IS NULL;
+-- Anyone's abandoned uploads, oldest first: the bounded cross-member sweep.
+CREATE INDEX IF NOT EXISTS idx_learning_share_files_stale
+  ON learning_share_files (created_at) WHERE share_id IS NULL;
 
 -- How many files a share has, kept on the row so the "link or files" rule
 -- below can be a CHECK (a CHECK cannot count another table's rows).

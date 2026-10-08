@@ -33,7 +33,7 @@ export function ShareFiles({ shareId, files }: { shareId: string; files: ShareFi
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch (e) {
       tab?.close()
-      notify(e instanceof Error ? e.message : 'Could not open that file')
+      notify(e instanceof Error ? e.message : 'Could not open that file', 'error')
     } finally {
       setBusy(null)
     }

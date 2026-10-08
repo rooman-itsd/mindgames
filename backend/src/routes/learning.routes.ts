@@ -8,7 +8,7 @@ import { pushNotification } from '../notify.js'
 import { HTTP_URL, HTTP_URL_MESSAGE } from '../validation.js'
 import { workableStages } from '../careerProgress.js'
 import { loadRoadmapCore, type LoadedRoadmap } from '../roadmap.js'
-import { RESOURCE_SELECT } from '../resourceQueries.js'
+import { RESOURCE_SELECT, shareFilesJson } from '../resourceQueries.js'
 import {
   afterAtParam,
   cursorRowSql,
@@ -73,11 +73,7 @@ export const SHARE_SELECT = `
          (h.user_id IS NOT NULL) AS i_helped, cr.id AS my_saved_id,
          -- Attached files' details, only for shares that have any (one index
          -- range on idx_learning_share_files_share); never the bytes.
-         CASE WHEN s.file_count > 0 THEN
-           (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime, 'size', f.size_bytes)
-                            ORDER BY f.position)
-              FROM learning_share_files f WHERE f.share_id = s.id)
-         END AS files
+         ${shareFilesJson('s')} AS files
     FROM learning_shares s
     JOIN users u ON u.id = s.shared_by
     LEFT JOIN learning_share_helped h ON h.share_id = s.id AND h.user_id = $1
@@ -750,6 +746,25 @@ learningRouter.get(
 /** Moves the Skill filter's counters for a share's tags, inside the caller's
  *  transaction, so a tag's count can never disagree with the shares carrying
  *  it. +1 adds the tag row on first use; -1 floors at zero. */
+/**
+ * One share at a time per member, so the daily cap is a real cap: two posts
+ * sent at once would otherwise both count "9 today" before either landed. The
+ * lock is this member's alone and ends with the transaction (the pattern in
+ * connectionGraph.ts). Shared by POST /shares and POST /resources — both add
+ * to learning_shares, so they share one count.
+ */
+export async function lockMemberAndCheckDailyCap(client: pg.PoolClient, me: string) {
+  await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_share:${me}`])
+  const recent = await client.query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM learning_shares
+      WHERE shared_by = $1 AND created_at > now() - interval '1 day'`,
+    [me],
+  )
+  if (recent.rows[0].n >= SHARES_PER_DAY) {
+    throw new ApiError(429, `You can share up to ${SHARES_PER_DAY} a day — thank you, and please come back tomorrow`)
+  }
+}
+
 export async function moveTagCounts(client: pg.PoolClient, tags: { tag: string; label: string }[], delta: 1 | -1) {
   if (!tags.length) return
   if (delta === 1) {
@@ -875,26 +890,13 @@ learningRouter.post(
     // The share and its tag counts land together, so the Skill filter's
     // numbers can never disagree with what is actually shared.
     const { id, duplicate } = await withTransaction(async (client) => {
-      // One share at a time per member, so the daily cap is a real cap: two
-      // posts sent at once would otherwise both count "9 today" before either
-      // landed. The lock is this member's alone (nobody else waits on it) and
-      // is released when the transaction ends — the same pattern as
-      // connectionGraph.ts.
-      await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_share:${me}`])
+      await lockMemberAndCheckDailyCap(client, me)
       // And one per link: the unique index only guards the first stage, so two
       // members filing the same link under other stages at the same moment
       // would both pass the check below. This makes the second wait and see
       // the first. Always taken after the member lock, so no two requests can
       // hold them in opposite order.
       if (urlNorm) await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_url:${urlNorm}`])
-      const recent = await client.query<{ n: number }>(
-        `SELECT count(*)::int AS n FROM learning_shares
-          WHERE shared_by = $1 AND created_at > now() - interval '1 day'`,
-        [me],
-      )
-      if (recent.rows[0].n >= SHARES_PER_DAY) {
-        throw new ApiError(429, `You can share up to ${SHARES_PER_DAY} a day — thank you, and please come back tomorrow`)
-      }
 
       // Already filed under ANY of the chosen stages: that share, not a second
       // copy. The insert's unique index only guards the first stage, so the
@@ -905,6 +907,9 @@ learningRouter.post(
              FROM learning_share_topics st
              JOIN learning_shares s ON s.id = st.share_id
             WHERE st.topic_key = ANY($2::text[]) AND s.url_norm = $3
+            -- The same link can sit under two chosen stages; hand back the one
+            -- the member can see before a hidden or connections-only copy.
+            ORDER BY s.hidden, (${SHARE_AUDIENCE_OK}) DESC
             LIMIT 1`,
           [me, topicKeys, urlNorm],
         )
@@ -962,7 +967,8 @@ learningRouter.post(
 )
 
 // DELETE /api/learning/shares/:id — take back something I shared. Only the
-// sharer; members' saved copies survive as their own rows (share_id goes null).
+// sharer; members' saved copies of a link survive as their own rows (share_id
+// goes null); saved copies of a files-only resource are removed with it.
 // Its tags stop counting in the same transaction — unless reports had already
 // hidden it, in which case they stopped counting then.
 learningRouter.delete(
@@ -970,6 +976,16 @@ learningRouter.delete(
   requireAuth,
   asyncHandler(async (req, res) => {
     const deleted = await withTransaction(async (client) => {
+      // A files-only resource (Add resource) takes its files with it, so a
+      // member's saved copy would be left with no link and no files — a title
+      // that can't be opened. Those copies go too; copies of a link survive.
+      await client.query(
+        `DELETE FROM career_resources c
+          USING learning_shares s
+          WHERE c.share_id = s.id AND s.id = $1 AND s.shared_by = $2
+            AND s.url IS NULL AND s.file_count > 0 AND c.url IS NULL`,
+        [req.params.id, req.user!.sub],
+      )
       const r = await client.query<{ skills: string[]; hidden: boolean }>(
         `DELETE FROM learning_shares WHERE id = $1 AND shared_by = $2 RETURNING skills, hidden`,
         [req.params.id, req.user!.sub],

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Paperclip, X } from 'lucide-react'
 import { api } from '../../lib/api'
@@ -50,6 +50,26 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
   // memory with them (and the form). Each link catches its own error, so one
   // failed file never stops the ones after it.
   const queue = useRef<Promise<void>>(Promise.resolve())
+  // Finished uploads not yet part of a resource, and whether it was added.
+  const uploaded = useRef(new Set<string>())
+  const submitted = useRef(false)
+
+  // However the form goes away — Close, Cancel, or navigating off the page —
+  // its finished uploads are deleted unless the resource was added; uploads
+  // still in flight delete themselves when they land (closed). The server
+  // also clears abandoned uploads after a few hours.
+  useEffect(() => {
+    // Set on every mount: StrictMode mounts, unmounts and mounts again in
+    // development, and the first cleanup must not leave the form "closed".
+    closed.current = false
+    const ids = uploaded.current
+    return () => {
+      closed.current = true
+      if (submitted.current) return
+      for (const id of ids) void api.deleteLearningUpload(id).catch(() => {})
+      ids.clear()
+    }
+  }, [])
 
   const domains = resourceDomains(picked, custom)
   const ready = files.filter((f) => f.id)
@@ -80,7 +100,10 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
               .then(
                 (up) => {
                   if (closed.current || dropped.current.has(key)) void api.deleteLearningUpload(up.id).catch(() => {})
-                  else patch(key, { id: up.id })
+                  else {
+                    uploaded.current.add(up.id)
+                    patch(key, { id: up.id })
+                  }
                 },
                 (e) => patch(key, { error: e instanceof Error ? e.message : 'Upload failed' }),
               ),
@@ -92,16 +115,14 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
   const remove = (f: Pending) => {
     dropped.current.add(f.key)
     setFiles((cur) => cur.filter((x) => x.key !== f.key))
-    if (f.id) void api.deleteLearningUpload(f.id).catch(() => {})
+    if (f.id) {
+      uploaded.current.delete(f.id)
+      void api.deleteLearningUpload(f.id).catch(() => {})
+    }
   }
 
-  const close = () => {
-    // Tidy uploads that will never be used — finished ones now, ones still
-    // in flight when they land (the server also sweeps after a day).
-    closed.current = true
-    for (const f of ready) void api.deleteLearningUpload(f.id!).catch(() => {})
-    onClose()
-  }
+  // Unmounting does the tidying (see the effect above).
+  const close = () => onClose()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,6 +139,7 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
         difficulty,
         audience,
       })
+      submitted.current = true
       notify('Added — thank you. Others can now find it in All Resources.')
       onAdded()
     } catch (err) {

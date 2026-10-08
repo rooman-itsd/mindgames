@@ -9,18 +9,27 @@
  * No photo columns: no screen shows them, and a profile photo is a data URL of
  * up to ~400 KB — on every row of a list it was most of the response.
  */
+/**
+ * A share's attached files as JSON ({id, name, mime, size}[], in order), or
+ * NULL when it has none — one index range on idx_learning_share_files_share,
+ * only for shares with files, never the bytes. `alias` is the learning_shares
+ * alias in the surrounding query. Shared by SHARE_SELECT and RESOURCE_SELECT.
+ */
+export function shareFilesJson(alias: string): string {
+  return `CASE WHEN ${alias}.file_count > 0 THEN
+           (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime, 'size', f.size_bytes)
+                            ORDER BY f.position)
+              FROM learning_share_files f WHERE f.share_id = ${alias}.id)
+         END`
+}
+
 export const RESOURCE_SELECT = `
   SELECT r.*, u.name AS owner_name, s.topic AS session_topic, s.status AS session_status,
          s.ended_at AS session_ended_at,
          a.name AS assignee_name, sh_u.name AS share_sharer_name,
          -- A saved copy of a files-only resource (Add resource) has no url;
-         -- its files' details let Saved Resources open them. Index range,
-         -- only for shares that have files; never the bytes.
-         CASE WHEN sh.file_count > 0 THEN
-           (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime, 'size', f.size_bytes)
-                            ORDER BY f.position)
-              FROM learning_share_files f WHERE f.share_id = sh.id)
-         END AS share_files
+         -- its files' details let Saved Resources open them.
+         ${shareFilesJson('sh')} AS share_files
     FROM career_resources r
     JOIN users u ON u.id = r.user_id
     LEFT JOIN mentorship_sessions s ON s.id = r.session_id
