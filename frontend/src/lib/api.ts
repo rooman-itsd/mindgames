@@ -121,6 +121,15 @@ function afterQuery(after?: { id: string; createdAt: string }): string {
   return after ? `?${new URLSearchParams({ after: after.id, afterAt: after.createdAt })}` : ''
 }
 
+/** A failed response as an HttpError. The status is carried on the error, not
+ *  just folded into the message: callers need to tell a payment-required 402
+ *  (open the plans) from an ordinary failure (show a toast), and a message
+ *  string cannot express that without matching on wording. */
+async function toHttpError(res: Response): Promise<HttpError> {
+  const body = await res.json().catch(() => ({}))
+  return new HttpError(body.error || `Request failed (${res.status})`, res.status)
+}
+
 async function http<T>(url: string, options?: RequestInit): Promise<T> {
   const token = getToken()
   const res = await fetch(url, {
@@ -131,14 +140,7 @@ async function http<T>(url: string, options?: RequestInit): Promise<T> {
       ...options?.headers,
     },
   })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    // The status is carried on the error, not just folded into the message:
-    // callers need to tell a payment-required 402 (open the plans) from an
-    // ordinary failure (show a toast), and a message string cannot express
-    // that without matching on wording.
-    throw new HttpError(body.error || `Request failed (${res.status})`, res.status)
-  }
+  if (!res.ok) throw await toHttpError(res)
   // 204 / empty bodies
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -940,10 +942,7 @@ export const api = {
     const res = await fetch(`/api/learning/shares/${encodeURIComponent(shareId)}/files/${encodeURIComponent(fileId)}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      throw new HttpError(body.error || `Request failed (${res.status})`, res.status)
-    }
+    if (!res.ok) throw await toHttpError(res)
     return res.blob()
   },
   deleteShare: (id: string) =>

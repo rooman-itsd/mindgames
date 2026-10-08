@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useApp } from '../store/AppStore'
 import { CreatePostBox } from '../components/feed/CreatePostBox'
@@ -68,15 +68,22 @@ export function Home() {
   // Each post keeps the column it was first dealt into (lib/homeFeed.ts
   // dealColumns), so a new post never moves the cards below it — a moved card
   // is rebuilt and loses a half-typed comment. A new search deals afresh.
+  // Computed during render, but only remembered once it is actually on screen
+  // (layout effect), so a render React throws away can't leave behind columns
+  // that were never shown.
   const placed = useRef({ query: '', columns: new Map<string, 0 | 1>() })
-  const columns = useMemo(() => {
-    if (!split) return [feed]
+  const dealt = useMemo(() => {
+    if (!split) return null
     const q = query.trim()
     const prev = placed.current.query === q ? placed.current.columns : new Map<string, 0 | 1>()
-    const next = dealColumns(feed.map((p) => p.id), prev)
-    placed.current = { query: q, columns: next }
-    return [feed.filter((p) => next.get(p.id) === 0), feed.filter((p) => next.get(p.id) === 1)]
+    return { query: q, columns: dealColumns(feed.map((p) => p.id), prev) }
   }, [feed, split, query])
+  useLayoutEffect(() => {
+    if (dealt) placed.current = dealt
+  }, [dealt])
+  const columns = dealt
+    ? [feed.filter((p) => dealt.columns.get(p.id) === 0), feed.filter((p) => dealt.columns.get(p.id) === 1)]
+    : [feed]
 
   return (
     <div className="flex flex-col gap-3">

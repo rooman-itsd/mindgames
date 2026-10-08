@@ -1587,15 +1587,23 @@ CREATE TABLE IF NOT EXISTS learning_share_topics (
 -- "The shares on this stage": one index range per stage, never a scan.
 CREATE INDEX IF NOT EXISTS idx_learning_share_topics_topic
   ON learning_share_topics (topic_key, share_id);
--- Backfill shares filed before this table existed — only while the table is
--- still empty (the first migrate after it was added). Every write path fills
--- it from then on, so later migrates skip this instead of re-scanning every
--- share on each deploy.
+-- Backfill. The first migrate after this table was added (still empty) fills
+-- it from every share; after that only shares from the last day are looked
+-- at — a deploy migrates before it restarts, so old code can still write a
+-- share or two in between, and this catches them on the next migrate without
+-- re-scanning every share each deploy (idx_learning_shares_created).
+CREATE INDEX IF NOT EXISTS idx_learning_shares_created ON learning_shares (created_at);
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM learning_share_topics) THEN
     INSERT INTO learning_share_topics (share_id, topic_key)
       SELECT s.id, s.topic_key FROM learning_shares s WHERE s.topic_key IS NOT NULL
+    ON CONFLICT DO NOTHING;
+  ELSE
+    INSERT INTO learning_share_topics (share_id, topic_key)
+      SELECT s.id, s.topic_key FROM learning_shares s
+       WHERE s.created_at > now() - interval '1 day' AND s.topic_key IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM learning_share_topics x WHERE x.share_id = s.id)
     ON CONFLICT DO NOTHING;
   END IF;
 END $$;
@@ -1627,6 +1635,18 @@ CREATE INDEX IF NOT EXISTS idx_learning_share_files_pending
 -- Anyone's abandoned uploads, oldest first: the bounded cross-member sweep.
 CREATE INDEX IF NOT EXISTS idx_learning_share_files_stale
   ON learning_share_files (created_at) WHERE share_id IS NULL;
+
+-- Uploads per member per day (bytes too), for the daily upload limit. Kept
+-- apart from learning_share_files because deleted uploads must still count —
+-- otherwise "upload, delete, repeat" is unlimited. Rows older than a day are
+-- pruned on the member's next upload.
+CREATE TABLE IF NOT EXISTS learning_upload_log (
+  owner_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  bytes      INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_learning_upload_log_owner
+  ON learning_upload_log (owner_id, created_at);
 
 -- How many files a share has, kept on the row so the "link or files" rule
 -- below can be a CHECK (a CHECK cannot count another table's rows).
@@ -1775,6 +1795,28 @@ ALTER TABLE career_resources ADD COLUMN IF NOT EXISTS share_id TEXT
   REFERENCES learning_shares(id) ON DELETE SET NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_career_resources_share_save
   ON career_resources (user_id, share_id) WHERE share_id IS NOT NULL;
+
+-- A share's saved copies, by share (the unique index leads with user_id).
+CREATE INDEX IF NOT EXISTS idx_career_resources_share
+  ON career_resources (share_id) WHERE share_id IS NOT NULL;
+
+-- When a files-only resource is deleted — by its sharer, or with the sharer's
+-- whole account — members' saved copies of it go too: its files go with it,
+-- so a copy would be a title with no link and no files. Copies of a link
+-- resource keep their link and survive (share_id goes NULL). A trigger, so
+-- every way a share can be deleted is covered. Re-runnable.
+CREATE OR REPLACE FUNCTION learning_share_drop_dead_copies() RETURNS trigger AS $$
+BEGIN
+  IF OLD.url IS NULL AND OLD.file_count > 0 THEN
+    DELETE FROM career_resources WHERE share_id = OLD.id AND url IS NULL;
+  END IF;
+  RETURN OLD;
+END
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS learning_shares_drop_dead_copies ON learning_shares;
+CREATE TRIGGER learning_shares_drop_dead_copies
+  BEFORE DELETE ON learning_shares
+  FOR EACH ROW EXECUTE FUNCTION learning_share_drop_dead_copies();
 
 -- Counters stay true when an account is deleted.
 --

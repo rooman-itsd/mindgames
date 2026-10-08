@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { api } from '../../lib/api'
@@ -67,11 +67,16 @@ export function ShareForm({
   const [error, setError] = useState('')
 
   // The stage list can arrive after the form opens: fill the stage it was
-  // opened from then, but never over one the member already picked.
+  // opened from then — once. After that the picks are the member's: a
+  // refetched list must not re-tick a stage they deliberately unticked.
+  const defaultApplied = useRef(picked.length > 0)
   useEffect(() => {
-    if (!defaultTopicKey) return
+    if (!defaultTopicKey || defaultApplied.current) return
     const s = stages.find((x) => x.topicKey === defaultTopicKey && x.reason !== 'role')
-    if (s) setPicked((cur) => (cur.length ? cur : [fromSuggested(s)]))
+    if (s) {
+      defaultApplied.current = true
+      setPicked((cur) => (cur.length ? cur : [fromSuggested(s)]))
+    }
   }, [defaultTopicKey, stages])
 
   const isProject = kind === 'project'

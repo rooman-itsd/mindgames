@@ -968,7 +968,8 @@ learningRouter.post(
 
 // DELETE /api/learning/shares/:id — take back something I shared. Only the
 // sharer; members' saved copies of a link survive as their own rows (share_id
-// goes null); saved copies of a files-only resource are removed with it.
+// goes null); saved copies of a files-only resource are removed with it (the
+// learning_shares_drop_dead_copies trigger, schema.sql).
 // Its tags stop counting in the same transaction — unless reports had already
 // hidden it, in which case they stopped counting then.
 learningRouter.delete(
@@ -976,16 +977,6 @@ learningRouter.delete(
   requireAuth,
   asyncHandler(async (req, res) => {
     const deleted = await withTransaction(async (client) => {
-      // A files-only resource (Add resource) takes its files with it, so a
-      // member's saved copy would be left with no link and no files — a title
-      // that can't be opened. Those copies go too; copies of a link survive.
-      await client.query(
-        `DELETE FROM career_resources c
-          USING learning_shares s
-          WHERE c.share_id = s.id AND s.id = $1 AND s.shared_by = $2
-            AND s.url IS NULL AND s.file_count > 0 AND c.url IS NULL`,
-        [req.params.id, req.user!.sub],
-      )
       const r = await client.query<{ skills: string[]; hidden: boolean }>(
         `DELETE FROM learning_shares WHERE id = $1 AND shared_by = $2 RETURNING skills, hidden`,
         [req.params.id, req.user!.sub],

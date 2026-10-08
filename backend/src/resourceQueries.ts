@@ -15,8 +15,8 @@
  * only for shares with files, never the bytes. `alias` is the learning_shares
  * alias in the surrounding query. Shared by SHARE_SELECT and RESOURCE_SELECT.
  */
-export function shareFilesJson(alias: string): string {
-  return `CASE WHEN ${alias}.file_count > 0 THEN
+export function shareFilesJson(alias: string, onlyIf = 'TRUE'): string {
+  return `CASE WHEN ${alias}.file_count > 0 AND (${onlyIf}) THEN
            (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime, 'size', f.size_bytes)
                             ORDER BY f.position)
               FROM learning_share_files f WHERE f.share_id = ${alias}.id)
@@ -28,8 +28,9 @@ export const RESOURCE_SELECT = `
          s.ended_at AS session_ended_at,
          a.name AS assignee_name, sh_u.name AS share_sharer_name,
          -- A saved copy of a files-only resource (Add resource) has no url;
-         -- its files' details let Saved Resources open them.
-         ${shareFilesJson('sh')} AS share_files
+         -- its files' details let Saved Resources open them. Not once reports
+         -- have hidden it: the download would refuse them anyway.
+         ${shareFilesJson('sh', 'NOT sh.hidden')} AS share_files
     FROM career_resources r
     JOIN users u ON u.id = r.user_id
     LEFT JOIN mentorship_sessions s ON s.id = r.session_id

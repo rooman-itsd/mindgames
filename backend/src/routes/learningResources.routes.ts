@@ -32,8 +32,11 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024
 /** Uploads a member may hold unattached at once — enough to swap a few files
  *  while filling the form, not enough to use this as free storage. */
 const MAX_PENDING = 20
-/** How long an upload may wait unattached before it counts as abandoned. */
-const OWN_PENDING_TTL = '3 hours'
+/** Unattached uploads older than this no longer count toward MAX_PENDING. */
+const PENDING_WINDOW = '3 hours'
+/** Per member per day — ten resources of ten files, with room to swap some. */
+const MAX_UPLOADS_PER_DAY = 150
+const MAX_UPLOAD_BYTES_PER_DAY = 1024 * 1024 * 1024
 /** Abandoned uploads (anyone's) cleared per upload request. */
 const STALE_SWEEP_BATCH = 50
 
@@ -82,15 +85,17 @@ learningResourcesRouter.post(
     // would count the others' files as not there yet and pass the cap.
     const id = await withTransaction(async (client) => {
       await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_upload:${me}`])
-      // This member's uploads not attached within 3 hours belong to a form
-      // that was abandoned (tab closed, navigated away) — no form is held open
-      // that long — so they never lock the member out for longer than that.
-      await client.query(
-        `DELETE FROM learning_share_files
-          WHERE owner_id = $1 AND share_id IS NULL AND created_at < now() - interval '${OWN_PENDING_TTL}'`,
+      // Daily upload limit — counted from a log, so uploads deleted again
+      // still count and "upload, delete, repeat" can't fill the database.
+      await client.query(`DELETE FROM learning_upload_log WHERE owner_id = $1 AND created_at < now() - interval '1 day'`, [me])
+      const today = await client.query<{ n: number; bytes: string }>(
+        `SELECT count(*)::int AS n, coalesce(sum(bytes), 0)::bigint AS bytes FROM learning_upload_log WHERE owner_id = $1`,
         [me],
       )
-      // And anyone's left unattached for a day, so a member who never uploads
+      if (today.rows[0].n >= MAX_UPLOADS_PER_DAY || Number(today.rows[0].bytes) + bytes.length > MAX_UPLOAD_BYTES_PER_DAY) {
+        throw new ApiError(429, "You have reached today's upload limit — please try again tomorrow")
+      }
+      // Anyone's uploads left unattached for a day, so a member who never uploads
       // again doesn't keep their abandoned files forever. A bounded batch
       // (idx_learning_share_files_stale), skipping rows another request holds.
       await client.query(
@@ -100,8 +105,13 @@ learningResourcesRouter.post(
             ORDER BY created_at LIMIT ${STALE_SWEEP_BATCH}
             FOR UPDATE SKIP LOCKED)`,
       )
+      // Only recent unattached uploads count toward the cap: files from a form
+      // abandoned hours ago never lock the member out (they are swept after a
+      // day), while a form left open stays intact — nothing of theirs is
+      // deleted early.
       const pending = await client.query<{ n: number }>(
-        `SELECT count(*)::int AS n FROM learning_share_files WHERE owner_id = $1 AND share_id IS NULL`,
+        `SELECT count(*)::int AS n FROM learning_share_files
+          WHERE owner_id = $1 AND share_id IS NULL AND created_at > now() - interval '${PENDING_WINDOW}'`,
         [me],
       )
       if (pending.rows[0].n >= MAX_PENDING) {
@@ -112,6 +122,7 @@ learningResourcesRouter.post(
          VALUES ($1, $2, $3, $4, $5) RETURNING id`,
         [me, name, mime, bytes.length, bytes],
       )
+      await client.query(`INSERT INTO learning_upload_log (owner_id, bytes) VALUES ($1, $2)`, [me, bytes.length])
       return r.rows[0].id
     })
     res.status(201).json({ id, name, mime, size: bytes.length })
@@ -223,7 +234,9 @@ learningResourcesRouter.get(
     res.setHeader('Content-Type', inline ? f.mime : 'application/octet-stream')
     res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${rfc8187(f.name)}`)
     res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.setHeader('Cache-Control', 'private, max-age=3600')
+    // Never cached: access can end (hidden, deleted, disconnected), and a
+    // cached copy would skip that check.
+    res.setHeader('Cache-Control', 'no-store')
     res.send(f.data)
   }),
 )
