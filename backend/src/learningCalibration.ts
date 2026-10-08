@@ -8,9 +8,10 @@
  * stage titles are worded the way generated roadmaps word them — vague verbs,
  * role in front — because that is what the model has to read in production.
  */
-import { normalizeTag, shareEmbedText, stageMatchTerms, topicEmbedText } from './learning.js'
+import { normalizeTag, shareEmbedText, stageMatchTerms, stageRoleTags, topicEmbedText } from './learning.js'
 
-export interface LabelledShare { subject: string; title: string; why: string; skills: string[] }
+/** `also`: other subjects the share truly helps with (Pandas is ML groundwork). */
+export interface LabelledShare { subject: string; also?: string[]; title: string; why: string; skills: string[] }
 export interface LabelledStage { role: string; title: string; wants: string[] }
 /** A share filed under a stage by its sharer: should it survive the
  *  same-stage screen? (The DEMO case: a web link filed under an AWS stage.) */
@@ -31,7 +32,7 @@ export const SHARES: LabelledShare[] = [
   { subject: 'ml', title: 'Hugging Face transformers course', why: 'Fine-tuning a pretrained model for my own text classifier.', skills: ['NLP', 'Deep Learning'] },
   { subject: 'data', title: 'SQL for data analysts (Mode)', why: 'Window functions and joins for real reporting questions.', skills: ['SQL'] },
   { subject: 'data', title: 'Power BI dashboard in a day', why: 'Built a sales dashboard my manager actually used.', skills: ['Power BI'] },
-  { subject: 'data', title: 'Pandas for analysts', why: 'Cleaning messy CSVs and group-by reports.', skills: ['Python', 'Pandas'] },
+  { subject: 'data', also: ['ml'], title: 'Pandas for analysts', why: 'Cleaning messy CSVs and group-by reports.', skills: ['Python', 'Pandas'] },
   { subject: 'data', title: 'Excel pivot tables masterclass', why: 'Summarised 50k rows of transactions in minutes.', skills: ['Excel'] },
   { subject: 'data', title: 'Storytelling with Data', why: 'How to choose the right chart and remove clutter.', skills: ['Data Visualization'] },
   { subject: 'data', title: 'A/B testing basics', why: 'Sample size and significance for a product experiment.', skills: ['Statistics'] },
@@ -61,6 +62,20 @@ export const SHARES: LabelledShare[] = [
   { subject: 'pm', title: 'Inspired by Marty Cagan', why: 'How strong product teams discover what to build.', skills: ['Product'] },
   { subject: 'pm', title: 'Product metrics: north star and funnels', why: 'Picking the one number that shows real value.', skills: ['Analytics'] },
   { subject: 'pm', title: 'Running a sprint planning meeting', why: 'Turned a messy backlog into a two week plan.', skills: ['Agile'] },
+  // Shares as members wrote them on the local copy (2026-10-08), including the
+  // case that set the cut-offs: an AWS course must not reach "Learn
+  // Fundamentals of ML", while Pandas/NumPy shares must.
+  { subject: 'cloud', title: 'AWS Cloud Practitioner Essentials course', why: 'Covered core AWS services, IAM, EC2, S3 and VPC basics — the foundation I needed before architecture work.', skills: ['AWS', 'Cloud'] },
+  { subject: 'data', title: 'SQL joins and window functions practice workbook', why: 'Working every exercise made joins and window functions click, so I could write the analytics queries my reports needed.', skills: ['SQL', 'Data Analysis'] },
+  { subject: 'data', also: ['ml'], title: 'Python for Data Analysis: Pandas and NumPy hands-on', why: 'Cleaning and reshaping data with Pandas and NumPy was the groundwork every ML exercise depended on.', skills: ['Pandas', 'NumPy', 'Python'] },
+  { subject: 'ml', title: 'Building RAG pipelines with LangChain: my notes', why: 'Explains chunking, embeddings and retrieval for LLM apps step by step; I built my first RAG chatbot with it.', skills: ['LLM', 'RAG'] },
+  { subject: 'cloud', title: 'Amazon S3 getting started', why: 'Buckets, objects and permissions finally made sense once I followed this step by step.', skills: ['AWS', 'S3'] },
+  { subject: 'cloud', title: 'Azure Fundamentals: describe cloud concepts', why: 'Cloud concepts, pricing and service models explained without jargon, great for comparing with AWS.', skills: ['Azure', 'Cloud'] },
+  { subject: 'cloud', title: 'Build a 2-tier VPC by hand', why: 'Interviewers always ask how traffic reaches a private subnet.', skills: ['AWS', 'Networking', 'System Design'] },
+  { subject: 'cloud', title: 'Python boto3 crash course', why: 'Automating my first infra tasks in Python is what got me noticed.', skills: ['Python', 'AWS'] },
+  { subject: 'data', also: ['ml'], title: 'Pandas 10 minutes to pandas', why: 'Cleaning messy CSV files and building group-by reports became quick after this guide.', skills: ['Python', 'Pandas'] },
+  { subject: 'ml', title: 'RAG chatbot over your notes', why: 'Every cloud team I talk to now wants someone who has shipped one.', skills: ['LLM/RAG', 'Python', 'Machine Learning'] },
+  { subject: 'data', title: 'Seaborn and Matplotlib charts for analysts', why: 'Turned my notebook tables into charts stakeholders understood at a glance.', skills: ['Python', 'Data Visualization'] },
 ]
 
 export const STAGES: LabelledStage[] = [
@@ -79,6 +94,23 @@ export const STAGES: LabelledStage[] = [
   // Generic stages: the role is the only signal, so its own field is the fair answer.
   { role: 'Data Analyst', title: 'Skill Gap Analysis', wants: ['data'] },
   { role: 'Product Manager', title: 'Build Your Portfolio', wants: ['pm'] },
+  // Stages as generated roadmaps worded them on the local copy (2026-10-08).
+  { role: 'AI Engineer', title: 'Gain LLM and RAG Expertise', wants: ['ml'] },
+  { role: 'AI Engineer', title: 'Transition to ML Engineer via Internship or Project', wants: ['ml'] },
+  { role: 'Cloud Architect', title: 'Learn Cloud Architecture Principles and Design', wants: ['cloud', 'sysdesign'] },
+  { role: 'Cloud Architect', title: 'Complete Cloud Engineering Projects', wants: ['cloud'] },
+  { role: 'Data Analyst', title: 'Learn SQL and Data Analysis Fundamentals', wants: ['data'] },
+  { role: 'Data Analyst', title: 'Master Pandas, NumPy, and Data Visualization', wants: ['data'] },
+  { role: 'Data Analyst', title: 'Build Portfolio Projects with Real Datasets', wants: ['data'] },
+  { role: 'Data Analyst', title: 'Interview Preparation', wants: ['data', 'dsa'] },
+  // The job hunt itself: no course belongs, whatever the role.
+  { role: 'Data Analyst', title: 'Resume and LinkedIn Optimization', wants: [] },
+  // Outside the role's own field: an AI engineer's cloud stages want cloud
+  // shares, not the role's ML ones — what keeps the role key off stages that
+  // name their own subject.
+  { role: 'AI Engineer', title: 'Deepen AWS and Cloud Fundamentals', wants: ['cloud'] },
+  { role: 'AI Engineer', title: 'Learn Cloud Architecture Principles and Design', wants: ['cloud', 'sysdesign'] },
+  { role: 'AI Engineer', title: 'Complete Cloud Engineering Projects', wants: ['cloud'] },
 ]
 
 export const FILED: FiledCase[] = [
@@ -104,34 +136,76 @@ export const cosine = (a: number[], b: number[]) => {
   return d / Math.sqrt(x * y)
 }
 
-export interface Scored { precision: number; recall: number; f1: number; relatedMin: number; relatedWithTagMin: number }
+/** Cards members have judged by hand: whatever the totals say, cut-offs that
+ *  get one of these wrong are never recommended. Added 2026-10-08 — the AWS
+ *  course scored 0.31 on the ML stage, above the Pandas shares (~0.1), so no
+ *  single cut-off on meaning can get both right; the skill tag decides. */
+export const MUST: { stage: string; share: string; shown: boolean }[] = [
+  { stage: 'Learn Fundamentals of ML', share: 'AWS Cloud Practitioner Essentials course', shown: false },
+  { stage: 'Learn Fundamentals of ML', share: 'Python for Data Analysis: Pandas and NumPy hands-on', shown: true },
+  { stage: 'Learn Fundamentals of ML', share: 'Pandas for analysts', shown: true },
+  { stage: 'Learn Fundamentals of ML', share: 'Pandas 10 minutes to pandas', shown: true },
+]
+
+export interface Scored {
+  precision: number; recall: number; f1: number
+  relatedMin: number; relatedWithTagMin: number; relatedWithRoleMin: number
+  /** Every MUST card comes out the way members judged it. */
+  mustOk: boolean
+}
 
 /**
- * Every (relatedMin, relatedWithTagMin) pair on a grid, scored exactly the way
- * the stage query decides: shown when sim ≥ relatedMin, or when a stage tag
- * matches and sim ≥ relatedWithTagMin. sim[i][j] = stage i vs share j.
+ * Every (relatedMin, relatedWithTagMin, relatedWithRoleMin) on a grid, scored
+ * exactly the way the stage query decides: shown when sim ≥ relatedMin, or a
+ * stage tag matches and sim ≥ relatedWithTagMin, or — on a stage whose title
+ * names no skill — a skill of the role matches and sim ≥ relatedWithRoleMin.
+ * sim[i][j] = stage i vs share j.
  */
 export function sweep(sim: number[][]): Scored[] {
-  const tagHit = STAGES.map((st) => {
+  // "In use on the network" (the page asks learning_tags) is, here, every
+  // skill the labelled shares carry.
+  const vocab = new Set(SHARES.flatMap((s) => s.skills.map(normalizeTag)))
+  const skillsOf = SHARES.map((s) => s.skills.map(normalizeTag))
+  const tagHit: boolean[][] = []
+  const roleHit: boolean[][] = []
+  STAGES.forEach((st) => {
     const { tags } = stageMatchTerms(st.title)
-    return SHARES.map((s) => s.skills.map(normalizeTag).some((t) => tags.includes(t)))
+    const roleTags = stageRoleTags(st.title, st.role, tags.some((t) => vocab.has(t)))
+    tagHit.push(skillsOf.map((sk) => sk.some((t) => tags.includes(t))))
+    roleHit.push(skillsOf.map((sk) => sk.some((t) => roleTags.includes(t))))
   })
+  const wanted = STAGES.map((st) => SHARES.map((s) => [s.subject, ...(s.also ?? [])].some((x) => st.wants.includes(x))))
+  const relevant = wanted.flat().filter(Boolean).length
+  const must = MUST.map((m) => {
+    const i = STAGES.findIndex((s) => s.title === m.stage)
+    const j = SHARES.findIndex((s) => s.title === m.share)
+    if (i < 0 || j < 0) throw new Error(`MUST case not in the labelled set: ${m.share} → ${m.stage}`)
+    return { i, j, shown: m.shown }
+  })
+  const shownAt = (i: number, j: number, r: number, t: number, g: number) =>
+    sim[i][j] >= r || (tagHit[i][j] && sim[i][j] >= t) || (roleHit[i][j] && sim[i][j] >= g)
   const out: Scored[] = []
   for (let r = 0.1; r <= 0.6001; r += 0.01) {
-    for (let t = Math.max(0.05, r - 0.2); t <= r + 0.0001; t += 0.01) {
-      let right = 0, wrong = 0, relevant = 0
-      STAGES.forEach((st, i) => {
-        SHARES.forEach((s, j) => {
-          const wanted = st.wants.includes(s.subject)
-          if (wanted) relevant++
-          const shown = sim[i][j] >= r || (tagHit[i][j] && sim[i][j] >= t)
-          if (shown) wanted ? right++ : wrong++
+    // The backed bars can sit far below the meaning-only one: the skill tag
+    // (or the role's skill) is the second key — a Pandas share on an ML stage
+    // scores ~0.1.
+    for (let t = 0.05; t <= r + 0.0001; t += 0.01) {
+      for (let g = 0.05; g <= r + 0.0001; g += 0.01) {
+        let right = 0, wrong = 0
+        for (let i = 0; i < STAGES.length; i++) {
+          for (let j = 0; j < SHARES.length; j++) {
+            if (shownAt(i, j, r, t, g)) wanted[i][j] ? right++ : wrong++
+          }
+        }
+        const precision = right / Math.max(1, right + wrong)
+        const recall = right / Math.max(1, relevant)
+        const f1 = precision + recall ? (2 * precision * recall) / (precision + recall) : 0
+        const mustOk = must.every((m) => shownAt(m.i, m.j, r, t, g) === m.shown)
+        out.push({
+          precision, recall, f1, mustOk,
+          relatedMin: +r.toFixed(2), relatedWithTagMin: +t.toFixed(2), relatedWithRoleMin: +g.toFixed(2),
         })
-      })
-      const precision = right / Math.max(1, right + wrong)
-      const recall = right / Math.max(1, relevant)
-      const f1 = precision + recall ? (2 * precision * recall) / (precision + recall) : 0
-      out.push({ precision, recall, f1, relatedMin: +r.toFixed(2), relatedWithTagMin: +t.toFixed(2) })
+      }
     }
   }
   return out.sort((a, b) => b.f1 - a.f1 || b.precision - a.precision)
@@ -156,10 +230,16 @@ export function sameStageCut(simOf: (stage: string, share: string) => number): {
 
 /** The rule the page is tuned to: at least this share of the cards shown must
  *  be right — an unrelated card costs a member's trust more than a missing one
- *  costs them. Among the cut-offs that meet it, the one that finds the most. */
-export const MIN_PRECISION = 0.8
+ *  costs them. Among the cut-offs that meet it, the one that finds the most.
+ *  Raised from 0.8 once skill families (learning.ts) made 0.9 reachable
+ *  without finding fewer: at 0.8 an AWS course still reached an ML stage. */
+export const MIN_PRECISION = 0.9
 
 export function recommend(scored: Scored[]): Scored {
-  const ok = scored.filter((s) => s.precision >= MIN_PRECISION)
-  return (ok.length ? ok.sort((a, b) => b.recall - a.recall || b.precision - a.precision) : [...scored].sort((a, b) => b.precision - a.precision))[0]
+  // The hand-judged cards first: only when no cut-off gets them all right (a
+  // model that cannot) does the choice fall back to the totals alone — and
+  // calibrateEmbeddings.ts says so.
+  const pool = scored.some((s) => s.mustOk) ? scored.filter((s) => s.mustOk) : scored
+  const ok = pool.filter((s) => s.precision >= MIN_PRECISION)
+  return (ok.length ? ok.sort((a, b) => b.recall - a.recall || b.precision - a.precision) : [...pool].sort((a, b) => b.precision - a.precision))[0]
 }

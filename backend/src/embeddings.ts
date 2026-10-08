@@ -33,6 +33,10 @@ export interface EmbedProfile {
   relatedMin: number
   /** Related when the share also carries one of the stage's skill tags. */
   relatedWithTagMin: number
+  /** Related on a stage whose title names no skill, when the share carries a
+   *  skill of the member's role (learning.ts stageRoleTags). Unmeasured →
+   *  relatedMin, so the role adds nothing until calibrated. */
+  relatedWithRoleMin?: number
   /** Filed under this very stage: only screens out an unrelated link. */
   sameStageMin: number
   /** Send `dimensions: EMBED_DIMS` (models that shorten their own output). */
@@ -51,7 +55,15 @@ const PROFILES: Record<string, EmbedProfile> = {
   //   Nemotron 3 Embed 1B   82% right, finds 58%   ← best free, the default
   //   Liquid LFM2.5 350M    82% right, finds 53%
   //   Nemotron Embed VL 1B  83% right, finds 51%
-  'nvidia/nemotron-3-embed-1b:free': { relatedMin: 0.25, relatedWithTagMin: 0.05, sameStageMin: 0.2 },
+  // Nemotron re-measured 2026-10-08 (55 shares, 26 stages, skill families,
+  // role skills, MUST cards): meaning alone 0.25 → 0.32 so an AWS course
+  // (0.31) no longer reaches "Learn Fundamentals of ML", while Pandas shares
+  // (~0.1) still do through their skill tag, and a data analyst's "Skill Gap
+  // Analysis" gets data shares through the role — 94% right, finds 81%
+  // (was 83% / 60%).
+  'nvidia/nemotron-3-embed-1b:free': {
+    relatedMin: 0.32, relatedWithTagMin: 0.05, relatedWithRoleMin: 0.05, sameStageMin: 0.2,
+  },
   'liquid/lfm-2.5-embedding-350m:free': { relatedMin: 0.27, relatedWithTagMin: 0.07, sameStageMin: 0.2 },
   'nvidia/llama-nemotron-embed-vl-1b-v2:free': { relatedMin: 0.27, relatedWithTagMin: 0.07, sameStageMin: 0.15 },
 }
@@ -71,10 +83,13 @@ export function profileFor(model: string): EmbedProfile {
     const n = Number(v)
     return v !== undefined && v !== '' && Number.isFinite(n) && n > -1 && n < 1 ? n : fallback
   }
+  const relatedMin = num(process.env.EMBED_RELATED_MIN, base.relatedMin)
   return {
     ...base,
-    relatedMin: num(process.env.EMBED_RELATED_MIN, base.relatedMin),
+    relatedMin,
     relatedWithTagMin: num(process.env.EMBED_RELATED_WITH_TAG_MIN, base.relatedWithTagMin),
+    // Unmeasured → the (overridden) meaning-only bar, so the role adds nothing.
+    relatedWithRoleMin: num(process.env.EMBED_RELATED_WITH_ROLE_MIN, base.relatedWithRoleMin ?? relatedMin),
     sameStageMin: num(process.env.EMBED_SAME_STAGE_MIN, base.sameStageMin),
   }
 }

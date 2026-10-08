@@ -213,6 +213,33 @@ const STAGE_ALIASES: Record<string, string[]> = {
 }
 
 /**
+ * The skills that are groundwork for a subject, though the stage title never
+ * names them: "Learn Fundamentals of ML" is helped by a Pandas course, and the
+ * free embedding model does not know that (it scores Pandas → ML 0.11, below
+ * an AWS course's 0.31). Applied to a stage's tags after the aliases, they let
+ * such a share through on the tag-backed bar while a share on meaning alone
+ * must clear the higher one (embeddings.ts PROFILES). Specific tools only —
+ * never plain "python", which would tie every Python share to every ML and
+ * data stage. Measured with `npm run learning:calibrate`.
+ */
+const ML_GROUNDWORK = [
+  'pandas', 'numpy', 'scikit-learn', 'statistics', 'deep learning', 'pytorch', 'tensorflow',
+  'data science', 'feature engineering', 'nlp',
+]
+const SKILL_FAMILIES: Record<string, string[]> = {
+  ml: ML_GROUNDWORK,
+  'machine learning': ML_GROUNDWORK,
+  llm: ['nlp', 'langchain', 'embeddings', 'vector databases', 'prompt engineering'],
+  rag: ['langchain', 'embeddings', 'vector databases'],
+  'data analysis': ['sql', 'excel', 'pandas', 'statistics', 'data visualization'],
+  'data visualization': ['power bi', 'tableau', 'excel'],
+  sql: ['databases', 'data analysis'],
+  aws: ['cloud', 'terraform', 's3', 'ec2', 'iam', 'vpc'],
+  cloud: ['terraform', 'docker', 'networking'],
+  'cloud architecture': ['system design', 'architecture'],
+}
+
+/**
  * What a roadmap stage is about, for matching shares to it across roadmaps.
  *
  * Roadmaps are written per person, so the same subject appears under
@@ -220,11 +247,12 @@ const STAGE_ALIASES: Record<string, string[]> = {
  * Matching on the exact title would show a share only to people with the same
  * sentence. Instead: the meaningful single words, the two-word terms
  * ("data analysis", "system design" — kept even when one word alone is
- * filler), and their common aliases — as normalised values to compare with
+ * filler), their common aliases and their groundwork skills (SKILL_FAMILIES)
+ * — as normalised values to compare with
  * share skill tags (GIN &&). The tag half of matching; meaning is matched by
  * embeddings (learningEmbed.ts).
  */
-export function stageMatchTerms(stageTitle: string): { tags: string[] } {
+export function stageMatchTerms(stageTitle: string): { tags: string[]; titleTags: string[] } {
   const words = (stageTitle.toLowerCase().match(/[a-z0-9+#.]+/g) ?? []).map((w) => w.replace(/^\.+|\.+$/g, ''))
   const connector = new Set(['and', 'or', 'of', 'the', 'to', 'in', 'for', 'with', 'via', 'a', 'an'])
   const terms = new Set<string>()
@@ -242,7 +270,56 @@ export function stageMatchTerms(stageTitle: string): { tags: string[] } {
     for (const a of STAGE_ALIASES[t] ?? []) tags.add(normalizeTag(a))
   }
   tags.delete('')
-  return { tags: [...tags].slice(0, 30) }
+  // The title's own terms and aliases first, so the cap never drops them for
+  // a family skill; then the groundwork skills of each.
+  const base = [...tags].slice(0, 30)
+  const all = new Set(base)
+  for (const t of base) for (const f of SKILL_FAMILIES[t] ?? []) all.add(normalizeTag(f))
+  // titleTags: without the families — for the rule-based stand-in that runs
+  // before a stage is embedded, which has no similarity to temper them.
+  return { tags: [...all].slice(0, 45), titleTags: base }
+}
+
+const DATA_SKILLS = ['sql', 'excel', 'pandas', 'data analysis', 'data visualization', 'power bi', 'tableau', 'statistics']
+const ML_SKILLS = ['machine learning', 'ml', ...ML_GROUNDWORK, 'llm/rag']
+const FRONTEND_SKILLS = ['react', 'javascript', 'css', 'typescript', 'next.js']
+const BACKEND_SKILLS = ['system design', 'databases', 'node.js', 'express']
+/** The skills a role is built on, by phrases found in the free-text role
+ *  ("Senior Data Analyst", "AI/ML Engineer"). Every match adds its skills. */
+const ROLE_SKILLS: [RegExp, string[]][] = [
+  [/\b(data|business|bi|reporting) analyst\b|\banalytics\b/, DATA_SKILLS],
+  [/\bdata scientist\b|\b(ml|machine learning|ai|ai\/ml|mlops) engineer\b/, ML_SKILLS],
+  [/\b(ai|ai\/ml) engineer\b/, ['llm', 'llms']],
+  [/\bcloud\b|\bsolutions? architect\b/, ['aws', 'azure', 'gcp', 'cloud', 'terraform', 'networking']],
+  [/\bdevops\b|\bsre\b|site reliability|platform engineer/, ['docker', 'kubernetes', 'ci/cd', 'linux', 'terraform', 'monitoring', 'github actions']],
+  // "Front-End", "Frontend", "Front End" — designationKey keeps the hyphen.
+  [/\bfront[ -]?end\b/, FRONTEND_SKILLS],
+  [/\bback[ -]?end\b/, BACKEND_SKILLS],
+  [/\bfull[ -]?stack\b/, [...FRONTEND_SKILLS, ...BACKEND_SKILLS]],
+  [/\b(software|sde|swe)\b/, ['dsa', 'algorithms', 'interview prep']],
+  [/\bux\b|\bui\/ux\b|\b(product|ui) designer\b/, ['figma', 'ux', 'user research', 'ui design']],
+  [/\bproduct (manager|owner)\b/, ['product management', 'product', 'agile', 'analytics']],
+]
+
+/** Stages about the job hunt itself — no course is the answer to them,
+ *  whatever the role. */
+const JOB_HUNT_STAGE = /\b(resume|cv|linkedin|cover letter|job search|job applications?|salary|negotiation)\b/i
+
+/**
+ * The role's own skills, for a stage whose title names no skill at all —
+ * "Skill Gap Analysis", "Interview Preparation", "Build Portfolio Projects
+ * with Real Datasets". For a data analyst those are data stages; the title
+ * alone says nothing the tags or the model can use. Empty when the stage has
+ * a subject of its own (`stageHasSubject`: one of its tags is in use on the
+ * network) or is about the job hunt. The third key of matching (see
+ * relatedWithRoleMin in embeddings.ts), measured by `npm run learning:calibrate`.
+ */
+export function stageRoleTags(stageTitle: string, role: string | null | undefined, stageHasSubject: boolean): string[] {
+  if (stageHasSubject || JOB_HUNT_STAGE.test(stageTitle)) return []
+  const r = designationKey(role)
+  const tags = new Set<string>()
+  for (const [re, skills] of ROLE_SKILLS) if (re.test(r)) for (const s of skills) tags.add(normalizeTag(s))
+  return [...tags].slice(0, 40)
 }
 
 /** The text a share is embedded from: everything a reader would judge it by.

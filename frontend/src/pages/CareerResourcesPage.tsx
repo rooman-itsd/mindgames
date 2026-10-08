@@ -275,9 +275,10 @@ export function CareerResourcesPage() {
             setSharing(null)
             void loadOverview()
             void loadContribute()
-            // Show it where everyone will find it.
-            setFilters(NO_FILTERS)
-            setView('all')
+            // Straight to "I've shared", like Add resource: All Resources
+            // leaves out the viewer's own items, so it would look like
+            // nothing happened.
+            setView('shared')
             setReload((n) => n + 1)
           }}
         />

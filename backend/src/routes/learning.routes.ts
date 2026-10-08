@@ -30,6 +30,7 @@ import {
   toResourceKind,
   topicKey,
   stageMatchTerms,
+  stageRoleTags,
   type ShareKind,
 } from '../learning.js'
 import {
@@ -250,8 +251,27 @@ async function alumniForStage(me: string, stage: StageTopic, targetRole: string 
 // `npm run learning:calibrate`. Read once at start; numbers, never user input,
 // so they are safe to place in the SQL text.
 const { relatedMin: RELATED_MIN, relatedWithTagMin: RELATED_WITH_TAG_MIN, sameStageMin: SAME_STAGE_MIN } = EMBED_PROFILE
+const RELATED_WITH_ROLE_MIN = EMBED_PROFILE.relatedWithRoleMin ?? RELATED_MIN
 /** Nearest shares read from the embedding index per stage view. */
 const NEAREST = 100
+
+/** The member's role skills for a stage whose title names no skill (see
+ *  stageRoleTags), else none. "Names a skill" = one of the stage's tags is in
+ *  use on the network: one probe of learning_tags' primary key, made only when
+ *  the role has skills to offer and the stage is not about the job hunt.
+ *  Calibration models "in use" as the labelled shares' skills; here it is any
+ *  member's free-text tag, so once a member tags a share "interview", the
+ *  stage "Interview Preparation" counts as naming a skill — its tag-backed
+ *  shares show through the tag key instead, and the role key steps aside. */
+async function roleTagsFor(stageTitle: string, stageTags: string[], role: string | null): Promise<string[]> {
+  const roleSkills = stageRoleTags(stageTitle, role, false)
+  if (!roleSkills.length || !stageTags.length) return roleSkills
+  const inUse = await query(
+    `SELECT 1 FROM learning_tags WHERE tag = ANY($1::text[]) AND share_count > 0 LIMIT 1`,
+    [stageTags],
+  )
+  return inUse.rowCount ? [] : roleSkills
+}
 
 /**
  * The shares for one stage: first those filed under this exact stage, then
@@ -266,8 +286,10 @@ const NEAREST = 100
  * however many shares exist. Until the stage is embedded (seconds after it
  * first appears), or without pgvector, a rule-based match by skill tag stands in.
  */
-async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[], limit: number, offset = 0) {
-  const { tags } = stageMatchTerms(stage.title)
+async function topShares(
+  me: string, stage: StageTopic, otherTopicKeys: string[], role: string | null, limit: number, offset = 0,
+) {
+  const { tags, titleTags } = stageMatchTerms(stage.title)
   const vector = (await vectorsReady())
     ? (
         await query<{ v: string }>(
@@ -293,11 +315,15 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
         ORDER BY CASE WHEN f.on_stage THEN 0 ELSE 1 END,
                  s.helped_count DESC, s.created_at DESC, s.id
         LIMIT $5 OFFSET $6`,
-      [me, stage.topicKey, tags, otherTopicKeys, limit, offset],
+      // The title's own tags only: this stand-in has no similarity to temper
+      // the broader skill families with.
+      [me, stage.topicKey, titleTags, otherTopicKeys, limit, offset],
     )
     return markStage(r.rows, stage.topicKey)
   }
 
+  // Only on this path: the role key, like the others, needs the AI's score.
+  const roleTags = await roleTagsFor(stage.title, tags, role)
   const rows = await withTransaction(async (client) => {
     // The HNSW index returns at most ef_search rows per scan (default 40);
     // this view reads the nearest 100. Scoped to this transaction only.
@@ -333,14 +359,17 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
        JOIN cand c ON c.id = s.id
        CROSS JOIN LATERAL (
          SELECT CASE WHEN s.embed_model = $9 THEN 1 - (s.embedding <=> $3::halfvec) END AS sim,
-                ($4::text[] <> '{}' AND s.skills && $4::text[]) AS tag_hit) m
+                ($4::text[] <> '{}' AND s.skills && $4::text[]) AS tag_hit,
+                ($10::text[] <> '{}' AND s.skills && $10::text[]) AS role_hit) m
       WHERE NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
         AND (c.tier = 0
              -- Related: filed under neither this stage nor one of my others
              -- (a share with no stage at all passes).
              OR (NOT EXISTS (SELECT 1 FROM learning_share_topics st
                               WHERE st.share_id = s.id AND (st.topic_key = $2 OR st.topic_key = ANY($5::text[])))
-                 AND (m.sim >= ${RELATED_MIN} OR (m.tag_hit AND m.sim >= ${RELATED_WITH_TAG_MIN}))))
+                 AND (m.sim >= ${RELATED_MIN} OR (m.tag_hit AND m.sim >= ${RELATED_WITH_TAG_MIN})
+                      -- A stage naming no skill: a skill of the member's role.
+                      OR (m.role_hit AND m.sim >= ${RELATED_WITH_ROLE_MIN}))))
       ORDER BY c.tier,
                CASE WHEN c.tier = 0 THEN s.helped_count END DESC NULLS LAST,
                CASE WHEN c.tier = 0 THEN s.created_at END DESC NULLS LAST,
@@ -348,7 +377,7 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
                m.sim + CASE WHEN m.tag_hit THEN 0.1 ELSE 0 END DESC NULLS LAST,
                s.created_at DESC, s.id
       LIMIT $6 OFFSET $8`,
-      [me, stage.topicKey, vector, tags, otherTopicKeys, limit, offset + limit, offset, EMBED_MODEL],
+      [me, stage.topicKey, vector, tags, otherTopicKeys, limit, offset + limit, offset, EMBED_MODEL, roleTags],
     )
     return r.rows
   })
@@ -480,7 +509,7 @@ learningRouter.get(
 
     const offset = offsetParam(req.query.offset)
     const others = plan.stages.filter((s) => s.topicKey !== stage.topicKey).map((s) => s.topicKey)
-    const shares = await topShares(me, stage, others, pageLimit(req.query.limit), offset)
+    const shares = await topShares(me, stage, others, plan.targetRole, pageLimit(req.query.limit), offset)
     // Only when there is nothing to show, and only on the first page: the
     // people are the fallback, not a permanent second list.
     const alumni = shares.length === 0 && offset === 0 ? await alumniForStage(me, stage, plan.targetRole) : []
