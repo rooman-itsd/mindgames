@@ -2,7 +2,7 @@
 //   npm --prefix frontend run check
 import assert from 'node:assert'
 import type { Post, User } from '../types'
-import { homeFeedPosts } from './homeFeed'
+import { dealColumns, homeFeedPosts } from './homeFeed'
 
 const HOUR = 60 * 60 * 1000
 const NOW = Date.now()
@@ -27,5 +27,17 @@ assert.deepEqual(ids(homeFeedPosts({ ...base, query: 'stranger', posts: [post('f
 
 // A deep-linked post outside the window is pulled in at the end.
 assert.deepEqual(ids(homeFeedPosts({ ...base, focusId: 'far', posts: [post('near', 'friend', 1), post('far', 'stranger', 400)] })), ['near', 'far'])
+
+// Two columns: a first deal alternates left/right, newest first.
+const first = dealColumns(['a', 'b', 'c', 'd'], new Map())
+assert.deepEqual([...first], [['a', 0], ['b', 1], ['c', 0], ['d', 1]])
+// A new post on top moves no older post (a moved card loses its draft comment).
+const second = dealColumns(['new', 'a', 'b', 'c', 'd'], first)
+for (const id of ['a', 'b', 'c', 'd']) assert.equal(second.get(id), first.get(id))
+assert.equal(second.get('new'), 0)
+// A post that left the feed frees its slot: the next new one fills that column.
+const third = dealColumns(['newer', 'new', 'a', 'c', 'd'], second)
+assert.equal(third.has('b'), false)
+assert.equal(third.get('newer'), 1)
 
 console.log('homeFeed.check.ts — all assertions passed')

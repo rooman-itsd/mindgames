@@ -594,9 +594,12 @@ learningRouter.get(
       stages.push({ topicKey, stepKey, title, reason, membersWaiting: st?.members ?? 0, sharesCount: st?.shares ?? 0 })
     }
 
+    // Own stages before role ones: the first push of a topic wins, and a stage
+    // on the member's own roadmap must stay theirs (with its stepKey) even when
+    // their job title leads to it too — the share form offers only own stages.
     for (const s of plan?.stages ?? []) if (s.status === 'completed') push(s.topicKey, s.stepKey, s.title, 'passed')
-    for (const r of byRole.rows) push(r.topic_key, null, r.stage_label, 'role')
     for (const s of plan?.stages ?? []) push(s.topicKey, s.stepKey, s.title, 'mine')
+    for (const r of byRole.rows) push(r.topic_key, null, r.stage_label, 'role')
 
     // Where help is most needed first: passed/role gaps, then by members
     // waiting; the member's own current stages last.

@@ -165,7 +165,11 @@ export const RESOURCE_WHY_MIN = 30
 
 /** Programs, scripts and web pages are refused (the server refuses them too). */
 export function isBlockedFile(name: string): boolean {
-  return /\.(exe|msi|bat|cmd|com|scr|ps1|vbs|js|mjs|jar|apk|dll|sh|html?|svg|xhtml)$/i.test(name.trim())
+  // Trailing dots/spaces stripped first, as the server does (Windows drops
+  // them on save, so "setup.exe." is setup.exe). Same list as the server's.
+  return /\.(exe|msi|msp|bat|cmd|com|scr|pif|cpl|ps1|vbs|vbe|js|jse|mjs|wsf|wsh|hta|lnk|scf|url|inf|reg|msc|jar|apk|appx|msix|dll|sh|command|html?|svg|xhtml)$/i.test(
+    name.trim().replace(/[.\s]+$/, ''),
+  )
 }
 
 /** Types a browser shows in place (a new tab) — the server's INLINE_TYPES;

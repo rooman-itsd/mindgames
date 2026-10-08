@@ -37,8 +37,11 @@ const MAX_PENDING = 20
  *  sent as a download with a generic type, so an uploaded HTML or SVG file
  *  can never run as a page on our origin. */
 const INLINE_TYPES = /^(image\/(png|jpe?g|gif|webp|avif)|video\/(mp4|webm|ogg|quicktime)|audio\/(mpeg|mp4|ogg|wav|webm|aac)|application\/pdf)$/
-/** Never accepted: programs and scripts. */
-const BLOCKED_NAME = /\.(exe|msi|bat|cmd|com|scr|ps1|vbs|js|mjs|jar|apk|dll|sh|html?|svg|xhtml)$/i
+/** Never accepted: programs, scripts, shortcuts and installers. Tested after
+ *  trailing dots/spaces are stripped (Windows drops them on save, so
+ *  "setup.exe." would land as setup.exe). Keep in step with lib/learningHub.ts. */
+const BLOCKED_NAME =
+  /\.(exe|msi|msp|bat|cmd|com|scr|pif|cpl|ps1|vbs|vbe|js|jse|mjs|wsf|wsh|hta|lnk|scf|url|inf|reg|msc|jar|apk|appx|msix|dll|sh|command|html?|svg|xhtml)$/i
 
 const uploadSchema = z.object({
   name: z.string().trim().min(1, 'The file needs a name').max(200),
@@ -60,7 +63,10 @@ learningResourcesRouter.post(
     if (!parsed.success) throw new ApiError(400, parsed.error.issues[0].message)
     const me = req.user!.sub
     // Strip any path a browser might send, keep the name readable.
-    const name = parsed.data.name.split(/[\\/]/).pop()!.slice(0, 200)
+    // Trailing dots/spaces go too: Windows drops them when saving, so the
+    // stored name is what actually lands on disk.
+    const name = parsed.data.name.split(/[\\/]/).pop()!.replace(/[.\s]+$/, '').slice(0, 200)
+    if (!name) throw new ApiError(400, 'The file needs a name')
     if (BLOCKED_NAME.test(name)) throw new ApiError(400, 'Programs, scripts and web pages cannot be attached')
     const bytes = Buffer.from(parsed.data.data, 'base64')
     if (!bytes.length) throw new ApiError(400, 'That file is empty')

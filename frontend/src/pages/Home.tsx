@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useApp } from '../store/AppStore'
 import { CreatePostBox } from '../components/feed/CreatePostBox'
 import { SpotlightCard } from '../components/feed/SpotlightCard'
 import { PostCard } from '../components/feed/PostCard'
-import { homeFeedPosts } from '../lib/homeFeed'
+import { dealColumns, homeFeedPosts } from '../lib/homeFeed'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useLayout } from '../components/layout/LayoutContext'
 import { useMediaQuery } from '../hooks/useMediaQuery'
@@ -58,11 +58,25 @@ export function Home() {
   // hide a post the card isn't showing). Deep links still work: a
   // #post-<id> link pulls it back in (see `visible`).
   const [onCard, setOnCard] = useState<string | undefined>()
-  const feed = onCard && focusId !== onCard ? visible.filter((p) => p.id !== onCard) : visible
+  const feed = useMemo(
+    () => (onCard && focusId !== onCard ? visible.filter((p) => p.id !== onCard) : visible),
+    [visible, onCard, focusId],
+  )
   // A single post would sit in the left half with an empty right half, so two
   // columns only once there are at least two posts.
   const split = twoColumns && feed.length > 1
-  const columns = split ? [feed.filter((_, i) => i % 2 === 0), feed.filter((_, i) => i % 2 === 1)] : [feed]
+  // Each post keeps the column it was first dealt into (lib/homeFeed.ts
+  // dealColumns), so a new post never moves the cards below it — a moved card
+  // is rebuilt and loses a half-typed comment. A new search deals afresh.
+  const placed = useRef({ query: '', columns: new Map<string, 0 | 1>() })
+  const columns = useMemo(() => {
+    if (!split) return [feed]
+    const q = query.trim()
+    const prev = placed.current.query === q ? placed.current.columns : new Map<string, 0 | 1>()
+    const next = dealColumns(feed.map((p) => p.id), prev)
+    placed.current = { query: q, columns: next }
+    return [feed.filter((p) => next.get(p.id) === 0), feed.filter((p) => next.get(p.id) === 1)]
+  }, [feed, split, query])
 
   return (
     <div className="flex flex-col gap-3">

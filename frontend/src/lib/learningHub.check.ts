@@ -74,6 +74,9 @@ assert.equal(monthsLabel(1), '1 month')
 // --- Add resource ------------------------------------------------------------
 assert.ok(isBlockedFile('setup.EXE') && isBlockedFile('page.html') && isBlockedFile('logo.svg'))
 assert.ok(!isBlockedFile('notes.pdf') && !isBlockedFile('clip.mp4') && !isBlockedFile('slides.pptx'))
+// Windows drops trailing dots/spaces on save, so these are setup.exe / run.hta.
+assert.ok(isBlockedFile('setup.exe.') && isBlockedFile('setup.exe . ') && isBlockedFile('run.hta') && isBlockedFile('link.lnk'))
+assert.ok(!isBlockedFile('v1.2.') && !isBlockedFile('report.final.pdf'))
 assert.ok(opensInTab('application/pdf') && opensInTab('video/mp4') && opensInTab('image/png'))
 assert.ok(!opensInTab('image/svg+xml') && !opensInTab('text/html') && !opensInTab('application/zip'), 'risky or unknown types download')
 assert.equal(fileSizeLabel(900), '900 B')

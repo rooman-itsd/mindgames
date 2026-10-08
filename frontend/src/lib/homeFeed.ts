@@ -59,3 +59,31 @@ export function homeFeedPosts({
 
   return ordered
 }
+
+/**
+ * Which of the two feed columns each post sits in (0 left, 1 right). A post
+ * placed before keeps its column; only posts new to the feed are placed, each
+ * into the shorter column (left on a tie). Dealing by position instead (i % 2)
+ * moved every older post to the other column whenever one new post arrived —
+ * React then rebuilt each card and threw away a half-typed comment. On a first
+ * deal this still alternates left/right, so the newest sit atop both columns.
+ * Posts no longer in the feed are dropped, so their slots are freed.
+ */
+export function dealColumns(ids: string[], prev: ReadonlyMap<string, 0 | 1>): Map<string, 0 | 1> {
+  const next = new Map<string, 0 | 1>()
+  const count = [0, 0]
+  for (const id of ids) {
+    const c = prev.get(id)
+    if (c !== undefined) {
+      next.set(id, c)
+      count[c]++
+    }
+  }
+  for (const id of ids) {
+    if (next.has(id)) continue
+    const c = count[1] < count[0] ? 1 : 0
+    next.set(id, c)
+    count[c]++
+  }
+  return next
+}

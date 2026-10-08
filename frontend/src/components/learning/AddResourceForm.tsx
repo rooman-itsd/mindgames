@@ -45,6 +45,11 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
   // when that upload lands, it is deleted at once instead of being left over.
   const dropped = useRef(new Set<string>())
   const closed = useRef(false)
+  // Uploads run one at a time: each file is read whole and base64-encoded
+  // before it goes, so ten large files at once could take a phone tab's
+  // memory with them (and the form). Each link catches its own error, so one
+  // failed file never stops the ones after it.
+  const queue = useRef<Promise<void>>(Promise.resolve())
 
   const domains = resourceDomains(picked, custom)
   const ready = files.filter((f) => f.id)
@@ -66,15 +71,20 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
             : ''
       setFiles((cur) => [...cur, { key, name: file.name, size: file.size, error: refused || undefined }])
       if (refused) continue
-      toBase64(file)
-        .then((data) => api.uploadLearningFile({ name: file.name, mime: file.type || 'application/octet-stream', data }))
-        .then(
-          (up) => {
-            if (closed.current || dropped.current.has(key)) void api.deleteLearningUpload(up.id).catch(() => {})
-            else patch(key, { id: up.id })
-          },
-          (e) => patch(key, { error: e instanceof Error ? e.message : 'Upload failed' }),
-        )
+      queue.current = queue.current.then(() =>
+        // Removed (×) or form closed before its turn: never uploaded at all.
+        closed.current || dropped.current.has(key)
+          ? undefined
+          : toBase64(file)
+              .then((data) => api.uploadLearningFile({ name: file.name, mime: file.type || 'application/octet-stream', data }))
+              .then(
+                (up) => {
+                  if (closed.current || dropped.current.has(key)) void api.deleteLearningUpload(up.id).catch(() => {})
+                  else patch(key, { id: up.id })
+                },
+                (e) => patch(key, { error: e instanceof Error ? e.message : 'Upload failed' }),
+              ),
+      )
     }
     if (inputRef.current) inputRef.current.value = ''
   }
@@ -152,10 +162,13 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
             <p className="mb-1.5 text-sm font-semibold text-ink">Resources</p>
             {slots > 0 && (
               <>
+                {/* Locked while saving: a file attached or removed mid-save
+                    would be orphaned or pulled out from under the submit. */}
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink hover:border-brand/40"
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink hover:border-brand/40 disabled:opacity-50"
                 >
                   <Paperclip size={15} /> Attach files
                 </button>
@@ -170,7 +183,13 @@ export function AddResourceForm({ onClose, onAdded }: { onClose: () => void; onA
                     <span className={`shrink-0 text-xs ${f.error ? 'text-red-600' : 'text-muted'}`}>
                       {f.error ?? (f.id ? fileSizeLabel(f.size) : 'Uploading…')}
                     </span>
-                    <button type="button" onClick={() => remove(f)} aria-label={`Remove ${f.name}`} className="shrink-0 p-1 text-muted hover:text-ink">
+                    <button
+                      type="button"
+                      onClick={() => remove(f)}
+                      disabled={saving}
+                      aria-label={`Remove ${f.name}`}
+                      className="shrink-0 p-1 text-muted hover:text-ink disabled:opacity-50"
+                    >
                       <X size={14} />
                     </button>
                   </li>
