@@ -1,51 +1,82 @@
-import { Briefcase, GraduationCap, Image as ImageIcon, Search } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Briefcase, GraduationCap, Hand, Image as ImageIcon, Trophy } from 'lucide-react'
 import { useApp } from '../../store/AppStore'
 import { useLayout } from '../layout/LayoutContext'
+import { timeGreeting } from '../../lib/homeGreeting'
 import { Avatar, Card } from '../ui'
 
+/**
+ * Home's "write a post" row (Spotlight theme): avatar, a greeting prompt with a
+ * blinking caret, icon shortcuts and a Post button, all in one line so the
+ * Spotlight card below gets the room. It used to be a grey rounded pill — the
+ * same shape as the navbar search — so Home read as two search bars.
+ *
+ * The greeting lives here now (it replaced the separate HomeGreeting card), so
+ * the member's name appears once. Every control opens the existing composer;
+ * Achievement isn't one of the composer's types (it's a News & Updates format),
+ * so the trophy goes to the News tab, whose composer starts on Achievement.
+ */
 export function CreatePostBox() {
   const { currentUser } = useApp()
   const { openComposer } = useLayout()
+  const navigate = useNavigate()
+  const firstName = currentUser.name.split(' ')[0] || 'there'
 
   return (
-    <Card className="p-3">
-      <div className="flex items-center gap-3">
-        <Avatar name={currentUser.name} src={currentUser.photo} size={44} />
-        <button
-          onClick={() => openComposer()}
-          className="flex-1 rounded-full border border-line bg-page px-4 py-2.5 text-left text-sm font-medium text-muted transition-colors hover:border-brand/40 hover:bg-surface"
-        >
-          Share an update, achievement or opportunity…
-        </button>
+    <Card className="flex items-center gap-2.5 py-2.5 pr-2.5 pl-3">
+      <Avatar name={currentUser.name} src={currentUser.photo} size={40} />
+      <button
+        type="button"
+        onClick={() => openComposer()}
+        className="min-w-0 flex-1 truncate py-1.5 text-left font-display text-[17px] font-bold text-muted transition-colors hover:text-ink"
+      >
+        <span aria-hidden className="composer-caret" />
+        {/* Phones get the short prompt: next to the avatar, Post and the trophy there's
+            room for ~165px, so even "What's new, <name>?" would clip on longer names. */}
+        <span className="sm:hidden">What's new?</span>
+        <span className="hidden sm:inline">
+          {timeGreeting(new Date().getHours())}, {firstName}. What's new?
+        </span>
+      </button>
+      {/* One evenly spaced group of shortcuts. On phones only the trophy stays
+          (the prompt still opens the full composer with every type). */}
+      <div className="flex items-center gap-0.5">
+        <span className="hidden items-center gap-0.5 sm:flex">
+          <Tool label="Add a photo" onClick={() => openComposer()}>
+            <ImageIcon size={18} />
+          </Tool>
+          <Tool label="Post a job" onClick={() => openComposer({ type: 'Hiring' })}>
+            <Briefcase size={18} />
+          </Tool>
+          <Tool label="Open to work" onClick={() => openComposer({ type: 'Open to Work' })}>
+            <Hand size={18} />
+          </Tool>
+          <Tool label="Mentorship" onClick={() => openComposer({ type: 'Mentorship' })}>
+            <GraduationCap size={18} />
+          </Tool>
+        </span>
+        <Tool label="Share a win" onClick={() => navigate('/news', { state: { compose: true } })}>
+          <Trophy size={18} />
+        </Tool>
       </div>
-      <div className="mt-2.5 flex items-center justify-around border-t border-line pt-2">
-        <Quick icon={<ImageIcon size={18} className="text-emerald-500" />} label="Photo" hover="hover:bg-emerald-50 hover:text-emerald-700" onClick={() => openComposer()} />
-        <Quick icon={<Briefcase size={18} className="text-green-600" />} label="Hiring" hover="hover:bg-green-50 hover:text-green-700" onClick={() => openComposer({ type: 'Hiring' })} />
-        <Quick icon={<Search size={18} className="text-blue-600" />} label="Open to Work" hover="hover:bg-blue-50 hover:text-blue-700" onClick={() => openComposer({ type: 'Open to Work' })} />
-        <Quick icon={<GraduationCap size={18} className="text-brand" />} label="Mentorship" hover="hover:bg-brand-50 hover:text-brand" onClick={() => openComposer({ type: 'Mentorship' })} />
-      </div>
+      <button type="button" onClick={() => openComposer()} className="btn-primary shrink-0 rounded-full px-4 py-2 text-sm font-bold">
+        Post
+      </button>
     </Card>
   )
 }
 
-function Quick({
-  icon,
-  label,
-  hover,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  hover: string
-  onClick: () => void
-}) {
+/** Icon-only shortcut: the name is the accessible label and the hover tooltip. */
+function Tool({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-muted transition-colors ${hover}`}
+      aria-label={label}
+      title={label}
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-brand transition-colors hover:bg-brand-50"
     >
-      {icon}
-      <span className="hidden sm:inline">{label}</span>
+      {children}
     </button>
   )
 }

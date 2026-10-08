@@ -22,13 +22,11 @@ export function ContributePanel({
   stages: ContributeStage[]
   onShare: (topicKey?: string) => void
 }) {
-  // No stage to share for (no roadmap, no role topics): staying quiet beats a
-  // dead button.
-  if (stages.length === 0) return null
-  // Only stages they have passed, or that lead to the role they hold, are
-  // suggested as 'members are waiting' — not the stage they are on themselves.
-  const gaps = stages.filter((s) => s.reason !== 'mine' && s.sharesCount === 0 && s.membersWaiting > 0)
-  const canHelp = stages.some((s) => s.reason !== 'mine')
+  // Shares are filed only under the member's own roadmap stages, so 'members
+  // are waiting' suggests only stages they have passed on it — not the stage
+  // they are on, and not other roadmaps' stages for the role they hold.
+  const gaps = stages.filter((s) => s.reason === 'passed' && s.sharesCount === 0 && s.membersWaiting > 0)
+  const canHelp = stages.some((s) => s.reason === 'passed')
 
   return (
     <section className="rounded-xl border border-brand-100 bg-gradient-to-r from-brand-50 to-surface p-4 shadow-sm">

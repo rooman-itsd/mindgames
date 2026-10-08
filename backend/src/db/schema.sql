@@ -1562,9 +1562,82 @@ CREATE INDEX IF NOT EXISTS idx_learning_shares_difficulty
   ON learning_shares (difficulty) WHERE NOT hidden;
 CREATE INDEX IF NOT EXISTS idx_learning_shares_search
   ON learning_shares USING GIN (search_tsv);
+-- The stage is optional: a share with none is in All Resources and still
+-- reaches every stage close to it in meaning (Related) — it is just not filed
+-- under one. Approved 2026-10-08 (altering an existing column, CLAUDE.md §6).
+-- Re-runnable: dropping NOT NULL again is a catalog no-op, no table scan.
+ALTER TABLE learning_shares ALTER COLUMN topic_key DROP NOT NULL;
+-- The same link shared twice with no stage is one item, as it is for one
+-- stage. idx_learning_shares_topic_url cannot see these: NULLs never collide.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_learning_shares_unfiled_url
+  ON learning_shares (url_norm) WHERE topic_key IS NULL AND url_norm IS NOT NULL;
 -- An alum's own contributions: their "I've shared" list and the per-day cap.
 CREATE INDEX IF NOT EXISTS idx_learning_shares_sharer
   ON learning_shares (shared_by, created_at DESC);
+
+-- Every roadmap stage a share is filed under — a share can name several.
+-- learning_shares.topic_key stays as the first of them (so its per-stage
+-- duplicate guard still holds); this table lists all of them, the first
+-- included, and is what "the shares on this stage" reads.
+CREATE TABLE IF NOT EXISTS learning_share_topics (
+  share_id  TEXT NOT NULL REFERENCES learning_shares(id) ON DELETE CASCADE,
+  topic_key TEXT NOT NULL REFERENCES learning_topics(topic_key) ON DELETE CASCADE,
+  PRIMARY KEY (share_id, topic_key)
+);
+-- "The shares on this stage": one index range per stage, never a scan.
+CREATE INDEX IF NOT EXISTS idx_learning_share_topics_topic
+  ON learning_share_topics (topic_key, share_id);
+-- Backfill shares filed before this table existed. Re-runnable: a share
+-- already listed is skipped, so after the first run this inserts nothing.
+INSERT INTO learning_share_topics (share_id, topic_key)
+  SELECT s.id, s.topic_key FROM learning_shares s
+   WHERE s.topic_key IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM learning_share_topics x WHERE x.share_id = s.id)
+ON CONFLICT DO NOTHING;
+
+-- Files attached to a resource ("Add resource": up to 10, any type). Stored
+-- in the database like chat attachments (messages.attachment_data).
+-- ponytail: bytes in Postgres; move to object storage (S3) and keep only the
+-- key here once file volume makes the database the wrong place for them.
+-- A file is uploaded first with no share (share_id NULL, one request per file
+-- so no request nears the body limit), then claimed by the share it is
+-- submitted with. Unclaimed uploads older than a day are swept on upload.
+CREATE TABLE IF NOT EXISTS learning_share_files (
+  id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  share_id   TEXT REFERENCES learning_shares(id) ON DELETE CASCADE,
+  owner_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  mime       TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),
+  data       BYTEA NOT NULL,
+  position   SMALLINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- A share's files, in order (never the bytes — those are read one file at a time).
+CREATE INDEX IF NOT EXISTS idx_learning_share_files_share
+  ON learning_share_files (share_id, position) WHERE share_id IS NOT NULL;
+-- A member's not-yet-attached uploads: the per-member cap and the sweep.
+CREATE INDEX IF NOT EXISTS idx_learning_share_files_pending
+  ON learning_share_files (owner_id, created_at) WHERE share_id IS NULL;
+
+-- How many files a share has, kept on the row so the "link or files" rule
+-- below can be a CHECK (a CHECK cannot count another table's rows).
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS file_count SMALLINT NOT NULL DEFAULT 0;
+-- A resource needs something to open: a link, or (since "Add resource") at
+-- least one attached file. Approved 2026-10-08. Replaced only while the old
+-- definition is still there: re-adding a CHECK re-validates the whole table
+-- under an exclusive lock, which must not happen on every migrate. Every
+-- existing row has a link or is a project, so the one-time check passes.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                  WHERE conname = 'learning_shares_resource_has_link'
+                    AND pg_get_constraintdef(oid) LIKE '%file_count%') THEN
+    ALTER TABLE learning_shares DROP CONSTRAINT IF EXISTS learning_shares_resource_has_link;
+    ALTER TABLE learning_shares ADD CONSTRAINT learning_shares_resource_has_link
+      CHECK (kind = 'project' OR url IS NOT NULL OR file_count > 0);
+  END IF;
+END $$;
 
 -- The Skill / Topic filter's list. One row per tag with how many visible
 -- shares carry it, kept up to date in the same transaction as the share that

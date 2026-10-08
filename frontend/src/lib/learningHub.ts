@@ -2,10 +2,12 @@ import {
   SUPPORT_PREFERENCES,
   type BrowseFilters,
   type CareerResource,
+  type ContributeStage,
   type LearningStageLite,
   type ProjectDifficulty,
   type ShareAudience,
   type ShareKind,
+  type StageOption,
 } from '../types'
 
 /**
@@ -142,8 +144,68 @@ export function ratingSummary(rating: number, helpedCount: number, ratingCount =
   return `${rating.toFixed(1)} from ${ratingCount} rating${ratingCount === 1 ? '' : 's'} · ${helped}`
 }
 
+/** A suggested stage (GET /learning/contribute) as a share-form choice. */
+export function fromSuggested(s: ContributeStage): StageOption {
+  return { topicKey: s.topicKey, title: s.title, membersWaiting: s.membersWaiting, sharesCount: s.sharesCount }
+}
+
 /** "4 members are on this step" — why sharing here is worth an alum's time. */
 export function waitingLabel(count: number): string {
   if (count <= 0) return 'No one here yet'
   return count === 1 ? '1 member is on this step' : `${count} members are on this step`
+}
+
+// ---- Add resource ----------------------------------------------------------
+
+/** Most files on one resource, and the largest one — the server's limits. */
+export const MAX_RESOURCE_FILES = 10
+export const MAX_RESOURCE_FILE_BYTES = 10 * 1024 * 1024
+/** "Why it helped" must say something — the server's WHY_HELPED_MIN. */
+export const RESOURCE_WHY_MIN = 30
+
+/** Programs, scripts and web pages are refused (the server refuses them too). */
+export function isBlockedFile(name: string): boolean {
+  return /\.(exe|msi|bat|cmd|com|scr|ps1|vbs|js|mjs|jar|apk|dll|sh|html?|svg|xhtml)$/i.test(name.trim())
+}
+
+/** Types a browser shows in place (a new tab) — the server's INLINE_TYPES;
+ *  every other file is a download. */
+export function opensInTab(mime: string): boolean {
+  return /^(image\/(png|jpe?g|gif|webp|avif)|video\/(mp4|webm|ogg|quicktime)|audio\/(mpeg|mp4|ogg|wav|webm|aac)|application\/pdf)$/.test(mime)
+}
+
+/** 420 KB, 8.6 MB. */
+export function fileSizeLabel(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace(/\.0$/, '')} MB`
+}
+
+/** Most domains on one resource — the server's MAX_TAGS. */
+export const MAX_RESOURCE_DOMAINS = 8
+
+/** Ticked domains plus the ones typed under "Others", trimmed and
+ *  de-duplicated case-insensitively, in the order they were added. */
+export function resourceDomains(picked: string[], typed: string[]): string[] {
+  const all = [...picked, ...typed]
+    .map((d) => d.trim().replace(/\s+/g, ' '))
+    .filter(Boolean)
+  const seen = new Set<string>()
+  return all.filter((d) => !seen.has(d.toLowerCase()) && !!seen.add(d.toLowerCase()))
+}
+
+/** What still stops the Add resource form from being sent, or null. */
+export function resourceFormProblem(f: {
+  domains: string[]
+  title: string
+  files: number
+  uploading: number
+  whyHelped: string
+}): string | null {
+  if (!f.domains.length) return 'Pick a domain.'
+  if (f.title.trim().length < 3) return 'Give it a title.'
+  if (!f.files && !f.uploading) return 'Attach at least one file.'
+  if (f.uploading) return 'Wait for the files to finish uploading.'
+  if (f.whyHelped.trim().length < RESOURCE_WHY_MIN) return `Say why it helped (at least ${RESOURCE_WHY_MIN} characters).`
+  return null
 }

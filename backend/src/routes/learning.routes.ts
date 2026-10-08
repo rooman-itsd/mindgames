@@ -60,7 +60,7 @@ export const learningRouter = Router()
 
 /** A share with its author and the viewer's own relationship to it. The two
  *  per-viewer lookups are index probes (both primary keys), one per row. */
-const SHARE_SELECT = `
+export const SHARE_SELECT = `
   SELECT s.id, s.topic_key, s.kind, s.title, s.url, s.why_helped, s.about, s.skills, s.difficulty,
          s.est_hours, s.helped_count, s.saved_count, s.hidden, s.created_at,
          -- Tags as typed, in the share's own order (8 at most, each a PK probe).
@@ -70,7 +70,14 @@ const SHARE_SELECT = `
          s.shared_by, u.name AS sharer_name, u.designation AS sharer_designation,
          u.company AS sharer_company, u.is_mentor AS sharer_is_mentor,
          s.rating_sum, s.rating_count, h.rating AS my_rating, s.audience,
-         (h.user_id IS NOT NULL) AS i_helped, cr.id AS my_saved_id
+         (h.user_id IS NOT NULL) AS i_helped, cr.id AS my_saved_id,
+         -- Attached files' details, only for shares that have any (one index
+         -- range on idx_learning_share_files_share); never the bytes.
+         CASE WHEN s.file_count > 0 THEN
+           (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime, 'size', f.size_bytes)
+                            ORDER BY f.position)
+              FROM learning_share_files f WHERE f.share_id = s.id)
+         END AS files
     FROM learning_shares s
     JOIN users u ON u.id = s.shared_by
     LEFT JOIN learning_share_helped h ON h.share_id = s.id AND h.user_id = $1
@@ -82,7 +89,7 @@ const SHARE_SELECT = `
  * (and the sharer). An 'everyone' share — the default — never reaches the
  * connection check; for the rest it is one probe of the connection pair.
  */
-const SHARE_AUDIENCE_OK = `
+export const SHARE_AUDIENCE_OK = `
   (s.audience = 'everyone' OR s.shared_by = $1 OR EXISTS (
      SELECT 1 FROM connections c
       WHERE c.status = 'accepted'
@@ -278,16 +285,21 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
   if (!vector) {
     const r = await query<LearningShareRow>(
       `${SHARE_SELECT}
+        CROSS JOIN LATERAL (
+          SELECT EXISTS (SELECT 1 FROM learning_share_topics st
+                          WHERE st.share_id = s.id AND st.topic_key = $2) AS on_stage) f
         WHERE NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
-          AND (s.topic_key = $2
+          AND (f.on_stage
                OR ($3::text[] <> '{}' AND s.skills && $3::text[]
-                   AND NOT (s.topic_key = ANY($4::text[]))))
-        ORDER BY CASE WHEN s.topic_key = $2 THEN 0 ELSE 1 END,
+                   -- Not filed under any of my other stages: those show when I get there.
+                   AND NOT EXISTS (SELECT 1 FROM learning_share_topics st
+                                    WHERE st.share_id = s.id AND st.topic_key = ANY($4::text[]))))
+        ORDER BY CASE WHEN f.on_stage THEN 0 ELSE 1 END,
                  s.helped_count DESC, s.created_at DESC, s.id
         LIMIT $5 OFFSET $6`,
       [me, stage.topicKey, tags, otherTopicKeys, limit, offset],
     )
-    return r.rows.map((row) => mapStageShare(row, stage.topicKey))
+    return markStage(r.rows, stage.topicKey)
   }
 
   const rows = await withTransaction(async (client) => {
@@ -304,17 +316,23 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
        -- This stage's own shares, filtered BEFORE the window is cut and in the
        -- outer ORDER BY's order, so OFFSET pages walk one fixed list.
        same AS (
-         SELECT s.id FROM learning_shares s
-          WHERE s.topic_key = $2 AND NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
+         SELECT s.id FROM learning_share_topics st
+           JOIN learning_shares s ON s.id = st.share_id
+          WHERE st.topic_key = $2 AND NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
             AND (s.embedding IS NULL OR s.embed_model IS DISTINCT FROM $9
                  OR 1 - (s.embedding <=> $3::halfvec) >= ${SAME_STAGE_MIN}
                  OR ($4::text[] <> '{}' AND s.skills && $4::text[]))
           ORDER BY s.helped_count DESC, s.created_at DESC, s.id
           LIMIT $7),
+       -- A share filed under this exact stage can also land among its own
+       -- nearest neighbours — grouped and MIN'd so it is one row, tier 0,
+       -- not two (a tier-0 and a tier-1 copy of the same card).
        cand AS (
-         SELECT id, 0 AS tier FROM same
-         UNION ALL
-         SELECT id, 1 FROM near)
+         SELECT id, min(tier) AS tier FROM (
+           SELECT id, 0 AS tier FROM same
+           UNION ALL
+           SELECT id, 1 FROM near) u
+         GROUP BY id)
        ${SHARE_SELECT}
        JOIN cand c ON c.id = s.id
        CROSS JOIN LATERAL (
@@ -322,7 +340,10 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
                 ($4::text[] <> '{}' AND s.skills && $4::text[]) AS tag_hit) m
       WHERE NOT s.hidden AND s.shared_by <> $1 AND ${SHARE_AUDIENCE_OK}
         AND (c.tier = 0
-             OR (s.topic_key <> $2 AND NOT (s.topic_key = ANY($5::text[]))
+             -- Related: filed under neither this stage nor one of my others
+             -- (a share with no stage at all passes).
+             OR (NOT EXISTS (SELECT 1 FROM learning_share_topics st
+                              WHERE st.share_id = s.id AND (st.topic_key = $2 OR st.topic_key = ANY($5::text[])))
                  AND (m.sim >= ${RELATED_MIN} OR (m.tag_hit AND m.sim >= ${RELATED_WITH_TAG_MIN}))))
       ORDER BY c.tier,
                CASE WHEN c.tier = 0 THEN s.helped_count END DESC NULLS LAST,
@@ -335,7 +356,22 @@ async function topShares(me: string, stage: StageTopic, otherTopicKeys: string[]
     )
     return r.rows
   })
-  return rows.map((row) => mapStageShare(row, stage.topicKey))
+  return markStage(rows, stage.topicKey)
+}
+
+/**
+ * A stage page's shares, each marked 'stage' (filed under this stage — any of
+ * its stages, not only the first) or 'related'. One index probe for the page,
+ * bounded by its LIMIT.
+ */
+async function markStage(rows: LearningShareRow[], stageTopicKey: string) {
+  if (!rows.length) return []
+  const filed = await query<{ share_id: string }>(
+    `SELECT share_id FROM learning_share_topics WHERE topic_key = $1 AND share_id = ANY($2::text[])`,
+    [stageTopicKey, rows.map((r) => r.id)],
+  )
+  const onStage = new Set(filed.rows.map((r) => r.share_id))
+  return rows.map((row) => mapStageShare(row, onStage.has(row.id)))
 }
 
 /** Resources assigned to the caller, newest first, keyset-paged by the last id
@@ -520,8 +556,9 @@ learningRouter.get(
     const byRole = role
       ? await query<{ topic_key: string; stage_label: string; member_count: number; shares: number }>(
           `SELECT t.topic_key, t.stage_label, t.member_count,
-                  (SELECT count(*)::int FROM learning_shares s
-                    WHERE s.topic_key = t.topic_key AND NOT s.hidden) AS shares
+                  (SELECT count(*)::int FROM learning_share_topics st
+                    JOIN learning_shares s ON s.id = st.share_id
+                    WHERE st.topic_key = t.topic_key AND NOT s.hidden) AS shares
              FROM learning_topics t
             WHERE t.role_label = $1 AND t.member_count > 0
             ORDER BY t.member_count DESC
@@ -533,8 +570,9 @@ learningRouter.get(
     const mine = plan
       ? await query<{ topic_key: string; member_count: number; shares: number }>(
           `SELECT t.topic_key, t.member_count,
-                  (SELECT count(*)::int FROM learning_shares s
-                    WHERE s.topic_key = t.topic_key AND NOT s.hidden) AS shares
+                  (SELECT count(*)::int FROM learning_share_topics st
+                    JOIN learning_shares s ON s.id = st.share_id
+                    WHERE st.topic_key = t.topic_key AND NOT s.hidden) AS shares
              FROM learning_topics t WHERE t.topic_key = ANY($1::text[])`,
           [plan.stages.map((s) => s.topicKey)],
         )
@@ -564,7 +602,12 @@ learningRouter.get(
     // waiting; the member's own current stages last.
     const rank = (s: (typeof stages)[number]) => (s.reason === 'mine' ? 2 : s.sharesCount === 0 ? 0 : 1)
     stages.sort((a, b) => rank(a) - rank(b) || b.membersWaiting - a.membersWaiting)
-    res.json({ stages: stages.slice(0, 20) })
+    // The member's own roadmap stages are never cut — shares are filed only
+    // under those now; role stages only fill what is left of the 20.
+    const own = stages.filter((s) => s.reason !== 'role')
+    const roleStages = stages.filter((s) => s.reason === 'role').slice(0, Math.max(0, 20 - own.length))
+    const keep = new Set([...own, ...roleStages])
+    res.json({ stages: stages.filter((s) => keep.has(s)) })
   }),
 )
 
@@ -704,7 +747,7 @@ learningRouter.get(
 /** Moves the Skill filter's counters for a share's tags, inside the caller's
  *  transaction, so a tag's count can never disagree with the shares carrying
  *  it. +1 adds the tag row on first use; -1 floors at zero. */
-async function moveTagCounts(client: pg.PoolClient, tags: { tag: string; label: string }[], delta: 1 | -1) {
+export async function moveTagCounts(client: pg.PoolClient, tags: { tag: string; label: string }[], delta: 1 | -1) {
   if (!tags.length) return
   if (delta === 1) {
     await client.query(
@@ -739,9 +782,28 @@ async function lockShare(client: pg.PoolClient, id: string, me: string) {
   return r.rows[0]
 }
 
+/** Most stages one share can be filed under. */
+const MAX_SHARE_STAGES = 5
+
+type ExistingShare = { id: string; hidden: boolean; visible: boolean }
+
+/** The link was already shared: hand back that share — unless reports have
+ *  hidden it, which must not be shown to anyone again, or it is shared with
+ *  someone's connections only and this member is not one (say it exists,
+ *  never show it). */
+function existingShare(e: ExistingShare, where: string) {
+  if (e.hidden) throw new ApiError(409, `That link was already shared ${where} and has been hidden after members reported it`)
+  if (!e.visible) throw new ApiError(409, `That link has already been shared ${where}`)
+  return { id: e.id, duplicate: true }
+}
+
 const shareSchema = z
   .object({
-    topicKey: z.string().min(1).max(300),
+    // Optional: with none the share is not filed under a stage, but is still
+    // in All Resources and matched to stages by meaning. topicKeys files it
+    // under several; topicKey (one) is still accepted and goes first.
+    topicKey: z.string().min(1).max(300).optional(),
+    topicKeys: z.array(z.string().min(1).max(300)).max(MAX_SHARE_STAGES, `Pick up to ${MAX_SHARE_STAGES} stages`).optional(),
     kind: z.enum(SHARE_KINDS),
     title: z.string().trim().min(3).max(160),
     url: z.string().trim().url().regex(HTTP_URL, HTTP_URL_MESSAGE).max(2000).optional(),
@@ -766,10 +828,10 @@ const shareSchema = z
     message: `Add a link to the brief, or describe the project in at least ${PROJECT_ABOUT_MIN} characters`,
   })
 
-// POST /api/learning/shares — an alum shares what helped them with everyone on
-// a stage. Published at once (no review queue); members' reports hide a bad
-// one. A link already shared for that topic returns the existing item rather
-// than a second copy.
+// POST /api/learning/shares — an alum shares what helped them, optionally filed
+// under a roadmap stage. Published at once (no review queue); members' reports
+// hide a bad one. A link already shared for that stage (or with no stage)
+// returns the existing item rather than a second copy.
 learningRouter.post(
   '/shares',
   requireAuth,
@@ -779,12 +841,27 @@ learningRouter.post(
     const d = parsed.data
     const me = req.user!.sub
 
-    // Anyone in the network can share for any stage — no connection or
-    // eligibility needed. The stage just has to exist. What keeps quality up is
+    // No connection or eligibility needed to share. What keeps quality up is
     // the per-day cap below, the name on every share, and members' reports
-    // hiding a bad one.
-    const topic = await query(`SELECT 1 FROM learning_topics WHERE topic_key = $1`, [d.topicKey])
-    if (!topic.rowCount) throw new ApiError(404, 'No such stage')
+    // hiding a bad one. Stages are optional; every one that is given must
+    // exist and be on the member's own roadmap.
+    const topicKeys = [...new Set([...(d.topicKey ? [d.topicKey] : []), ...(d.topicKeys ?? [])])]
+    if (topicKeys.length > MAX_SHARE_STAGES) throw new ApiError(400, `Pick up to ${MAX_SHARE_STAGES} stages`)
+    if (topicKeys.length) {
+      const known = await query(`SELECT 1 FROM learning_topics WHERE topic_key = ANY($1::text[])`, [topicKeys])
+      if (known.rowCount !== topicKeys.length) throw new ApiError(404, 'No such stage')
+      // Only stages on the member's own roadmap — those are the ones they can
+      // vouch for. Anything else goes through Add resource, by domain.
+      const plan = await loadPlan(me)
+      const own = new Set(plan?.stages.map((s) => s.topicKey) ?? [])
+      if (topicKeys.some((k) => !own.has(k))) {
+        throw new ApiError(403, 'You can only add resources to stages on your own roadmap')
+      }
+    }
+    // The first stage is the share's own column (and its per-stage duplicate
+    // guard); learning_share_topics lists every one.
+    const topicKey = topicKeys[0] ?? null
+    const where = topicKeys.length > 1 ? 'for one of these stages' : topicKey ? 'for this stage' : 'without a stage'
 
     const urlNorm = d.url ? normalizeUrl(d.url) : null
     if (d.url && !urlNorm) throw new ApiError(400, HTTP_URL_MESSAGE)
@@ -801,6 +878,12 @@ learningRouter.post(
       // is released when the transaction ends — the same pattern as
       // connectionGraph.ts.
       await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_share:${me}`])
+      // And one per link: the unique index only guards the first stage, so two
+      // members filing the same link under other stages at the same moment
+      // would both pass the check below. This makes the second wait and see
+      // the first. Always taken after the member lock, so no two requests can
+      // hold them in opposite order.
+      if (urlNorm) await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`learning_url:${urlNorm}`])
       const recent = await client.query<{ n: number }>(
         `SELECT count(*)::int AS n FROM learning_shares
           WHERE shared_by = $1 AND created_at > now() - interval '1 day'`,
@@ -810,14 +893,31 @@ learningRouter.post(
         throw new ApiError(429, `You can share up to ${SHARES_PER_DAY} a day — thank you, and please come back tomorrow`)
       }
 
+      // Already filed under ANY of the chosen stages: that share, not a second
+      // copy. The insert's unique index only guards the first stage, so the
+      // others are checked here (one index range per chosen stage).
+      if (urlNorm && topicKeys.length) {
+        const filed = await client.query<ExistingShare>(
+          `SELECT s.id, s.hidden, ${SHARE_AUDIENCE_OK} AS visible
+             FROM learning_share_topics st
+             JOIN learning_shares s ON s.id = st.share_id
+            WHERE st.topic_key = ANY($2::text[]) AND s.url_norm = $3
+            LIMIT 1`,
+          [me, topicKeys, urlNorm],
+        )
+        if (filed.rowCount) return existingShare(filed.rows[0], where)
+      }
+
       const ins = await client.query<{ id: string }>(
         `INSERT INTO learning_shares
            (topic_key, shared_by, kind, title, url, url_norm, why_helped, about, skills, difficulty, est_hours, audience)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-         ON CONFLICT (topic_key, url_norm) WHERE url_norm IS NOT NULL DO NOTHING
+         -- No target: either duplicate guard may fire — the per-stage one
+         -- (idx_learning_shares_topic_url) or the no-stage one (…_unfiled_url).
+         ON CONFLICT DO NOTHING
          RETURNING id`,
         [
-          d.topicKey, me, d.kind, d.title, d.url ?? null, urlNorm, d.whyHelped,
+          topicKey, me, d.kind, d.title, d.url ?? null, urlNorm, d.whyHelped,
           isProject ? d.about || null : null,
           tags.map((t) => t.tag),
           d.difficulty,
@@ -826,25 +926,28 @@ learningRouter.post(
         ],
       )
       if (ins.rowCount) {
+        if (topicKeys.length) {
+          await client.query(
+            `INSERT INTO learning_share_topics (share_id, topic_key)
+             SELECT $1, unnest($2::text[]) ON CONFLICT DO NOTHING`,
+            [ins.rows[0].id, topicKeys],
+          )
+        }
         await moveTagCounts(client, tags, 1)
         return { id: ins.rows[0].id, duplicate: false }
       }
-      // Already shared for this stage: hand back that one — unless reports
-      // have hidden it, which must not be shown to anyone again, or it was
-      // deleted in the instant since the insert ran into it.
-      const existing = await client.query<{ id: string; hidden: boolean; visible: boolean }>(
+      // The insert ran into a duplicate guard — someone filed the same link
+      // under the first stage (or with no stage) in the instant since the
+      // check above. Hand back that one; or, if it was deleted in that same
+      // instant, ask to retry.
+      const existing = await client.query<ExistingShare>(
         `SELECT s.id, s.hidden, ${SHARE_AUDIENCE_OK} AS visible
-           FROM learning_shares s WHERE s.topic_key = $2 AND s.url_norm = $3`,
-        [me, d.topicKey, urlNorm],
+           FROM learning_shares s
+          WHERE ${topicKey ? 's.topic_key = $2 AND s.url_norm = $3' : 's.topic_key IS NULL AND s.url_norm = $2'}`,
+        topicKey ? [me, topicKey, urlNorm] : [me, urlNorm],
       )
-      if (!existing.rowCount) throw new ApiError(409, 'That link was just changed on this stage — please try again')
-      if (existing.rows[0].hidden) {
-        throw new ApiError(409, 'That link was already shared for this stage and has been hidden after members reported it')
-      }
-      // Shared for someone's connections only, and this member is not one:
-      // say it exists, never show it.
-      if (!existing.rows[0].visible) throw new ApiError(409, 'That link has already been shared for this stage')
-      return { id: existing.rows[0].id, duplicate: true }
+      if (!existing.rowCount) throw new ApiError(409, 'That link was just changed — please try again')
+      return existingShare(existing.rows[0], where)
     })
     // Embed it now rather than at the next tick, so it reaches other stages
     // within seconds. Runs after this response, never delays it.
@@ -893,13 +996,14 @@ learningRouter.post(
 
     const result = await withTransaction(async (client) => {
       const share = await lockShare(client, req.params.id, req.user!.sub)
-      const topic = await client.query<{ topic_key: string }>(
-        `SELECT topic_key FROM learning_shares WHERE id = $1`,
+      const topics = await client.query<{ topic_key: string }>(
+        `SELECT topic_key FROM learning_share_topics WHERE share_id = $1`,
         [share.id],
       )
       // Filed under the member's own stage when this share belongs to one of
-      // them, so it lands in the right group in their saved list.
-      const stage = plan?.stages.find((s) => s.topicKey === topic.rows[0].topic_key) ?? null
+      // them (any of its stages), so it lands in the right group in their saved list.
+      const filed = new Set(topics.rows.map((r) => r.topic_key))
+      const stage = plan?.stages.find((s) => filed.has(s.topicKey)) ?? null
       const ins = await client.query<{ id: string }>(
         `INSERT INTO career_resources (user_id, title, url, note, kind, roadmap_id, step_key, share_id)
          VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6, $7, $8)

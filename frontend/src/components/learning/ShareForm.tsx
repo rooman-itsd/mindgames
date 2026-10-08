@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { api } from '../../lib/api'
 import { isHttpUrl } from '../../lib/links'
-import { AUDIENCE_LABEL, DIFFICULTY_FILTERS, KIND_LABEL, TYPE_FILTERS, waitingLabel } from '../../lib/learningHub'
+import { AUDIENCE_LABEL, DIFFICULTY_FILTERS, KIND_LABEL, TYPE_FILTERS, fromSuggested, waitingLabel } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import { Button, Card } from '../ui'
-import type { ContributeStage, LearningShare, ProjectDifficulty, ShareAudience, ShareKind } from '../../types'
+import { StagePicker } from './StagePicker'
+import type { ContributeStage, LearningShare, ProjectDifficulty, ShareAudience, ShareKind, StageOption } from '../../types'
 
 /** A brief's "About" must be this long to stand without a link — the same
  *  rule the server and the database enforce. */
@@ -14,6 +15,8 @@ const ABOUT_MIN = 80
 /** "Why it helped" — the same minimum the server enforces (WHY_HELPED_MIN). */
 const WHY_MIN = 30
 const MAX_TAGS = 8
+/** Most stages one share can be filed under — the server's MAX_SHARE_STAGES. */
+const MAX_SHARE_STAGES = 5
 
 /**
  * An alum sharing what helped them with everyone on a stage.
@@ -36,10 +39,20 @@ export function ShareForm({
   stages: ContributeStage[]
   defaultTopicKey?: string | null
   onClose: () => void
-  onShared: (share: LearningShare, topicKey: string) => void
+  onShared: (share: LearningShare, topicKey: string | null) => void
 }) {
   const { notify } = useApp()
-  const [topicKey, setTopicKey] = useState(defaultTopicKey ?? stages[0]?.topicKey ?? '')
+  // Optional (up to MAX_SHARE_STAGES), and empty unless the form was opened
+  // from a particular stage.
+  // Only the member's own roadmap stages ('role' suggestions are other
+  // roadmaps' stages, which the server refuses).
+  const ownStages = stages.filter((s) => s.reason !== 'role').map(fromSuggested)
+  const fromDefault = (): StageOption[] => {
+    const s = defaultTopicKey ? stages.find((x) => x.topicKey === defaultTopicKey && x.reason !== 'role') : undefined
+    return s ? [fromSuggested(s)] : []
+  }
+  const [picked, setPicked] = useState<StageOption[]>(fromDefault)
+  const topicKeys = picked.map((s) => s.topicKey)
   const [kind, setKind] = useState<ShareKind>('article')
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
@@ -53,12 +66,15 @@ export function ShareForm({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // The stage list can arrive after the form opens: fill the stage it was
+  // opened from then, but never over one the member already picked.
   useEffect(() => {
-    if (defaultTopicKey) setTopicKey(defaultTopicKey)
-  }, [defaultTopicKey])
+    if (!defaultTopicKey) return
+    const s = stages.find((x) => x.topicKey === defaultTopicKey && x.reason !== 'role')
+    if (s) setPicked((cur) => (cur.length ? cur : [fromSuggested(s)]))
+  }, [defaultTopicKey, stages])
 
   const isProject = kind === 'project'
-  const stage = stages.find((s) => s.topicKey === topicKey)
 
   /** Commits whatever is in the tag box (Enter or comma), de-duplicated. */
   const addTags = (raw: string) => {
@@ -83,7 +99,6 @@ export function ShareForm({
     // Anything still typed in the tag box counts.
     const allTags = [...tags, ...tagDraft.split(',').map((t) => t.trim()).filter(Boolean)].slice(0, MAX_TAGS)
     const link = url.trim()
-    if (!topicKey) return setError('Pick the stage this is for.')
     if (title.trim().length < 3) return setError('Give it a title.')
     if (link && !isHttpUrl(link)) return setError('Links should start with https://')
     if (!isProject && !link) return setError('Add the link you are recommending (https://…)')
@@ -99,7 +114,7 @@ export function ShareForm({
     try {
       const hours = Number(estHours)
       const r = await api.shareLearning({
-        topicKey,
+        ...(topicKeys.length ? { topicKeys } : {}),
         kind,
         title: title.trim(),
         url: link || undefined,
@@ -116,12 +131,14 @@ export function ShareForm({
       })
       notify(
         r.duplicate
-          ? 'Someone already shared that link for this stage — here it is.'
+          ? `Someone already shared that link ${
+              topicKeys.length > 1 ? 'for one of these stages' : topicKeys.length ? 'for this stage' : 'without a stage'
+            } — here it is.`
           : audience === 'connections'
             ? 'Shared — thank you. Your connections can now find it in All Resources.'
             : 'Shared — thank you. It is now in All Resources for everyone.',
       )
-      onShared(r.share, topicKey)
+      onShared(r.share, topicKeys[0] ?? null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not share that.')
       setSaving(false)
@@ -134,7 +151,10 @@ export function ShareForm({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-ink">Share what helped you</h2>
-            <p className="text-xs text-muted">Everyone can find it in All Resources, with your name on it.</p>
+            <p className="text-xs text-muted">
+              Everyone can find it in All Resources, with your name on it — and members on a stage close to it
+              in meaning see it in For your roadmap.
+            </p>
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-muted hover:bg-gray-100">
             <X size={18} />
@@ -142,24 +162,6 @@ export function ShareForm({
         </div>
 
         <div className="mt-4 flex flex-col gap-2">
-          <Label>Which stage</Label>
-          <select
-            value={topicKey}
-            onChange={(e) => setTopicKey(e.target.value)}
-            aria-label="Stage"
-            className="rounded-lg border border-line px-3 py-2 text-sm"
-          >
-            {stages.map((s) => (
-              <option key={s.topicKey} value={s.topicKey}>
-                {s.title}
-                {s.sharesCount === 0 ? ' — nothing shared yet' : ''}
-              </option>
-            ))}
-          </select>
-          {stage && stage.membersWaiting > 0 && (
-            <p className="-mt-1 text-[11px] text-brand">{waitingLabel(stage.membersWaiting)}.</p>
-          )}
-
           <Label>Type</Label>
           <div className="flex flex-wrap gap-1.5">
             {TYPE_FILTERS.map((t) => (
@@ -265,6 +267,14 @@ export function ShareForm({
               />
             )}
           </div>
+
+          <Label>
+            Roadmap stages <span className="font-normal">(optional, up to {MAX_SHARE_STAGES})</span>
+          </Label>
+          <StagePicker stages={ownStages} value={picked} onChange={setPicked} max={MAX_SHARE_STAGES} />
+          {picked.length === 1 && picked[0].membersWaiting > 0 && (
+            <p className="-mt-1 text-[11px] text-brand">{waitingLabel(picked[0].membersWaiting)}.</p>
+          )}
 
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex flex-col gap-1">

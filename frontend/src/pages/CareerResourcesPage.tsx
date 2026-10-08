@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, X } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
 import { api } from '../lib/api'
 import { workable } from '../lib/learningHub'
 import { LearningHero } from '../components/learning/LearningHero'
@@ -13,6 +13,7 @@ import { SavedList } from '../components/learning/SavedList'
 import { ContributePanel } from '../components/learning/ContributePanel'
 import { FilterPanel, SavedResourcesLink } from '../components/learning/FilterPanel'
 import { ShareForm } from '../components/learning/ShareForm'
+import { AddResourceForm } from '../components/learning/AddResourceForm'
 import type { BrowseFilters, ContributeStage, LearningOverview } from '../types'
 
 type Tab = 'all' | 'stage' | 'assigned' | 'shared'
@@ -31,8 +32,8 @@ const NO_FILTERS: BrowseFilters = { q: '', tags: [], types: [], difficulty: [] }
  *
  * The page is the network teaching itself. Everything on it was put there by a
  * member, and every item names them and offers a way to reach them:
- *   All Resources   — everything shared across the network, filterable
- *   From alumni     — what members who passed my stage recommend
+ *   All Resources     — everything shared across the network, filterable
+ *   For your roadmap — what members who passed my stage recommend
  *   From my mentors — what a mentor gave me directly
  *   I've shared     — what I have given back
  * Saved Resources opens from the sidebar, beside the Filter-by panel.
@@ -49,6 +50,7 @@ export function CareerResourcesPage() {
   const [filters, setFilters] = useState<BrowseFilters>(NO_FILTERS)
   const [contribute, setContribute] = useState<ContributeStage[]>([])
   const [sharing, setSharing] = useState<{ topicKey?: string } | null>(null)
+  const [adding, setAdding] = useState(false)
   const [reload, setReload] = useState(0)
 
   // Popped rather than replaced, so the browser's Back button doesn't appear
@@ -120,7 +122,7 @@ export function CareerResourcesPage() {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'all', label: 'All Resources' },
-    { id: 'stage', label: 'From alumni' },
+    { id: 'stage', label: 'For your roadmap' },
     { id: 'assigned', label: 'From my mentors', count: overview?.counts.assigned },
     { id: 'shared', label: "I've shared", count: overview?.counts.shared },
   ]
@@ -130,26 +132,38 @@ export function CareerResourcesPage() {
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <LearningHero onBack={back} />
 
-        {/* The search box drives All Resources, together with the filters. */}
-        <label className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 shadow-sm focus-within:border-brand/50">
-          <Search size={16} className="shrink-0 text-muted" />
-          <input
-            value={filters.q}
-            onChange={(e) => changeFilters({ ...filters, q: e.target.value })}
-            placeholder="Search resources, topics, or keywords..."
-            aria-label="Search learning resources"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-          />
-          {filters.q && (
-            <button
-              onClick={() => setFilters({ ...filters, q: '' })}
-              aria-label="Clear search"
-              className="text-muted hover:text-ink"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </label>
+        {/* The search box drives All Resources, together with the filters;
+            Add resource sits beside it (any domain, attached files). */}
+        <div className="flex items-stretch gap-2">
+          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 shadow-sm focus-within:border-brand/50">
+            <Search size={16} className="shrink-0 text-muted" />
+            <input
+              value={filters.q}
+              onChange={(e) => changeFilters({ ...filters, q: e.target.value })}
+              placeholder="Search resources, topics, or keywords..."
+              aria-label="Search learning resources"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            />
+            {filters.q && (
+              <button
+                onClick={() => setFilters({ ...filters, q: '' })}
+                aria-label="Clear search"
+                className="text-muted hover:text-ink"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </label>
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            aria-label="Add resource"
+            className="btn-primary inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold sm:px-4"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Add resource</span>
+          </button>
+        </div>
 
         {!overview ? (
           <p className="rounded-xl border border-line bg-surface p-5 text-sm text-muted">
@@ -211,7 +225,7 @@ export function CareerResourcesPage() {
                   />
                 )}
                 {view === 'assigned' && <AssignedView />}
-                {view === 'shared' && <MySharesView onShare={() => openShare()} onSavedChange={bumpSaved} canShare={contribute.length > 0} />}
+                {view === 'shared' && <MySharesView key={reload} onShare={() => openShare()} onSavedChange={bumpSaved} canShare />}
                 {view === 'saved' && <SavedList onCountChange={bumpSaved} />}
               </div>
             </div>
@@ -235,11 +249,27 @@ export function CareerResourcesPage() {
         />
       </aside>
 
-      {/* Only with stages to offer: an empty stage list can never submit. */}
-      {sharing && contribute.length > 0 && (
+      {/* Opens even with no roadmap: stages are optional, and only the
+          member's own roadmap stages are offered. */}
+      {adding && (
+        <AddResourceForm
+          onClose={() => setAdding(false)}
+          onAdded={() => {
+            setAdding(false)
+            void loadOverview()
+            // Straight to "I've shared": All Resources leaves out the
+            // viewer's own items, so it would look like nothing happened.
+            setView('shared')
+            setReload((n) => n + 1)
+          }}
+        />
+      )}
+
+      {sharing && (
         <ShareForm
           stages={contribute}
-          defaultTopicKey={sharing.topicKey ?? (stepKey ? topicFor(stepKey) : undefined)}
+          // Only a stage the member opened the form from; otherwise empty.
+          defaultTopicKey={sharing.topicKey}
           onClose={() => setSharing(null)}
           onShared={() => {
             setSharing(null)

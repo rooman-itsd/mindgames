@@ -13,6 +13,7 @@ import type {
   CareerResourceSummary,
   ContributeStage,
   LearningShare,
+  ShareFile,
   LearningOverview,
   ShareAudience,
   ShareKind,
@@ -900,7 +901,10 @@ export const api = {
   getLearningTags: (q?: string, signal?: AbortSignal) =>
     http<SkillTag[]>(`/api/learning/tags${q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`, { signal }),
   shareLearning: (body: {
-    topicKey: string
+    /** Optional: without one the share is not filed under a stage. */
+    topicKey?: string
+    /** Several stages (up to MAX_SHARE_STAGES); the first is the share's own. */
+    topicKeys?: string[]
     kind: ShareKind
     title: string
     url?: string
@@ -916,6 +920,32 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  // ---- Add resource: files go up one request each, then the resource claims them.
+  uploadLearningFile: (body: { name: string; mime: string; data: string }) =>
+    http<ShareFile>('/api/learning/uploads', { method: 'POST', body: JSON.stringify(body) }),
+  deleteLearningUpload: (id: string) =>
+    http<void>(`/api/learning/uploads/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  addLearningResource: (body: {
+    domains: string[]
+    title: string
+    fileIds: string[]
+    whyHelped: string
+    difficulty: ProjectDifficulty
+    audience: ShareAudience
+  }) => http<{ share: LearningShare }>('/api/learning/resources', { method: 'POST', body: JSON.stringify(body) }),
+  /** One attached file as a Blob. A plain link cannot carry the bearer token,
+   *  so the card fetches it here and opens an object URL. */
+  getShareFile: async (shareId: string, fileId: string): Promise<Blob> => {
+    const token = getToken()
+    const res = await fetch(`/api/learning/shares/${encodeURIComponent(shareId)}/files/${encodeURIComponent(fileId)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new HttpError(body.error || `Request failed (${res.status})`, res.status)
+    }
+    return res.blob()
+  },
   deleteShare: (id: string) =>
     http<void>(`/api/learning/shares/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   saveShare: (id: string) =>

@@ -22,7 +22,8 @@ export function sortPostsBySortMode(posts: Post[], mode: SortMode): Post[] {
     case 'New':
       return [...posts].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     case 'Top':
-      return [...posts].sort((a, b) => b.likes - a.likes)
+      // Ties (common at 0–1 likes) go to the newest, not to arrival order.
+      return [...posts].sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt))
     case 'Best':
       return [...posts].sort((a, b) => {
         const scoreA = a.likes * 2 + a.comments.length * 3
