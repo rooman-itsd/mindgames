@@ -1,6 +1,8 @@
 /**
- * The app's sections, shared by the desktop sidebar (LeftSidebar) and the
- * phone tab bar (MobileTabBar) so the two can never list different pages.
+ * The app's sections, shared by the desktop sidebar (LeftSidebar), the phone
+ * tab bar's More sheet (MobileTabBar) and the Ctrl+K palette, so they can never
+ * list different pages. Grouped as Opportunities / Grow / Community; the
+ * sidebar shows a small heading wherever the group changes.
  */
 import {
   BookOpen,
@@ -25,31 +27,40 @@ import {
  * it can find verbatim in the source; a template like `text-${hue}-700` would
  * ship with no styles.
  */
-export const NAV = [
+/** Optional section heading the sidebar shows above an item's group. */
+export type NavGroup = 'Opportunities' | 'Grow' | 'Community'
+
+export const NAV: Array<{
+  to: string
+  label: string
+  icon: typeof Home
+  group?: NavGroup
+  tone: { icon: string; pill: string; text: string }
+}> = [
   { to: '/home', label: 'Home', icon: Home,
     tone: { icon: 'text-brand', pill: 'border-brand bg-brand-50', text: 'text-brand' } },
   { to: '/network', label: 'My Network', icon: Users,
     tone: { icon: 'text-lagoon-600', pill: 'border-lagoon-600 bg-lagoon-50', text: 'text-lagoon-700' } },
   { to: '/events', label: 'Events', icon: Calendar,
     tone: { icon: 'text-clay-600', pill: 'border-clay-600 bg-clay-50', text: 'text-clay-700' } },
-  { to: '/jobs', label: 'Jobs & Opportunities', icon: Briefcase,
+  { to: '/jobs', label: 'Jobs', icon: Briefcase, group: 'Opportunities',
     tone: { icon: 'text-iris-600', pill: 'border-iris-600 bg-iris-50', text: 'text-iris-700' } },
-  { to: '/companies', label: 'Companies', icon: Building2,
+  { to: '/companies', label: 'Companies', icon: Building2, group: 'Opportunities',
     tone: { icon: 'text-ocean-600', pill: 'border-ocean-600 bg-ocean-50', text: 'text-ocean-700' } },
-  { to: '/mentorship', label: 'Mentorship', icon: GraduationCap,
-    tone: { icon: 'text-saffron-600', pill: 'border-saffron-600 bg-saffron-50', text: 'text-saffron-700' } },
-  { to: '/startupvarsity', label: 'StartupVarsity', icon: Rocket,
+  { to: '/startupvarsity', label: 'StartupVarsity', icon: Rocket, group: 'Opportunities',
     tone: { icon: 'text-amethyst-600', pill: 'border-amethyst-600 bg-amethyst-50', text: 'text-amethyst-700' } },
-  { to: '/news', label: 'News & Updates', icon: Newspaper,
-    tone: { icon: 'text-rosewood-600', pill: 'border-rosewood-600 bg-rosewood-50', text: 'text-rosewood-700' } },
-  { to: '/learning-resources', label: 'Learning Resources', icon: BookOpen,
+  { to: '/mentorship', label: 'Mentorship', icon: GraduationCap, group: 'Grow',
+    tone: { icon: 'text-saffron-600', pill: 'border-saffron-600 bg-saffron-50', text: 'text-saffron-700' } },
+  { to: '/learning-resources', label: 'Learning Resources', icon: BookOpen, group: 'Grow',
     tone: { icon: 'text-jade-600', pill: 'border-jade-600 bg-jade-50', text: 'text-jade-700' } },
-  { to: '/career-guidance', label: 'Career Guidance', icon: Route,
+  { to: '/career-guidance', label: 'Career Guidance', icon: Route, group: 'Grow',
     tone: { icon: 'text-plum-600', pill: 'border-plum-600 bg-plum-50', text: 'text-plum-700' } },
+  { to: '/news', label: 'News & Updates', icon: Newspaper, group: 'Community',
+    tone: { icon: 'text-rosewood-600', pill: 'border-rosewood-600 bg-rosewood-50', text: 'text-rosewood-700' } },
   // Explore and "Start a Community" are one entry: the Explore page already
   // has its own Start a Community button, so a separate sidebar item was a
   // second door to the same room.
-  { to: '/explore', label: 'Explore Communities', icon: Compass,
+  { to: '/explore', label: 'Communities', icon: Compass, group: 'Community',
     tone: { icon: 'text-lagoon-600', pill: 'border-lagoon-600 bg-lagoon-50', text: 'text-lagoon-700' } },
 ]
 

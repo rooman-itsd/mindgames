@@ -44,8 +44,13 @@ for (const model of models) {
     results.push(r)
     const pct = (x: number) => `${Math.round(x * 100)}%`
     console.log(`${model}`)
-    console.log(`  cut-offs (≥${pct(MIN_PRECISION)} of shown cards correct, most found): related ${r.best.relatedMin}, with a skill tag ${r.best.relatedWithTagMin}`)
+    console.log(`  cut-offs (≥${pct(MIN_PRECISION)} of shown cards correct, most found): related ${r.best.relatedMin}, with a skill tag ${r.best.relatedWithTagMin}, with a role skill ${r.best.relatedWithRoleMin}`)
     console.log(`  of the shown cards correct ${pct(r.best.precision)} · of the relevant found ${pct(r.best.recall)} · F1 ${r.best.f1.toFixed(2)}`)
+    console.log(
+      r.best.mustOk
+        ? `  hand-judged cards (MUST): all right`
+        : `  hand-judged cards (MUST): NO cut-off gets them all right with this model — do not adopt it as is`,
+    )
     console.log(
       r.same.cut === null
         ? `  same-stage screen: cannot separate (belongs ≥ ${r.same.keepMin.toFixed(2)}, off-topic up to ${r.same.dropMax.toFixed(2)}) — keep the default`
@@ -53,7 +58,8 @@ for (const model of models) {
     )
     console.log(
       `  .env → OPENROUTER_EMBED_MODEL=${model}  EMBED_RELATED_MIN=${r.best.relatedMin}  ` +
-        `EMBED_RELATED_WITH_TAG_MIN=${r.best.relatedWithTagMin}  EMBED_SAME_STAGE_MIN=${r.same.cut ?? 0.2}\n`,
+        `EMBED_RELATED_WITH_TAG_MIN=${r.best.relatedWithTagMin}  EMBED_RELATED_WITH_ROLE_MIN=${r.best.relatedWithRoleMin}  ` +
+        `EMBED_SAME_STAGE_MIN=${r.same.cut ?? 0.2}\n`,
     )
   } catch (e) {
     console.log(`${model}\n  could not measure: ${e instanceof Error ? e.message : e}\n`)

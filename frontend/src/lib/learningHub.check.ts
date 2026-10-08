@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import {
-  appendPage, assignmentOrigin, displayLink, helpedByLabel, isFiltering, monthsLabel, ratingSummary, stepPosition,
+  appendPage, assignmentOrigin, displayLink, fileSizeLabel, isBlockedFile, opensInTab, resourceDomains, resourceFormProblem, helpedByLabel, isFiltering, monthsLabel, ratingSummary, stepPosition,
   submissionState, supportLabel, toggleValue, waitingLabel, workable,
 } from './learningHub'
 import type { LearningStageLite } from '../types'
@@ -71,4 +71,26 @@ assert.equal(supportLabel('free_or_paid'), 'Free or paid')
 assert.equal(supportLabel('nonsense'), null)
 assert.equal(monthsLabel(1), '1 month')
 
+// --- Add resource ------------------------------------------------------------
+assert.ok(isBlockedFile('setup.EXE') && isBlockedFile('page.html') && isBlockedFile('logo.svg'))
+assert.ok(!isBlockedFile('notes.pdf') && !isBlockedFile('clip.mp4') && !isBlockedFile('slides.pptx'))
+// Windows drops trailing dots/spaces on save, so these are setup.exe / run.hta.
+assert.ok(isBlockedFile('setup.exe.') && isBlockedFile('setup.exe . ') && isBlockedFile('run.hta') && isBlockedFile('link.lnk'))
+assert.ok(!isBlockedFile('v1.2.') && !isBlockedFile('report.final.pdf'))
+assert.ok(opensInTab('application/pdf') && opensInTab('video/mp4') && opensInTab('image/png'))
+assert.ok(!opensInTab('image/svg+xml') && !opensInTab('text/html') && !opensInTab('application/zip'), 'risky or unknown types download')
+assert.equal(fileSizeLabel(900), '900 B')
+assert.equal(fileSizeLabel(420 * 1024), '420 KB')
+assert.equal(fileSizeLabel(8.6 * 1024 * 1024), '8.6 MB')
+assert.equal(fileSizeLabel(10 * 1024 * 1024), '10 MB')
+assert.deepEqual(resourceDomains(['Data', 'Cloud'], [' Blockchain ', 'data', 'Game  Dev']), ['Data', 'Cloud', 'Blockchain', 'Game Dev'])
+assert.deepEqual(resourceDomains([], []), [])
+const ok = { domains: ['Data'], title: 'SQL guide', files: 2, uploading: 0, whyHelped: 'x'.repeat(30) }
+assert.equal(resourceFormProblem(ok), null)
+assert.equal(resourceFormProblem({ ...ok, domains: [] }), 'Pick a domain.')
+assert.equal(resourceFormProblem({ ...ok, files: 0 }), 'Attach at least one file.')
+assert.equal(resourceFormProblem({ ...ok, uploading: 1 }), 'Wait for the files to finish uploading.')
+assert.match(resourceFormProblem({ ...ok, whyHelped: 'short' }) ?? '', /at least 30/)
+
 console.log('learningHub.check.ts — all assertions passed')
+

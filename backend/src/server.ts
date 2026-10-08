@@ -24,6 +24,7 @@ import { companiesRouter } from './routes/companies.routes.js'
 import { careerRouter } from './routes/career.routes.js'
 import { careerResourcesRouter } from './routes/careerResources.routes.js'
 import { learningRouter } from './routes/learning.routes.js'
+import { learningResourcesRouter } from './routes/learningResources.routes.js'
 import { startLearningNudgeScheduler } from './learningNudge.js'
 import { startLearningEmbedScheduler } from './learningEmbed.js'
 import { backfillSessionAssignees } from './resourceAssignees.js'
@@ -77,6 +78,7 @@ app.use('/api/companies', companiesRouter)
 app.use('/api/career', careerRouter)
 app.use('/api/career-resources', careerResourcesRouter)
 app.use('/api/learning', learningRouter)
+app.use('/api/learning', learningResourcesRouter) // Add resource: uploads, files
 app.use('/api/subscription', subscriptionRouter)
 app.use('/api/group-sessions', groupSessionsRouter)
 

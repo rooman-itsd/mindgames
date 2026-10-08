@@ -6,6 +6,7 @@ import { useApp } from '../../store/AppStore'
 import type { CareerResource } from '../../types'
 import { KindIcon } from './KindIcon'
 import { LoadMore, SectionHeader } from './SectionHeader'
+import { ShareFiles } from './ShareFiles'
 
 const PAGE = 20
 
@@ -95,6 +96,7 @@ export function SavedList({ onCountChange }: { onCountChange: (delta: number) =>
                   {r.sharedByName ? `Recommended by ${r.sharedByName}` : 'Saved by you'}
                   {r.url ? ` · ${displayLink(r.url)}` : ''}
                 </p>
+                {r.shareId && r.shareFiles && r.shareFiles.length > 0 && <ShareFiles shareId={r.shareId} files={r.shareFiles} />}
               </div>
               <button
                 onClick={() => void remove(r)}

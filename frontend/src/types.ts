@@ -1409,6 +1409,8 @@ export interface CareerResource {
   /** This row is the member's saved copy of what an alum shared, and who
    *  shared it — so a saved list can still credit them. */
   shareId?: string
+  /** The source share's attached files (a files-only resource has no url). */
+  shareFiles?: ShareFile[]
   sharedByName?: string
   /** The member a mentor assigned this to (by session or directly). */
   assignedToId?: string
@@ -1478,7 +1480,17 @@ export interface LearningShare {
   iHelped: boolean
   /** The viewer's own saved copy, when they have saved it. */
   mySavedResourceId: string | null
+  /** Files attached through Add resource (details only; download by id). */
+  files?: ShareFile[]
   createdAt: string
+}
+
+/** One file attached to a resource, or an upload waiting in the form. */
+export interface ShareFile {
+  id: string
+  name: string
+  mime: string
+  size: number
 }
 
 /** An alum a member can ask when nobody has shared for their stage yet. */
@@ -1535,6 +1547,15 @@ export interface ContributeStage {
    *  roadmap they are on now. Anyone can share for any of them; only passed and
    *  role ones are suggested as 'members are waiting — can you help?'. */
   reason: 'passed' | 'role' | 'mine'
+  membersWaiting: number
+  sharesCount: number
+}
+
+/** A stage a share can be filed under in the share form — one of the
+ *  member's own roadmap stages. */
+export interface StageOption {
+  topicKey: string
+  title: string
   membersWaiting: number
   sharesCount: number
 }

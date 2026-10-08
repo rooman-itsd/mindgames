@@ -13,6 +13,7 @@ import type {
   CareerResourceSummary,
   ContributeStage,
   LearningShare,
+  ShareFile,
   LearningOverview,
   ShareAudience,
   ShareKind,
@@ -120,6 +121,15 @@ function afterQuery(after?: { id: string; createdAt: string }): string {
   return after ? `?${new URLSearchParams({ after: after.id, afterAt: after.createdAt })}` : ''
 }
 
+/** A failed response as an HttpError. The status is carried on the error, not
+ *  just folded into the message: callers need to tell a payment-required 402
+ *  (open the plans) from an ordinary failure (show a toast), and a message
+ *  string cannot express that without matching on wording. */
+async function toHttpError(res: Response): Promise<HttpError> {
+  const body = await res.json().catch(() => ({}))
+  return new HttpError(body.error || `Request failed (${res.status})`, res.status)
+}
+
 async function http<T>(url: string, options?: RequestInit): Promise<T> {
   const token = getToken()
   const res = await fetch(url, {
@@ -130,14 +140,7 @@ async function http<T>(url: string, options?: RequestInit): Promise<T> {
       ...options?.headers,
     },
   })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    // The status is carried on the error, not just folded into the message:
-    // callers need to tell a payment-required 402 (open the plans) from an
-    // ordinary failure (show a toast), and a message string cannot express
-    // that without matching on wording.
-    throw new HttpError(body.error || `Request failed (${res.status})`, res.status)
-  }
+  if (!res.ok) throw await toHttpError(res)
   // 204 / empty bodies
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -900,7 +903,10 @@ export const api = {
   getLearningTags: (q?: string, signal?: AbortSignal) =>
     http<SkillTag[]>(`/api/learning/tags${q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`, { signal }),
   shareLearning: (body: {
-    topicKey: string
+    /** Optional: without one the share is not filed under a stage. */
+    topicKey?: string
+    /** Several stages (up to MAX_SHARE_STAGES); the first is the share's own. */
+    topicKeys?: string[]
     kind: ShareKind
     title: string
     url?: string
@@ -916,6 +922,29 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  // ---- Add resource: files go up one request each, then the resource claims them.
+  uploadLearningFile: (body: { name: string; mime: string; data: string }) =>
+    http<ShareFile>('/api/learning/uploads', { method: 'POST', body: JSON.stringify(body) }),
+  deleteLearningUpload: (id: string) =>
+    http<void>(`/api/learning/uploads/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  addLearningResource: (body: {
+    domains: string[]
+    title: string
+    fileIds: string[]
+    whyHelped: string
+    difficulty: ProjectDifficulty
+    audience: ShareAudience
+  }) => http<{ share: LearningShare }>('/api/learning/resources', { method: 'POST', body: JSON.stringify(body) }),
+  /** One attached file as a Blob. A plain link cannot carry the bearer token,
+   *  so the card fetches it here and opens an object URL. */
+  getShareFile: async (shareId: string, fileId: string): Promise<Blob> => {
+    const token = getToken()
+    const res = await fetch(`/api/learning/shares/${encodeURIComponent(shareId)}/files/${encodeURIComponent(fileId)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw await toHttpError(res)
+    return res.blob()
+  },
   deleteShare: (id: string) =>
     http<void>(`/api/learning/shares/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   saveShare: (id: string) =>

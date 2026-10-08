@@ -7,6 +7,7 @@ import {
 import { api } from '../../lib/api'
 import { roleLine } from '../../lib/format'
 import { AUDIENCE_LABEL, KIND_LABEL, displayLink, helpedByLabel, ratingSummary } from '../../lib/learningHub'
+import { ShareFiles } from './ShareFiles'
 import { useApp } from '../../store/AppStore'
 import { Avatar } from '../ui'
 import type { LearningShare } from '../../types'
@@ -213,6 +214,7 @@ export function ShareCard({
           ))}
         </div>
       )}
+      {share.files && share.files.length > 0 && <ShareFiles shareId={share.id} files={share.files} />}
 
       <div className="mt-auto pt-3">
         <div className="flex items-center justify-between gap-2 text-[11px] text-muted">

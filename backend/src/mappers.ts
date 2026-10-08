@@ -794,6 +794,8 @@ export interface CareerResourceRow {
   session_ended_at?: Date | string | null
   share_id?: string | null
   share_sharer_name?: string | null
+  /** The source share's attached files, when it has any (RESOURCE_SELECT). */
+  share_files?: { id: string; name: string; mime: string; size: number }[] | null
   assigned_to?: string | null
   assignee_name?: string | null
 }
@@ -839,6 +841,8 @@ export function mapCareerResource(r: CareerResourceRow) {
     // their name, so a saved list still says who recommended it.
     shareId: r.share_id ?? undefined,
     sharedByName: r.share_sharer_name ?? undefined,
+    // Files of the source share, so a saved files-only resource can be opened.
+    shareFiles: r.share_files ?? undefined,
     // Who the owner (a mentor) handed it to — set for session resources and
     // for direct assignments alike.
     assignedToId: r.assigned_to ?? undefined,
@@ -854,7 +858,8 @@ export function mapCareerResource(r: CareerResourceRow) {
 // ---------------------------------------------------------------------------
 export interface LearningShareRow {
   id: string
-  topic_key: string
+  /** Null when shared without a stage. */
+  topic_key: string | null
   kind: string
   title: string
   url: string | null
@@ -882,6 +887,8 @@ export interface LearningShareRow {
   audience?: string
   i_helped?: boolean | null
   my_saved_id?: string | null
+  /** Attached files' details (never the bytes), in order; null when none. */
+  files?: { id: string; name: string; mime: string; size: number }[] | null
 }
 
 export function mapLearningShare(r: LearningShareRow) {
@@ -922,14 +929,16 @@ export function mapLearningShare(r: LearningShareRow) {
     iHelped: !!r.i_helped,
     // The viewer's own saved copy, so the card can unsave without a lookup.
     mySavedResourceId: r.my_saved_id ?? null,
+    // Attached files (Add resource): what to list and download, no contents.
+    files: r.files ?? [],
     createdAt: new Date(r.created_at).toISOString(),
   }
 }
 
 /** A share in a stage's list, marked by why it is there: filed under this
  *  very stage, or Related — close to it in meaning, from another roadmap. */
-export function mapStageShare(r: LearningShareRow, stageTopicKey: string) {
-  return { ...mapLearningShare(r), match: r.topic_key === stageTopicKey ? ('stage' as const) : ('related' as const) }
+export function mapStageShare(r: LearningShareRow, onStage: boolean) {
+  return { ...mapLearningShare(r), match: onStage ? ('stage' as const) : ('related' as const) }
 }
 
 /**

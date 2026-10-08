@@ -60,8 +60,9 @@ async function tick() {
                  WHERE member_count >= $1
                    AND (nudged_at IS NULL OR nudged_at < now() - $2::interval)
                    AND NOT EXISTS (
-                         SELECT 1 FROM learning_shares s
-                          WHERE s.topic_key = learning_topics.topic_key AND NOT s.hidden)
+                         SELECT 1 FROM learning_share_topics st
+                           JOIN learning_shares s ON s.id = st.share_id
+                          WHERE st.topic_key = learning_topics.topic_key AND NOT s.hidden)
                  ORDER BY member_count DESC
                  LIMIT $3
                  FOR UPDATE SKIP LOCKED)

@@ -179,25 +179,31 @@ export function PostCard({ post }: { post: Post }) {
       {/* Action bar */}
       <div className="mx-3 mt-1 mb-1.5 flex items-center gap-1 border-t border-line pt-1.5 text-muted">
         <ReactionControl post={post} react={react} />
-        <ActionButton hover="hover:bg-blue-50 hover:text-blue-600" onClick={() => setShowComments((v) => !v)}>
+        {/* Icon-only actions: each name lives in aria-label (screen readers) and
+            title (hover), so dropping the words costs nobody the meaning. */}
+        <ActionButton
+          label={post.comments.length ? `Comments (${post.comments.length})` : 'Comment'}
+          hover="hover:bg-blue-50 hover:text-blue-600"
+          onClick={() => setShowComments((v) => !v)}
+        >
           <MessageCircle size={18} />
-          <span>{post.comments.length || 'Comment'}</span>
+          {post.comments.length > 0 && <span className="tabular-nums">{post.comments.length}</span>}
         </ActionButton>
-        <ActionButton hover="hover:bg-green-50 hover:text-green-600" onClick={share}>
+        <ActionButton label="Share" hover="hover:bg-green-50 hover:text-green-600" onClick={share}>
           <Share2 size={18} />
-          <span className="hidden sm:inline">Share</span>
         </ActionButton>
         <ActionButton
+          label={post.saved ? 'Saved' : 'Save'}
           active={post.saved}
           hover="hover:bg-brand-50 hover:text-brand"
           onClick={() => toggleSave(post.id)}
         >
           <Bookmark size={18} className={post.saved ? 'fill-brand text-brand' : ''} />
-          <span className={`hidden sm:inline ${post.saved ? 'text-brand' : ''}`}>{post.saved ? 'Saved' : 'Save'}</span>
         </ActionButton>
         {/* Your own wins can be turned into a share card for LinkedIn. */}
         {author.id === currentUser.id && post.type === 'Achievement' && (
           <ActionButton
+            label="Share as image"
             hover="hover:bg-marigold-50 hover:text-marigold-800"
             onClick={() =>
               openShareWin({
@@ -208,7 +214,6 @@ export function PostCard({ post }: { post: Post }) {
             }
           >
             <Sparkles size={18} />
-            <span className="hidden sm:inline">Share as image</span>
           </ActionButton>
         )}
         {author.id !== currentUser.id && (
@@ -277,18 +282,24 @@ export function PostCard({ post }: { post: Post }) {
 
 function ActionButton({
   children,
+  label,
   active = false,
   hover = 'hover:bg-gray-100',
   onClick,
 }: {
   children: React.ReactNode
+  /** Accessible name and hover tooltip — the button itself shows only an icon. */
+  label: string
   active?: boolean
   hover?: string
   onClick?: () => void
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       // Sized to its content, not flex-1: the actions group together at the left
       // of the bar instead of each stretching to a quarter of the card width.
       className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors ${hover} ${
@@ -302,7 +313,9 @@ function ActionButton({
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand/90">
+    // text-brand, not text-brand/90: only the plain class has a dark-mode
+    // override (mint), so the /90 variant went dark-green-on-dark.
+    <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand">
       {children}
     </span>
   )
@@ -362,12 +375,13 @@ function ReactionControl({ post, react }: { post: Post; react: (id: string, emoj
           if (!mine) heartBurst(ev.currentTarget, '👍')
           react(post.id, mine ?? '👍')
         }}
+        aria-label={mine ? `Reacted ${mine} (remove)` : 'React'}
+        title={mine ? `Reacted ${mine}` : 'React'}
         className={`btn-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold hover:bg-rosewood-50 hover:text-rosewood-700 ${
           mine ? 'bg-rosewood-50 text-rosewood-700' : ''
         }`}
       >
         <span className="text-base leading-none">{mine ?? '👍'}</span>
-        <span>{mine ? 'Reacted' : 'React'}</span>
       </button>
     </div>
   )

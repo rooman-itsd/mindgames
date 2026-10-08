@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Megaphone, Newspaper, Plus } from 'lucide-react'
 import { useApp } from '../store/AppStore'
 import { Button, Card } from '../components/ui'
@@ -10,6 +11,18 @@ import { roomanStats } from '../data/mockData'
 export function News() {
   const { posts, userById } = useApp()
   const [composing, setComposing] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Home's "Share a win" shortcut lands here with { compose: true }: open the
+  // composer (it starts on Achievement), then drop the flag so a refresh or a
+  // Back to this entry doesn't reopen it.
+  useEffect(() => {
+    if ((location.state as { compose?: boolean } | null)?.compose) {
+      setComposing(true)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.state, location.pathname, navigate])
 
   // News & Updates = official announcements (admin / Rooman authored) PLUS the
   // peer-to-peer formats members publish (Achievement, Project, Article, Meetup).

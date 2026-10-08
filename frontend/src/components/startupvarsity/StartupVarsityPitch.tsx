@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react'
 import { Card } from '../ui'
+import { AlumniStories } from './AlumniStories'
 
 /**
  * "Your idea. Your startup. Your team." — the StartupVarsity pitch on
@@ -119,6 +120,8 @@ export function StartupVarsityPitch() {
           join another startup or transfer your IP.
         </p>
 
+        <AlumniStories />
+
         <p className="font-display text-xl leading-tight font-extrabold text-ink">
           Don't start blindly. <span className="text-brand">Start with us.</span>
         </p>
@@ -137,10 +140,6 @@ export function StartupVarsityPitch() {
             Explore StartupVarsity
           </OutLink>
         </div>
-        <p className="-mt-3 max-w-2xl text-xs text-muted">
-          Both open startupvarsity.com in a new tab. On their contact page, scroll to <b>Reach Out To Us</b>: the form
-          asks for your name, email, phone and a message, and their team replies within 24–48 hours.
-        </p>
       </section>
     </Card>
   )

@@ -1562,9 +1562,110 @@ CREATE INDEX IF NOT EXISTS idx_learning_shares_difficulty
   ON learning_shares (difficulty) WHERE NOT hidden;
 CREATE INDEX IF NOT EXISTS idx_learning_shares_search
   ON learning_shares USING GIN (search_tsv);
+-- The stage is optional: a share with none is in All Resources and still
+-- reaches every stage close to it in meaning (Related) — it is just not filed
+-- under one. Approved 2026-10-08 (altering an existing column, CLAUDE.md §6).
+-- Re-runnable: dropping NOT NULL again is a catalog no-op, no table scan.
+ALTER TABLE learning_shares ALTER COLUMN topic_key DROP NOT NULL;
+-- The same link shared twice with no stage is one item, as it is for one
+-- stage. idx_learning_shares_topic_url cannot see these: NULLs never collide.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_learning_shares_unfiled_url
+  ON learning_shares (url_norm) WHERE topic_key IS NULL AND url_norm IS NOT NULL;
 -- An alum's own contributions: their "I've shared" list and the per-day cap.
 CREATE INDEX IF NOT EXISTS idx_learning_shares_sharer
   ON learning_shares (shared_by, created_at DESC);
+
+-- Every roadmap stage a share is filed under — a share can name several.
+-- learning_shares.topic_key stays as the first of them (so its per-stage
+-- duplicate guard still holds); this table lists all of them, the first
+-- included, and is what "the shares on this stage" reads.
+CREATE TABLE IF NOT EXISTS learning_share_topics (
+  share_id  TEXT NOT NULL REFERENCES learning_shares(id) ON DELETE CASCADE,
+  topic_key TEXT NOT NULL REFERENCES learning_topics(topic_key) ON DELETE CASCADE,
+  PRIMARY KEY (share_id, topic_key)
+);
+-- "The shares on this stage": one index range per stage, never a scan.
+CREATE INDEX IF NOT EXISTS idx_learning_share_topics_topic
+  ON learning_share_topics (topic_key, share_id);
+-- Backfill. The first migrate after this table was added (still empty) fills
+-- it from every share; after that only shares from the last day are looked
+-- at — a deploy migrates before it restarts, so old code can still write a
+-- share or two in between, and this catches them on the next migrate without
+-- re-scanning every share each deploy (idx_learning_shares_created).
+CREATE INDEX IF NOT EXISTS idx_learning_shares_created ON learning_shares (created_at);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM learning_share_topics) THEN
+    INSERT INTO learning_share_topics (share_id, topic_key)
+      SELECT s.id, s.topic_key FROM learning_shares s WHERE s.topic_key IS NOT NULL
+    ON CONFLICT DO NOTHING;
+  ELSE
+    INSERT INTO learning_share_topics (share_id, topic_key)
+      SELECT s.id, s.topic_key FROM learning_shares s
+       WHERE s.created_at > now() - interval '1 day' AND s.topic_key IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM learning_share_topics x WHERE x.share_id = s.id)
+    ON CONFLICT DO NOTHING;
+  END IF;
+END $$;
+
+-- Files attached to a resource ("Add resource": up to 10, any type). Stored
+-- in the database like chat attachments (messages.attachment_data).
+-- ponytail: bytes in Postgres; move to object storage (S3) and keep only the
+-- key here once file volume makes the database the wrong place for them.
+-- A file is uploaded first with no share (share_id NULL, one request per file
+-- so no request nears the body limit), then claimed by the share it is
+-- submitted with. Unclaimed uploads older than a day are swept on upload.
+CREATE TABLE IF NOT EXISTS learning_share_files (
+  id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  share_id   TEXT REFERENCES learning_shares(id) ON DELETE CASCADE,
+  owner_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  mime       TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),
+  data       BYTEA NOT NULL,
+  position   SMALLINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- A share's files, in order (never the bytes — those are read one file at a time).
+CREATE INDEX IF NOT EXISTS idx_learning_share_files_share
+  ON learning_share_files (share_id, position) WHERE share_id IS NOT NULL;
+-- A member's not-yet-attached uploads: the per-member cap and the sweep.
+CREATE INDEX IF NOT EXISTS idx_learning_share_files_pending
+  ON learning_share_files (owner_id, created_at) WHERE share_id IS NULL;
+-- Anyone's abandoned uploads, oldest first: the bounded cross-member sweep.
+CREATE INDEX IF NOT EXISTS idx_learning_share_files_stale
+  ON learning_share_files (created_at) WHERE share_id IS NULL;
+
+-- Uploads per member per day (bytes too), for the daily upload limit. Kept
+-- apart from learning_share_files because deleted uploads must still count —
+-- otherwise "upload, delete, repeat" is unlimited. Rows older than a day are
+-- pruned on the member's next upload.
+CREATE TABLE IF NOT EXISTS learning_upload_log (
+  owner_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  bytes      INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_learning_upload_log_owner
+  ON learning_upload_log (owner_id, created_at);
+
+-- How many files a share has, kept on the row so the "link or files" rule
+-- below can be a CHECK (a CHECK cannot count another table's rows).
+ALTER TABLE learning_shares ADD COLUMN IF NOT EXISTS file_count SMALLINT NOT NULL DEFAULT 0;
+-- A resource needs something to open: a link, or (since "Add resource") at
+-- least one attached file. Approved 2026-10-08. Replaced only while the old
+-- definition is still there: re-adding a CHECK re-validates the whole table
+-- under an exclusive lock, which must not happen on every migrate. Every
+-- existing row has a link or is a project, so the one-time check passes.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                  WHERE conname = 'learning_shares_resource_has_link'
+                    AND pg_get_constraintdef(oid) LIKE '%file_count%') THEN
+    ALTER TABLE learning_shares DROP CONSTRAINT IF EXISTS learning_shares_resource_has_link;
+    ALTER TABLE learning_shares ADD CONSTRAINT learning_shares_resource_has_link
+      CHECK (kind = 'project' OR url IS NOT NULL OR file_count > 0);
+  END IF;
+END $$;
 
 -- The Skill / Topic filter's list. One row per tag with how many visible
 -- shares carry it, kept up to date in the same transaction as the share that
@@ -1694,6 +1795,28 @@ ALTER TABLE career_resources ADD COLUMN IF NOT EXISTS share_id TEXT
   REFERENCES learning_shares(id) ON DELETE SET NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_career_resources_share_save
   ON career_resources (user_id, share_id) WHERE share_id IS NOT NULL;
+
+-- A share's saved copies, by share (the unique index leads with user_id).
+CREATE INDEX IF NOT EXISTS idx_career_resources_share
+  ON career_resources (share_id) WHERE share_id IS NOT NULL;
+
+-- When a files-only resource is deleted — by its sharer, or with the sharer's
+-- whole account — members' saved copies of it go too: its files go with it,
+-- so a copy would be a title with no link and no files. Copies of a link
+-- resource keep their link and survive (share_id goes NULL). A trigger, so
+-- every way a share can be deleted is covered. Re-runnable.
+CREATE OR REPLACE FUNCTION learning_share_drop_dead_copies() RETURNS trigger AS $$
+BEGIN
+  IF OLD.url IS NULL AND OLD.file_count > 0 THEN
+    DELETE FROM career_resources WHERE share_id = OLD.id AND url IS NULL;
+  END IF;
+  RETURN OLD;
+END
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS learning_shares_drop_dead_copies ON learning_shares;
+CREATE TRIGGER learning_shares_drop_dead_copies
+  BEFORE DELETE ON learning_shares
+  FOR EACH ROW EXECUTE FUNCTION learning_share_drop_dead_copies();
 
 -- Counters stay true when an account is deleted.
 --

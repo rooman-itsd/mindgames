@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { NavLink } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { ShieldCheck, Menu } from 'lucide-react'
@@ -13,9 +14,8 @@ export function LeftSidebar({
   /** Set while the member's email is unverified and the prompt isn't dismissed. */
   verifyNotice?: { resending: boolean; onResend: () => void; onDismiss: () => void }
 } = {}) {
-  const { communities, currentUser } = useApp()
+  const { currentUser } = useApp()
   const { sidebarOpen, toggleSidebar } = useLayout()
-  const joined = communities.filter((c) => c.joined)
   const reduceMotion = useReducedMotion()
 
   return (
@@ -39,14 +39,20 @@ export function LeftSidebar({
       </button>
 
       {/* Sidebar — slides fully off-screen when closed */}
-      {/* A floating card 14px in from the edge and the navbar. */}
-      <aside className={`fixed bottom-3.5 top-[70px] z-40 hidden w-[248px] flex-col overflow-y-auto rounded-2xl border border-line bg-surface px-2.5 py-3 shadow-[0_18px_40px_-28px_rgb(1_38_28/0.45)] transition-all duration-200 lg:flex ${
+      {/* A floating card 14px in from the edge and the navbar, as tall as its
+          items (not the full screen, which left a large empty white panel);
+          capped at the viewport, where it scrolls. */}
+      <aside className={`fixed top-[70px] z-40 hidden max-h-[calc(100vh-84px)] w-[248px] flex-col overflow-y-auto rounded-2xl border border-line bg-surface px-2.5 py-3 shadow-[0_18px_40px_-28px_rgb(1_38_28/0.45)] transition-all duration-200 lg:flex ${
         sidebarOpen ? 'left-[calc(var(--shell-gutter)+14px)]' : '-left-[280px]'
       }`}>
       <nav className="flex flex-col gap-0.5">
-        {NAV.map(({ to, label, icon: Icon, tone }) => (
+        {NAV.map(({ to, label, icon: Icon, tone, group }, i) => (
+          <Fragment key={to}>
+          {/* A small heading wherever the group changes (Opportunities / Grow / Community). */}
+          {group && group !== NAV[i - 1]?.group && (
+            <p className="px-3 pt-3 pb-1 text-[10.5px] font-extrabold tracking-wider text-muted uppercase">{group}</p>
+          )}
           <NavLink
-            key={to}
             to={to}
             className={({ isActive }) =>
               `relative flex items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2 text-sm transition-colors ${
@@ -71,6 +77,7 @@ export function LeftSidebar({
               </>
             )}
           </NavLink>
+          </Fragment>
         ))}
 
         {/* Console entry — admins only */}
@@ -85,36 +92,9 @@ export function LeftSidebar({
         )}
       </nav>
 
-      {joined.length > 0 && (
-        <>
-          <div className="my-4 border-t border-line" />
-
-          <p className="px-3 pb-2 text-xs font-bold uppercase tracking-wide text-muted">
-            My Communities
-          </p>
-          <div className="flex flex-col gap-0.5">
-            {joined.map((c) => (
-              <NavLink
-                key={c.id}
-                to={`/community/${c.id}`}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    isActive ? 'bg-brand-50 text-brand' : 'text-ink hover:bg-gray-100'
-                  }`
-                }
-              >
-                <span className={`h-6 w-6 shrink-0 rounded-full bg-gradient-to-br ${c.color}`} />
-                <span className="truncate">{c.name}</span>
-              </NavLink>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* mt-auto pushes it to the bottom of the sidebar; when the nav is
-          taller than the screen it simply follows it as the last item. */}
+      {/* Follows the menu as its last item inside the card. */}
       {verifyNotice && (
-        <div className="mt-auto pt-4">
+        <div className="pt-4">
           <VerifyEmailNotice compact {...verifyNotice} />
         </div>
       )}
