@@ -586,8 +586,10 @@ const submitSchema = z.object({
 
 // POST /api/career-resources/:id/submit — the MENTEE it was assigned to proves
 // they did it, with a link (a doc, a repo, a deployed site), attached files,
-// or both. Once sent it is a record (isLocked): a second submit is refused
-// rather than replacing evidence the mentor may already have reviewed.
+// or both. Sending again REPLACES the earlier work, but only while nobody has
+// relied on it: the mentor has not opened it yet (evidence_seen_at), or the
+// mentor asked for it again after it was sent (resubmit_requested_at).
+// Otherwise it is a record and a second submit is refused.
 // Deliberately not the owner: the mentor who assigned it is the one who set
 // requires_submission, and the mentee is who has to answer it. "The mentee" is
 // assigned_to — set for session follow-ups and direct assignments alike.
@@ -603,34 +605,48 @@ careerResourcesRouter.post(
 
     // Check and write as one step under a row lock (FOR UPDATE): two submits
     // at once — two tabs, or a retry after a timeout — would otherwise both
-    // pass the "not yet submitted" check and both claim their files. The
-    // second waits here, then sees submission_at and is refused.
+    // pass the check and both claim their files. The mentor opening the work
+    // (evidence_seen_at) takes the same row, so "replace" and "seen" can't
+    // interleave either.
     const cur = await withTransaction(async (client) => {
       const row = await client.query<{
-        requires_submission: boolean; title: string; user_id: string; session_id: string | null; submission_at: Date | null
+        requires_submission: boolean; title: string; user_id: string; session_id: string | null
+        submission_at: Date | null; evidence_seen_at: Date | null; resubmit_requested_at: Date | null
       }>(
-        `SELECT r.requires_submission, r.title, r.user_id, r.session_id, r.submission_at
+        `SELECT r.requires_submission, r.title, r.user_id, r.session_id,
+                r.submission_at, r.evidence_seen_at, r.resubmit_requested_at
            FROM career_resources r
           WHERE r.id = $1 AND r.assigned_to = $2
           FOR UPDATE`,
         [req.params.id, me],
       )
       if (!row.rowCount) throw new ApiError(404, 'Resource not found (or not assigned to you)')
-      if (!row.rows[0].requires_submission) throw new ApiError(400, 'This resource does not ask for a submission')
-      if (row.rows[0].submission_at) throw new ApiError(409, 'You have already sent your work for this')
-      // A missing upload rolls the whole submission back.
+      const c = row.rows[0]
+      if (!c.requires_submission) throw new ApiError(400, 'This resource does not ask for a submission')
+      const askedAgain = !!c.resubmit_requested_at && !!c.submission_at && c.resubmit_requested_at > c.submission_at
+      if (c.submission_at && c.evidence_seen_at && !askedAgain) {
+        throw new ApiError(409, 'Your mentor has already seen your work — they can ask you to resubmit')
+      }
+      // Replacing: the earlier evidence goes. A missing upload rolls the whole
+      // submission back, so the earlier work stays if this one can't land.
+      await client.query(`DELETE FROM career_resource_files WHERE resource_id = $1 AND role = 'evidence'`, [req.params.id])
       await claimUploads(client, req.params.id, fileIds, me, 'evidence')
+      // evidence_seen_at cleared: the mentor has not opened THIS work yet.
       await client.query(
-        `UPDATE career_resources SET submission_url = $2, submission_at = now(), updated_at = now() WHERE id = $1`,
+        `UPDATE career_resources
+            SET submission_url = $2, submission_at = now(), evidence_seen_at = NULL, updated_at = now()
+          WHERE id = $1`,
         [req.params.id, parsed.data.url ?? null],
       )
-      return row
+      return { rows: [{ ...c, replaced: !!c.submission_at }] }
     })
     const who = await query<{ name: string }>(`SELECT name FROM users WHERE id = $1`, [me])
     void pushNotification(
       cur.rows[0].user_id,
       'mentorship',
-      `${who.rows[0].name} submitted "${cur.rows[0].title}".`,
+      cur.rows[0].replaced
+        ? `${who.rows[0].name} sent new work for "${cur.rows[0].title}".`
+        : `${who.rows[0].name} submitted "${cur.rows[0].title}".`,
       me,
       // The session when there is one (a 'session' target is resolved as a
       // session id wherever it is opened); a direct assignment points at the
@@ -693,20 +709,93 @@ careerResourcesRouter.get(
   '/:id/files/:fileId',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const r = await query<{ name: string; mime: string; data: Buffer }>(
-      `SELECT f.name, f.mime, f.data
+    const me = req.user!.sub
+    const r = await query<{ name: string; mime: string; data: Buffer; role: string; owner: string; submission_at: Date | null }>(
+      `SELECT f.name, f.mime, f.data, f.role, r.user_id AS owner, r.submission_at
          FROM career_resource_files f
          JOIN career_resources r ON r.id = f.resource_id
         WHERE f.id = $1 AND r.id = $2 AND (r.user_id = $3 OR r.assigned_to = $3)`,
-      [req.params.fileId, req.params.id, req.user!.sub],
+      [req.params.fileId, req.params.id, me],
     )
     if (!r.rowCount) throw new ApiError(404, 'That file was not found')
     const f = r.rows[0]
+    // The mentor opening the work sent back is what ends the mentee's chance
+    // to replace it quietly. Only for this exact submission: if the mentee
+    // replaced it meanwhile, submission_at moved on and nothing is marked.
+    if (f.role === 'evidence' && f.owner === me && f.submission_at) {
+      await markEvidenceSeen(req.params.id, me, f.submission_at)
+    }
     const inline = INLINE_TYPES.test(f.mime)
     res.setHeader('Content-Type', inline ? f.mime : 'application/octet-stream')
     res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${rfc8187(f.name)}`)
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Cache-Control', 'no-store')
     res.send(f.data)
+  }),
+)
+
+/** Stamps evidence_seen_at the first time the mentor (owner) opens the work
+ *  sent back — but only for the submission they actually saw (submittedAt).
+ *  If the mentee replaced it in between, submission_at has moved on and the
+ *  UPDATE matches nothing, so new work is never marked seen unseen.
+ *  Compared to the millisecond: Postgres keeps microseconds, but the value
+ *  has been through a JS Date (milliseconds), so exact equality never holds. */
+async function markEvidenceSeen(id: string, me: string, submittedAt: Date | string) {
+  await query(
+    `UPDATE career_resources SET evidence_seen_at = now()
+      WHERE id = $1 AND user_id = $2 AND evidence_seen_at IS NULL
+        AND date_trunc('milliseconds', submission_at) = date_trunc('milliseconds', $3::timestamptz)`,
+    [id, me, submittedAt],
+  )
+}
+
+const seenSchema = z.object({ submittedAt: z.string().datetime() })
+
+// POST /api/career-resources/:id/evidence-seen — the mentor opened the LINK
+// sent back (files are marked by the download route). Fire-and-forget from
+// the link's click; the body names which submission they saw.
+careerResourcesRouter.post(
+  '/:id/evidence-seen',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const parsed = seenSchema.safeParse(req.body)
+    if (!parsed.success) throw new ApiError(400, 'Which submission?')
+    await markEvidenceSeen(req.params.id, req.user!.sub, parsed.data.submittedAt)
+    res.status(204).end()
+  }),
+)
+
+// POST /api/career-resources/:id/request-resubmission — the mentor asks the
+// mentee to send their work again (a wrong link, the wrong file, not enough).
+// Only once something was sent. The request is newer than submission_at, which
+// reopens the submission (see /submit); sending again closes it.
+careerResourcesRouter.post(
+  '/:id/request-resubmission',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const me = req.user!.sub
+    const upd = await query<{ assigned_to: string; title: string; session_id: string | null }>(
+      `UPDATE career_resources SET resubmit_requested_at = now(), updated_at = now()
+        WHERE id = $1 AND user_id = $2 AND requires_submission AND submission_at IS NOT NULL
+          AND assigned_to IS NOT NULL
+        RETURNING assigned_to, title, session_id`,
+      [req.params.id, me],
+    )
+    if (!upd.rowCount) {
+      const mine = await query(`SELECT 1 FROM career_resources WHERE id = $1 AND user_id = $2`, [req.params.id, me])
+      if (!mine.rowCount) throw new ApiError(404, 'Resource not found (or not yours)')
+      throw new ApiError(409, 'Nothing has been sent back yet')
+    }
+    const u = upd.rows[0]
+    const who = await query<{ name: string }>(`SELECT name FROM users WHERE id = $1`, [me])
+    void pushNotification(
+      u.assigned_to,
+      'mentorship',
+      `${who.rows[0].name} asked you to send "${u.title}" again.`,
+      me,
+      u.session_id ? { type: 'session', id: u.session_id } : { type: 'resource', id: req.params.id },
+    )
+    const full = await query<CareerResourceRow>(`${SELECT} WHERE r.id = $1`, [req.params.id])
+    res.json(mapCareerResource(full.rows[0]))
   }),
 )

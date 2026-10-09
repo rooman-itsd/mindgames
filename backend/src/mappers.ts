@@ -800,6 +800,9 @@ export interface CareerResourceRow {
   assignee_name?: string | null
   /** Title of the roadmap stage it is filed under (RESOURCE_SELECT). */
   step_title?: string | null
+  /** When the mentor first opened the work sent back / asked for it again. */
+  evidence_seen_at?: Date | string | null
+  resubmit_requested_at?: Date | string | null
   /** Its attachments, both roles, without bytes (RESOURCE_SELECT). */
   resource_files?: { id: string; name: string; mime: string; size: number; role: 'assigned' | 'evidence' }[] | null
 }
@@ -823,6 +826,10 @@ export function mapCareerResource(r: CareerResourceRow) {
     requiresSubmission: r.requires_submission,
     submissionUrl: r.submission_url ?? undefined,
     submissionAt: r.submission_at ? new Date(r.submission_at).toISOString() : undefined,
+    // Correcting work sent back: the mentee may replace it until the mentor
+    // opens it, or after the mentor asks for it again (lib/learningHub).
+    evidenceSeenAt: r.evidence_seen_at ? new Date(r.evidence_seen_at).toISOString() : undefined,
+    resubmitRequestedAt: r.resubmit_requested_at ? new Date(r.resubmit_requested_at).toISOString() : undefined,
     createdAt: new Date(r.created_at).toISOString(),
     updatedAt: new Date(r.updated_at).toISOString(),
     ownerName: r.owner_name ?? undefined,

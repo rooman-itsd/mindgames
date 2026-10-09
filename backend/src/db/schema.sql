@@ -1976,3 +1976,17 @@ CREATE INDEX IF NOT EXISTS idx_career_resource_files_resource
 -- would scan every attachment and evidence file to find theirs.
 CREATE INDEX IF NOT EXISTS idx_career_resource_files_owner
   ON career_resource_files (owner_id);
+
+-- career_resources: correcting work sent back.
+--
+-- Evidence used to be final the moment it was sent. Two ways to correct it:
+--   * evidence_seen_at — set the first time the MENTOR opens what was sent
+--     (an evidence file, or the evidence link). Until then the mentee may
+--     replace their submission: nobody has relied on it yet.
+--   * resubmit_requested_at — set when the mentor presses "Ask to resubmit".
+--     A request newer than submission_at reopens the submission; sending
+--     again moves submission_at past it, which closes it again.
+-- Timestamps rather than booleans, so "asked after the latest submission?"
+-- is one comparison, and the record keeps when each happened.
+ALTER TABLE career_resources ADD COLUMN IF NOT EXISTS evidence_seen_at TIMESTAMPTZ;
+ALTER TABLE career_resources ADD COLUMN IF NOT EXISTS resubmit_requested_at TIMESTAMPTZ;

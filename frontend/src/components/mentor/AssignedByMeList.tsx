@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { api } from '../../lib/api'
-import { displayLink, submissionState } from '../../lib/learningHub'
+import { displayLink, resubmitRequested, submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import type { CareerResource } from '../../types'
 import { ShareFiles } from '../learning/ShareFiles'
+import { ResubmitButton } from './ResubmitButton'
 
 /**
  * The mentor's side of direct assignments: what they already gave this member
@@ -79,6 +80,8 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                       href={r.submissionUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      // Opening it ends the mentee's chance to swap it quietly.
+                      onClick={() => r.submissionAt && void api.markEvidenceSeen(r.id, r.submissionAt).catch(() => {})}
                       className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-green-700 hover:underline"
                     >
                       Sent back: {displayLink(r.submissionUrl)} <ExternalLink size={11} />
@@ -93,7 +96,17 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                       <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                     </>
                   )}
-                  {state === 'needed' && <p className="mt-0.5 text-xs text-muted">Waiting for their work</p>}
+                  {state === 'submitted' && (
+                    <ResubmitButton
+                      resource={r}
+                      onChange={(next) => setRows((prev) => prev?.map((x) => (x.id === next.id ? next : x)) ?? prev)}
+                    />
+                  )}
+                  {state === 'needed' && (
+                    <p className="mt-0.5 text-xs text-muted">
+                      {resubmitRequested(r) ? 'Asked them to send it again' : 'Waiting for their work'}
+                    </p>
+                  )}
                 </div>
                 {/* Once they have sent work back, what was assigned is a record. */}
                 {!r.sessionLocked && (

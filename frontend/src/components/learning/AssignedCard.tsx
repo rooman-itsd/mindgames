@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { CircleCheck, ExternalLink, Link2, UserRound } from 'lucide-react'
 import { HttpError, api } from '../../lib/api'
 import { isHttpUrl } from '../../lib/links'
-import { KIND_LABEL, assignmentOrigin, displayLink, submissionState } from '../../lib/learningHub'
+import {
+  KIND_LABEL, assignmentOrigin, canReplaceWork, displayLink, resubmitRequested, submissionState,
+} from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import { useAttachmentUploads } from '../../hooks/useAttachmentUploads'
 import { AttachmentPicker } from '../ui/AttachmentPicker'
@@ -33,8 +35,13 @@ export function AssignedCard({
   // Set when the server says work was already sent (409) — from another tab,
   // the session view, or a submit that timed out but landed.
   const [alreadySent, setAlreadySent] = useState(false)
+  // "Replace your work" opened on work already sent (lib canReplaceWork).
+  const [replacing, setReplacing] = useState(false)
   const kind = toHubKind(resource.kind)
   const state = alreadySent ? 'submitted' : submissionState(resource)
+  const askedAgain = resubmitRequested(resource)
+  const canReplace = !alreadySent && canReplaceWork(resource)
+  const showForm = state === 'needed' || (state === 'submitted' && replacing && canReplace)
   const fetchFile = (fileId: string) => api.getCareerResourceFile(resource.id, fileId)
 
   const submit = async () => {
@@ -53,19 +60,23 @@ export function AssignedCard({
     }
     setSending(true)
     try {
+      const wasSent = !!resource.submissionAt
       onChange(await api.submitCareerResource(resource.id, url || undefined, att.readyIds))
       att.claimed()
       setDraft('')
-      notify('Submitted — your mentor has been notified.')
+      setReplacing(false)
+      notify(wasSent ? 'Sent — your mentor has the new version.' : 'Submitted — your mentor has been notified.')
     } catch (e) {
       att.recoverFrom(e)
       if (e instanceof HttpError && e.status === 409) {
-        // Already done: show it as sent and let go of these uploads, instead
-        // of a card that keeps asking and fails every retry.
+        // Already sent and the mentor has it (or has opened it): show it as
+        // sent and let go of these uploads, instead of a card that keeps
+        // asking and fails every retry.
         att.discard()
         setDraft('')
+        setReplacing(false)
         setAlreadySent(true)
-        notify('Already sent — your mentor has it.')
+        notify(e.message)
       } else {
         notify(e instanceof Error ? e.message : 'Could not submit that.', 'error')
       }
@@ -108,7 +119,11 @@ export function AssignedCard({
           </span>
         </p>
 
-        {state === 'needed' && (
+        {askedAgain && state === 'needed' && (
+          <p className="mt-2 text-[11px] font-semibold text-amber-700">Your mentor asked you to send it again.</p>
+        )}
+
+        {showForm && (
           <div className="mt-2 flex flex-col gap-1.5">
             <div className="flex gap-1">
               <input
@@ -132,6 +147,13 @@ export function AssignedCard({
 
         {state === 'submitted' && resource.submissionFiles && resource.submissionFiles.length > 0 && (
           <ShareFiles files={resource.submissionFiles} fetchFile={fetchFile} />
+        )}
+
+        {/* Sent, but the mentor hasn't opened it yet: it can still be swapped. */}
+        {state === 'submitted' && canReplace && !replacing && (
+          <button onClick={() => setReplacing(true)} className="mt-1 text-[11px] font-semibold text-brand hover:underline">
+            Replace your work
+          </button>
         )}
 
         <div className="mt-2 flex items-center gap-2">

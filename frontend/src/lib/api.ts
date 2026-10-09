@@ -845,12 +845,23 @@ export const api = {
     http<void>(`/api/career-resources/${id}`, { method: 'DELETE' }),
   // The mentee proving they did a resource the mentor marked
   // requiresSubmission — a link, uploaded files (api.uploadLearningFile), or
-  // both. Once sent it is final: a second submit is refused (409).
+  // both. Sending again replaces it while the mentor hasn't opened it yet, or
+  // after they asked for it again; otherwise it is refused (409).
   submitCareerResource: (id: string, url?: string, fileIds?: string[]) =>
     http<CareerResource>(`/api/career-resources/${id}/submit`, {
       method: 'POST',
       body: JSON.stringify({ url, fileIds }),
     }),
+  /** The mentor opened the evidence LINK (files are marked when downloaded).
+   *  Names the submission seen, so newer work is never marked by mistake. */
+  markEvidenceSeen: (id: string, submittedAt: string) =>
+    http<void>(`/api/career-resources/${id}/evidence-seen`, {
+      method: 'POST',
+      body: JSON.stringify({ submittedAt }),
+    }),
+  /** The mentor asks the mentee to send their work again. */
+  requestResubmission: (id: string) =>
+    http<CareerResource>(`/api/career-resources/${id}/request-resubmission`, { method: 'POST' }),
   /** One attachment on an assigned resource as a Blob — private to the mentor
    *  and mentee, so it is fetched with the token (see getShareFile). */
   getCareerResourceFile: async (resourceId: string, fileId: string): Promise<Blob> => {

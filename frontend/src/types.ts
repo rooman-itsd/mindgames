@@ -1396,6 +1396,12 @@ export interface CareerResource {
   requiresSubmission?: boolean
   submissionUrl?: string
   submissionAt?: string
+  /** When the mentor first opened the work sent back — until then the
+   *  mentee may replace it. */
+  evidenceSeenAt?: string
+  /** When the mentor pressed "Ask to resubmit"; newer than submissionAt
+   *  means the work is needed again. */
+  resubmitRequestedAt?: string
   createdAt: string
   updatedAt: string
   /** Who saved it — only meaningful for a resource shared into a session,

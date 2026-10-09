@@ -3,10 +3,11 @@ import { CheckCircle2, Clock, ExternalLink, Link2, Trash2, X } from 'lucide-reac
 import { Button, Card } from '../ui'
 import { HttpError, api } from '../../lib/api'
 import { assignedRelativeToSession, isSharedWithMe, shortStamp } from '../../lib/careerResources'
-import { submissionState } from '../../lib/learningHub'
+import { resubmitRequested, submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import type { CareerResource, CareerResourceKind } from '../../types'
 import { ShareFiles } from '../learning/ShareFiles'
+import { ResubmitButton } from '../mentor/ResubmitButton'
 
 /**
  * Resources attached to one mentorship session.
@@ -274,6 +275,8 @@ export function SessionResourcesModal({
                           href={r.submissionUrl}
                           target="_blank"
                           rel="noopener noreferrer"
+                          // The mentor opening it ends the mentee's chance to swap it quietly.
+                          onClick={() => iAmMentor && r.submissionAt && void api.markEvidenceSeen(r.id, r.submissionAt).catch(() => {})}
                           className="mt-1 flex min-w-0 items-center gap-1 text-blue-600 hover:underline"
                         >
                           <span className="truncate">{r.submissionUrl}</span>
@@ -283,9 +286,17 @@ export function SessionResourcesModal({
                       {r.submissionFiles && r.submissionFiles.length > 0 && (
                         <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                       )}
+                      {iAmMentor && (
+                        <ResubmitButton
+                          resource={r}
+                          onChange={(next) => setItems((prev) => prev.map((x) => (x.id === next.id ? next : x)))}
+                        />
+                      )}
                     </div>
                   ) : iAmMentor ? (
-                    <span className="inline-flex items-center gap-1 font-medium text-amber-600"><Clock size={13} /> Evidence pending</span>
+                    <span className="inline-flex items-center gap-1 font-medium text-amber-600">
+                      <Clock size={13} /> {resubmitRequested(r) ? 'Asked to resubmit' : 'Evidence pending'}
+                    </span>
                   ) : (
                     <div className="flex gap-2">
                       <input
