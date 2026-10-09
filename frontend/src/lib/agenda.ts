@@ -181,8 +181,23 @@ export function mentorCalendar(sessions: MentorshipSession[], me: string): Calen
   return out
 }
 
-const groupTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-IN', { timeZone: IST, hour: 'numeric', minute: '2-digit' }).toUpperCase()
+/** "6:30 PM" — an instant's time of day in IST. The one formatter for group sessions. */
+export function istTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-IN', { timeZone: IST, hour: 'numeric', minute: '2-digit' }).toUpperCase()
+}
+
+/** An instant as IST date + time strings, for date/time inputs ("2026-10-14", "18:30"). */
+export function istInputParts(iso: string): { date: string; time: string } {
+  const d = new Date(iso)
+  const time = d.toLocaleTimeString('en-GB', { timeZone: IST, hour: '2-digit', minute: '2-digit', hour12: false })
+  return { date: istDayKey(d) ?? '', time: time === '24:00' ? '00:00' : time }
+}
+
+/** IST date + time inputs back to an instant (ISO). */
+export function istInputToIso(date: string, time: string): string | null {
+  const d = new Date(`${date}T${time}:00+05:30`)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
 
 /** Group Sessions: hosting, joined/invited, and open ones still to join. */
 export function groupCalendar(mine: GroupSession[], open: GroupSession[], me: string): CalendarItem[] {
@@ -193,19 +208,20 @@ export function groupCalendar(mine: GroupSession[], open: GroupSession[], me: st
     const dayKey = istDayKey(g.scheduledAt)
     if (!dayKey) continue
     if (g.mentorId === me) {
-      out.push({ dayKey, kind: 'hosting', title: g.topic, detail: `${groupTime(g.scheduledAt)} · you host · ${g.attendeeCount}/${g.capacity} joined`, mins: labelMinutes(groupTime(g.scheduledAt)) ?? 0, ref: { tab: 'group', id: g.id } })
-    } else if (g.joinedByMe || g.invitedByMe) {
+      out.push({ dayKey, kind: 'hosting', title: g.topic, detail: `${istTime(g.scheduledAt)} · you host · ${g.attendeeCount}/${g.capacity} joined`, mins: labelMinutes(istTime(g.scheduledAt)) ?? 0, ref: { tab: 'group', id: g.id } })
+    } else if (g.joinedByMe || (g.invitedByMe && g.status === 'scheduled')) {
+      // An invite that lapsed (never accepted, now over) isn't on anyone's calendar.
       const status = g.status === 'completed' && g.joinedByMe
         ? (g.confirmedByMe ? 'attended' : 'confirm attendance')
         : g.joinedByMe ? `with ${g.mentorName}` : `${g.mentorName} invited you`
-      out.push({ dayKey, kind: 'joined', title: g.topic, detail: `${groupTime(g.scheduledAt)} · ${status}`, mins: labelMinutes(groupTime(g.scheduledAt)) ?? 0, ref: { tab: 'group', id: g.id } })
+      out.push({ dayKey, kind: 'joined', title: g.topic, detail: `${istTime(g.scheduledAt)} · ${status}`, mins: labelMinutes(istTime(g.scheduledAt)) ?? 0, ref: { tab: 'group', id: g.id } })
     }
   }
   for (const g of open) {
     if (mineIds.has(g.id) || g.status !== 'scheduled') continue
     const dayKey = istDayKey(g.scheduledAt)
     if (!dayKey) continue
-    out.push({ dayKey, kind: 'open', title: g.topic, detail: `${groupTime(g.scheduledAt)} · ${g.seatsLeft === 0 ? 'full' : `${g.seatsLeft} seats left`}`, mins: labelMinutes(groupTime(g.scheduledAt)) ?? 0, ref: { tab: 'group', id: g.id } })
+    out.push({ dayKey, kind: 'open', title: g.topic, detail: `${istTime(g.scheduledAt)} · ${g.seatsLeft === 0 ? 'full' : `${g.seatsLeft} seats left`}`, mins: labelMinutes(istTime(g.scheduledAt)) ?? 0, ref: { tab: 'group', id: g.id } })
   }
   return out
 }
@@ -323,6 +339,19 @@ export function sortMentors<T extends { id: string; sessionsConducted?: number; 
 }
 
 // ---- Sidebar summaries ------------------------------------------------------
+
+/**
+ * Mentors this member already has a pending request with (as the mentee).
+ * A slot a mentor offered doesn't count — that waits on the member, not the
+ * mentor. One rule for the Book button, the ?book= guard and Book again.
+ */
+export function pendingRequestMentorIds(sessions: MentorshipSession[], me: string): Set<string> {
+  return new Set(
+    sessions
+      .filter((s) => s.status === 'requested' && s.menteeId === me && s.requestedBy !== 'mentor')
+      .map((s) => s.mentorId),
+  )
+}
 
 /**
  * Mentee free-session allowance: the first `allowance` booked (non-declined)

@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import {
-  byWhen, dayHeading, daysFromToday, itemsByDay, defaultSelectedDay, freeSessionsLeft, groupCalendar, groupByDay, hostingRecord, istDayKey,
+  byWhen, dayHeading, daysFromToday, itemsByDay, istInputParts, istInputToIso, istTime, pendingRequestMentorIds, defaultSelectedDay, freeSessionsLeft, groupCalendar, groupByDay, hostingRecord, istDayKey,
   labelMinutes, matchesHistory, matchesMentorSearch, matchesQuery, menteeCalendar, mentorCalendar, monthGrid, myMentors, nextSession, openByDomain,
   relativeDayLabel, sessionDayKey, shiftMonth, sortMentors, newestFirst, tileParts, joinTags, parseTags, MAX_TAGS,
 } from './agenda'
@@ -158,5 +158,16 @@ assert.deepStrictEqual(
   openByDomain([g({ id: 'm1', domain: 'Cloud, AI/ML' }), g({ id: 'm2', domain: 'AI/ML' })]),
   [{ domain: 'AI/ML', count: 2 }, { domain: 'Cloud', count: 1 }], 'each skill counted',
 )
+
+// --- IST inputs / time (review a) -----------------------------------------------------
+assert.deepStrictEqual(istInputParts('2026-10-14T13:00:00.000Z'), { date: '2026-10-14', time: '18:30' })
+assert.deepStrictEqual(istInputParts('2026-10-14T19:00:00.000Z'), { date: '2026-10-15', time: '00:30' }, 'past midnight IST')
+assert.strictEqual(istInputToIso('2026-10-15', '00:30'), '2026-10-14T19:00:00.000Z', 'round-trips')
+assert.strictEqual(istInputToIso('', ''), null)
+assert.strictEqual(istTime('2026-10-14T13:00:00.000Z'), '6:30 PM')
+// lapsed invite stays off the calendar
+assert.strictEqual(groupCalendar([g({ id: 'l', invitedByMe: true, status: 'completed' })], [], 'me').length, 0, 'lapsed invite not on calendar')
+// one pending rule
+assert.deepStrictEqual([...pendingRequestMentorIds([...sessions, s({ id: 'r', status: 'requested', requestedBy: 'mentee', mentorId: 'm4' })], 'me')], ['m4'], 'own requests only — not the mentor offer from m2, nor requests where I mentor')
 
 console.log('agenda.check.ts — all assertions passed')

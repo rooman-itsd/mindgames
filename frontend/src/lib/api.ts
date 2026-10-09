@@ -736,7 +736,7 @@ export const api = {
   editGroupSession: (
     id: string,
     input: { topic: string; description: string; domain: string; scheduledAt: string; durationMinutes: number; capacity: number; meetingLink: string },
-  ) => http<{ ok: boolean }>(`/api/group-sessions/${id}/edit`, { method: 'POST', body: JSON.stringify(input) }),
+  ) => http<{ ok: boolean; notified: number }>(`/api/group-sessions/${id}/edit`, { method: 'POST', body: JSON.stringify(input) }),
   /** Schedule a new session for the same people who attended a past one —
    *  always invite_only, invited to exactly that roster. */
   repeatGroupSession: (id: string, input: { scheduledAt: string; meetingLink: string }) =>

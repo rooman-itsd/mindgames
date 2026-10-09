@@ -7,7 +7,7 @@ import { useApp } from '../../store/AppStore'
 import { api } from '../../lib/api'
 import {
   byDayThenTime, dayHeading, daysFromToday, freeSessionsLeft, groupCalendar, hostingRecord, istDayKey, mentorCalendar, menteeCalendar,
-  myMentors, nextSession, openByDomain, overviewCalendar, relativeDayLabel, sessionDayKey,
+  istTime, myMentors, nextSession, openByDomain, pendingRequestMentorIds, overviewCalendar, relativeDayLabel, sessionDayKey,
 } from '../../lib/agenda'
 import { useMentorshipTab } from '../../hooks/useMentorshipTab'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
@@ -42,6 +42,7 @@ function MentorshipRail() {
   const mentee = useMemo(() => menteeCalendar(sessions, me, (id) => userById(id)?.name), [sessions, me, userById])
   const mentor = useMemo(() => mentorCalendar(sessions, me), [sessions, me])
   const group = useMemo(() => groupCalendar(groups.mine, groups.open, me), [groups, me])
+  const overview = useMemo(() => overviewCalendar(mentee, mentor, group), [mentee, mentor, group])
 
   const calendar =
     tab === 'sessions' ? <MentorshipCalendar key={tab} items={mentee} legend={['confirmed', 'waiting']} scope="Your 1:1s" />
@@ -49,14 +50,14 @@ function MentorshipRail() {
         ? <MentorshipCalendar key={tab} items={mentor} legend={['confirmed', 'waiting', 'toConfirm']} scope="Your mentoring" />
         : null)
     : tab === 'group' ? <MentorshipCalendar key={tab} items={group} legend={['hosting', 'joined', 'open']} scope="Group sessions" />
-    : <MentorshipCalendar key={tab} items={overviewCalendar(mentee, mentor, group)} legend={['confirmed', 'waiting', 'group']} scope="Everything" />
+    : <MentorshipCalendar key={tab} items={overview} legend={['confirmed', 'waiting', 'group']} scope="Everything" />
 
   return (
     <aside className="fixed top-14 right-[calc(var(--shell-gutter)+14px)] bottom-0 hidden w-[288px] overflow-y-auto py-3.5 xl:block">
       {/* pb-20: the floating Ask Roo button must not cover the last card. */}
       <div className="flex flex-col gap-4 pb-20">
         {calendar}
-        {tab === 'find' && <><ThisWeek items={overviewCalendar(mentee, mentor, group)} /><FreeSessions /></>}
+        {tab === 'find' && <><ThisWeek items={overview} /><FreeSessions /></>}
         {tab === 'sessions' && <><UpNext /><YourMentors /><FreeSessions /></>}
         {tab === 'space' && (currentUser.isMentor ? <><PlanUsage /><AwaitingMentees /><MyServices /><Badges /></> : <BecomeMentor />)}
         {tab === 'group' && <><HostingNext mine={groups.mine} /><OpenByDomain open={groups.open} mine={groups.mine} /><HostingRecord mine={groups.mine} /></>}
@@ -68,23 +69,27 @@ function MentorshipRail() {
   )
 }
 
-/** Group lists: whatever GroupSessionsTab last loaded, else the member's own. */
+const EMPTY_GROUPS: GroupSessionsSnapshot = { open: [], mine: [] }
+
+/**
+ * Group lists for the rail. Starts from the Group tab's last load (so a rail
+ * that mounts late isn't empty), then — when not on the Group tab, which
+ * loads and announces them itself — always fetches the member's own sessions
+ * fresh, so a cancel or invite that happened elsewhere shows up.
+ */
 function useGroupSnapshot(me: string, fetchMine: boolean): GroupSessionsSnapshot {
-  // Start from the tab's last load, if this rail mounted after it happened.
   const [snap, setSnap] = useState<GroupSessionsSnapshot | null>(() => lastGroupSessions(me))
   useEffect(() => {
+    setSnap(lastGroupSessions(me)) // a different member: never keep the previous one's data
     const onLoad = (e: Event) => {
       const load = (e as CustomEvent<GroupSessionsLoad>).detail
       if (load.owner === me) setSnap(load.snapshot)
     }
     window.addEventListener(GROUP_SESSIONS_EVENT, onLoad)
-    // On the Group tab the tab itself loads both lists and announces them, so
-    // a second fetch would just repeat it. Elsewhere, fetch only the member's
-    // own sessions (the public list is the Group tab's job).
     let alive = true
-    if (fetchMine && !lastGroupSessions(me)) {
+    if (fetchMine) {
       api.getMyGroupSessions().then(
-        (mine) => alive && setSnap((s) => s ?? { open: [], mine }),
+        (mine) => alive && setSnap((s) => ({ open: s?.open ?? [], mine })),
         () => {},
       )
     }
@@ -92,10 +97,10 @@ function useGroupSnapshot(me: string, fetchMine: boolean): GroupSessionsSnapshot
       alive = false
       window.removeEventListener(GROUP_SESSIONS_EVENT, onLoad)
     }
-    // Runs once per mount: the rail stays mounted across tab switches.
+    // Per member, once per mount: the rail stays mounted across tab switches.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  return snap ?? { open: [], mine: [] }
+  }, [me])
+  return snap ?? EMPTY_GROUPS
 }
 
 function SideCard({ title, icon, action, children, className = '' }: {
@@ -230,9 +235,7 @@ function UpNext() {
 
 function YourMentors() {
   const { sessions, currentUser, userById } = useApp()
-  const pending = new Set(
-    sessions.filter((s) => s.status === 'requested' && s.menteeId === currentUser.id && s.requestedBy !== 'mentor').map((s) => s.mentorId),
-  )
+  const pending = pendingRequestMentorIds(sessions, currentUser.id)
   const list = myMentors(sessions, currentUser.id).slice(0, 4)
   if (list.length === 0) return null
   return (
@@ -403,7 +406,7 @@ function HostingNext({ mine }: { mine: GroupSession[] }) {
   if (!next) return null
   const day = istDayKey(next.scheduledAt) ?? today
   const pct = Math.round((next.attendeeCount / Math.max(next.capacity, 1)) * 100)
-  const time = new Date(next.scheduledAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' }).toUpperCase()
+  const time = istTime(next.scheduledAt)
   return (
     <Card className="border-l-4 border-l-brand p-4">
       <p className="text-[11px] font-bold tracking-wider text-saffron-700 uppercase">

@@ -12,7 +12,7 @@ import { SubscriptionPlans } from '../subscription/SubscriptionPlans'
 import type { GroupSession, GroupSessionAttendee } from '../../types'
 import { SkeletonRows } from '../ui/Skeleton'
 import { EmptyState } from '../ui/EmptyState'
-import { istDayKey, matchesQuery, parseTags } from '../../lib/agenda'
+import { istDayKey, istInputParts, istInputToIso, istTime, matchesQuery, parseTags } from '../../lib/agenda'
 import { DateTile } from './AgendaParts'
 import { publishGroupSessions } from './groupSessionsBus'
 import { IconAction } from './IconAction'
@@ -369,11 +369,6 @@ function fmt(iso: string): string {
     .replace('Sept', 'Sep')
 }
 
-/** Time only — the row's date tile already says which day. */
-function timeOf(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' }).toUpperCase()
-}
-
 /** The filter chips used by You're hosting and You're attending. */
 function FilterChips<T extends string>({ options, value, count, onChange }: {
   options: { id: T; label: string }[]; value: T; count: (id: T) => number; onChange: (id: T) => void
@@ -434,7 +429,7 @@ function BrowseRow({ session, onJoin }: { session: GroupSession; onJoin: () => v
         {session.description && <p className="mt-0.5 line-clamp-1 text-xs text-muted">{session.description}</p>}
         <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
           <span>by {session.mentorName}</span>
-          <span className="flex items-center gap-1"><Calendar size={11} /> {timeOf(session.scheduledAt)}</span>
+          <span className="flex items-center gap-1"><Calendar size={11} /> {istTime(session.scheduledAt)}</span>
           <span className="flex items-center gap-1"><Clock size={11} /> {session.durationMinutes} min</span>
           <span className="flex items-center gap-1">
             <Users size={11} /> {full ? 'Full' : `${session.seatsLeft} of ${session.capacity} seats left`}
@@ -604,12 +599,12 @@ function HostRow({
  *  minus pricing and who can join (people may have joined on those terms). */
 function EditGroupSessionModal({ session, onClose, onSaved }: { session: GroupSession; onClose: () => void; onSaved: () => void }) {
   const { notify } = useApp()
-  const start = new Date(session.scheduledAt)
-  const pad = (n: number) => String(n).padStart(2, '0')
+  // IST, like every row, tile and the sidebar — whatever the device's timezone.
+  const start = istInputParts(session.scheduledAt)
   const [topic, setTopic] = useState(session.topic)
   const [description, setDescription] = useState(session.description ?? '')
-  const [date, setDate] = useState(`${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`)
-  const [time, setTime] = useState(`${pad(start.getHours())}:${pad(start.getMinutes())}`)
+  const [date, setDate] = useState(start.date)
+  const [time, setTime] = useState(start.time)
   const [duration, setDuration] = useState(session.durationMinutes)
   const [capacity, setCapacity] = useState(session.capacity)
   const [domain, setDomain] = useState(session.domain ?? '')
@@ -621,8 +616,9 @@ function EditGroupSessionModal({ session, onClose, onSaved }: { session: GroupSe
 
   async function save() {
     if (!topic.trim()) return setError('Add a topic.')
-    const when = new Date(`${date}T${time}`)
-    if (Number.isNaN(when.getTime())) return setError('Pick a valid date and time.')
+    const iso = istInputToIso(date, time)
+    if (!iso) return setError('Pick a valid date and time.')
+    const when = new Date(iso)
     // Only a changed time must be in the future — an under-way session can still get its link fixed.
     const timeChanged = Math.abs(when.getTime() - Date.parse(session.scheduledAt)) >= 60_000
     if (timeChanged && when.getTime() < Date.now()) return setError('Pick a time in the future.')
@@ -632,11 +628,12 @@ function EditGroupSessionModal({ session, onClose, onSaved }: { session: GroupSe
     if (!isHttpUrl(link.trim())) return setError('Add the meeting link, starting with https://')
     setSaving(true)
     try {
-      await api.editGroupSession(session.id, {
+      const { notified } = await api.editGroupSession(session.id, {
         topic: topic.trim(), description: description.trim(), domain,
         scheduledAt: when.toISOString(), durationMinutes: duration, capacity, meetingLink: link.trim(),
       })
-      notify(session.attendeeCount ? 'Saved — everyone who joined has been told.' : 'Saved.', 'success')
+      // The server only notifies when something actually changed (joiners + invitees).
+      notify(notified ? `Saved — ${notified} ${notified === 1 ? 'person was' : 'people were'} told.` : 'Saved.', 'success')
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the changes.')
@@ -669,7 +666,7 @@ function EditGroupSessionModal({ session, onClose, onSaved }: { session: GroupSe
             <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setError('') }} aria-label="Date" className={field} />
           </div>
           <div>
-            <label className={label}>Time</label>
+            <label className={label}>Time (IST)</label>
             <input type="time" value={time} onChange={(e) => { setTime(e.target.value); setError('') }} aria-label="Time" className={field} />
           </div>
         </div>

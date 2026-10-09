@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { query, withTransaction } from '../db/pool.js'
 import { requireAuth } from '../auth/middleware.js'
 import { ApiError, asyncHandler } from '../http.js'
+import { HTTP_URL, HTTP_URL_MESSAGE } from '../validation.js'
 import { pushNotification, pushNotificationToAll } from '../notify.js'
 import { canHostGroupSessions } from '../subscription.js'
 import { recordConfirmedGroupAttendance } from '../sessionStats.js'
@@ -87,6 +88,12 @@ function mapGroupSession(r: GroupSessionRow) {
   }
 }
 
+// Required everywhere a session is created or repeated: without a link nobody
+// can get into the call. Web links only (shared rule in validation.ts), capped
+// like the 1:1 meeting link.
+const meetingLinkField = z.string().trim().min(1, 'Add a meeting link so attendees can join')
+  .url(HTTP_URL_MESSAGE).regex(HTTP_URL, HTTP_URL_MESSAGE).max(500)
+
 const createSchema = z.object({
   topic: z.string().trim().min(1).max(140),
   description: z.string().trim().max(1000).optional().default(''),
@@ -95,10 +102,7 @@ const createSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }).or(z.string().datetime()),
   durationMinutes: z.number().int().min(15).max(480).optional().default(60),
   capacity: z.number().int().min(2).max(500).optional().default(10),
-  // Required: without a link nobody can get into the call.
-  meetingLink: z.string().trim().min(1, 'Add a meeting link so attendees can join')
-    .url('The meeting link must be a full link, starting with https://')
-    .refine((u) => /^https?:\/\//i.test(u), 'The meeting link must start with https://'),
+  meetingLink: meetingLinkField,
   pricingMode: z.enum(['free', 'paid']).optional().default('free'),
   pricePerSeat: z.number().int().min(0).max(1_000_000).optional().default(0),
   // 'public' (default) keeps today's behaviour — open to browse and join.
@@ -480,12 +484,18 @@ groupSessionsRouter.post(
   }),
 )
 
-// Same rules as creating one — picked from createSchema so they can't drift.
+// Same limits as creating one, but every field is REQUIRED — no defaults — so
+// an edit that leaves a field out is rejected instead of silently resetting it.
 // Pricing and visibility are deliberately not editable: people may already
 // have joined (or paid) on those terms.
-const editSchema = createSchema.pick({
-  topic: true, description: true, domain: true, scheduledAt: true,
-  durationMinutes: true, capacity: true, meetingLink: true,
+const editSchema = z.object({
+  topic: z.string().trim().min(1).max(140),
+  description: z.string().trim().max(1000),
+  domain: z.string().trim().max(200),
+  scheduledAt: z.string().datetime({ offset: true }).or(z.string().datetime()),
+  durationMinutes: z.number().int().min(15).max(480),
+  capacity: z.number().int().min(2).max(500),
+  meetingLink: meetingLinkField,
 })
 
 // POST /api/group-sessions/:id/edit — the host fixes the details of a
@@ -567,15 +577,13 @@ groupSessionsRouter.post(
         `"${d.topic}" was updated by the host — check Group Sessions for the latest time and link.`, req.user!.sub,
       )
     }
-    res.json({ ok: true })
+    res.json({ ok: true, notified: recipients.length })
   }),
 )
 
 const repeatSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }).or(z.string().datetime()),
-  meetingLink: z.string().trim().min(1, 'Add a meeting link so attendees can join')
-    .url('The meeting link must be a full link, starting with https://')
-    .refine((u) => /^https?:\/\//i.test(u), 'The meeting link must start with https://'),
+  meetingLink: meetingLinkField,
 })
 
 // POST /api/group-sessions/:id/repeat — run a past group session again with

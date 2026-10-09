@@ -16,7 +16,7 @@ import { roleLine, sessionLabels, sessionPriceLabel } from '../lib/format'
 import { isHttpUrl } from '../lib/links'
 import { isBookableMentor } from '../lib/profileCompleteness'
 import {
-  dayHeading, daysFromToday, freeSessionsLeft, groupByDay, matchesHistory, matchesMentorSearch, matchesQuery, newestFirst,
+  dayHeading, daysFromToday, freeSessionsLeft, groupByDay, matchesHistory, matchesMentorSearch, matchesQuery, newestFirst, pendingRequestMentorIds,
   relativeDayLabel, sessionDayKey, sortMentors, type HistoryFilter, type MentorSort,
 } from '../lib/agenda'
 import { MENTORSHIP_TABS, useMentorshipTab } from '../hooks/useMentorshipTab'
@@ -94,9 +94,7 @@ export function Mentorship() {
     if (!bookId) return
     const m = users.find((u) => u.id === bookId)
     if (!m) return // users still loading — this runs again once they arrive
-    const alreadyPending = sessions.some(
-      (s) => s.status === 'requested' && s.menteeId === currentUser.id && s.requestedBy !== 'mentor' && s.mentorId === m.id,
-    )
+    const alreadyPending = pendingRequestMentorIds(sessions, currentUser.id).has(m.id)
     if (isBookableMentor(m) && m.id !== currentUser.id && !alreadyPending) setBooking(m)
     setParams((prev) => { const p = new URLSearchParams(prev); p.delete('book'); return p }, { replace: true })
   }, [bookId, users, sessions, currentUser.id, setParams])
@@ -132,11 +130,7 @@ export function Mentorship() {
   // mentor offered *me* doesn't belong here — "Requested — awaiting
   // confirmation" would be backwards, and it wrongly blocked booking that
   // mentor over a request the member never made.
-  const pendingMentorRequestIds = new Set(
-    sessions
-      .filter((s) => s.status === 'requested' && s.menteeId === currentUser.id && s.requestedBy !== 'mentor')
-      .map((s) => s.mentorId),
-  )
+  const pendingMentorRequestIds = pendingRequestMentorIds(sessions, currentUser.id)
 
   const now = Date.now()
   const shownHistory = finished.filter((s) => matchesHistory(s, historyFilter))
