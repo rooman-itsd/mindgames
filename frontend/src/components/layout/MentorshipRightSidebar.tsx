@@ -13,8 +13,8 @@ import { useMentorshipTab } from '../../hooks/useMentorshipTab'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { MentorshipCalendar } from '../mentor/MentorshipCalendar'
 import { Dot } from '../mentor/AgendaParts'
-import { GROUP_SESSIONS_EVENT, type GroupSessionsSnapshot } from '../mentor/groupSessionsBus'
-import { MENTOR_STATS_EVENT, openManageServices } from '../mentor/mentorSpaceBus'
+import { GROUP_SESSIONS_EVENT, lastGroupSessions, type GroupSessionsLoad, type GroupSessionsSnapshot } from '../mentor/groupSessionsBus'
+import { MENTOR_STATS_EVENT, lastMentorStats, openManageServices, type MentorStatsLoad } from '../mentor/mentorSpaceBus'
 import { MentorBadgeChips } from '../mentor/MentorBadgeChips'
 import { SubscriptionPlans } from '../subscription/SubscriptionPlans'
 import { Avatar, Button, Card } from '../ui'
@@ -37,7 +37,7 @@ function MentorshipRail() {
   const [tab] = useMentorshipTab()
   const { sessions, currentUser, userById } = useApp()
   const me = currentUser.id
-  const groups = useGroupSnapshot(tab !== 'group')
+  const groups = useGroupSnapshot(me, tab !== 'group')
 
   const mentee = useMemo(() => menteeCalendar(sessions, me, (id) => userById(id)?.name), [sessions, me, userById])
   const mentor = useMemo(() => mentorCalendar(sessions, me), [sessions, me])
@@ -69,16 +69,20 @@ function MentorshipRail() {
 }
 
 /** Group lists: whatever GroupSessionsTab last loaded, else the member's own. */
-function useGroupSnapshot(fetchMine: boolean): GroupSessionsSnapshot {
-  const [snap, setSnap] = useState<GroupSessionsSnapshot | null>(null)
+function useGroupSnapshot(me: string, fetchMine: boolean): GroupSessionsSnapshot {
+  // Start from the tab's last load, if this rail mounted after it happened.
+  const [snap, setSnap] = useState<GroupSessionsSnapshot | null>(() => lastGroupSessions(me))
   useEffect(() => {
-    const onLoad = (e: Event) => setSnap((e as CustomEvent<GroupSessionsSnapshot>).detail)
+    const onLoad = (e: Event) => {
+      const load = (e as CustomEvent<GroupSessionsLoad>).detail
+      if (load.owner === me) setSnap(load.snapshot)
+    }
     window.addEventListener(GROUP_SESSIONS_EVENT, onLoad)
     // On the Group tab the tab itself loads both lists and announces them, so
     // a second fetch would just repeat it. Elsewhere, fetch only the member's
     // own sessions (the public list is the Group tab's job).
     let alive = true
-    if (fetchMine) {
+    if (fetchMine && !lastGroupSessions(me)) {
       api.getMyGroupSessions().then(
         (mine) => alive && setSnap((s) => s ?? { open: [], mine }),
         () => {},
@@ -359,12 +363,17 @@ function MyServices() {
 
 /** Earned badges, from the stats Mentor Space already loaded (no second fetch). */
 function Badges() {
-  const [stats, setStats] = useState<ProfileStats | null>(null)
+  const { currentUser } = useApp()
+  // Start from Mentor Space's last load, if this rail mounted after it happened.
+  const [stats, setStats] = useState<ProfileStats | null>(() => lastMentorStats(currentUser.id))
   useEffect(() => {
-    const onStats = (e: Event) => setStats((e as CustomEvent<ProfileStats>).detail)
+    const onStats = (e: Event) => {
+      const load = (e as CustomEvent<MentorStatsLoad>).detail
+      if (load.owner === currentUser.id) setStats(load.stats)
+    }
     window.addEventListener(MENTOR_STATS_EVENT, onStats)
     return () => window.removeEventListener(MENTOR_STATS_EVENT, onStats)
-  }, [])
+  }, [currentUser.id])
   return (
     <SideCard title="Badges" icon={<Award size={16} className="text-brand" />}>
       <MentorBadgeChips stats={stats} />

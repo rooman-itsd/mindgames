@@ -506,9 +506,9 @@ groupSessionsRouter.post(
       // and the update and leave more attendees than seats.
       const g = await client.query<{
         mentor_id: string; status: string; topic: string; description: string; domain: string
-        scheduled_at: Date; duration_minutes: number; capacity: number; meeting_link: string | null
+        scheduled_at: Date; duration_minutes: number; capacity: number; meeting_link: string | null; visibility: string
       }>(
-        `SELECT mentor_id, status, topic, description, domain, scheduled_at, duration_minutes, capacity, meeting_link
+        `SELECT mentor_id, status, topic, description, domain, scheduled_at, duration_minutes, capacity, meeting_link, visibility
            FROM group_sessions WHERE id = $1 FOR UPDATE`,
         [req.params.id],
       )
@@ -522,12 +522,22 @@ groupSessionsRouter.post(
       // add the meeting link it's missing.
       const timeChanged = Math.abs(+startsAt - +new Date(cur.scheduled_at)) >= 60_000
       if (timeChanged && +startsAt < Date.now() - 60_000) throw new ApiError(400, 'The session must be in the future')
-      const joined = (await client.query<{ n: number }>(
-        `SELECT count(*)::int AS n FROM group_session_attendees WHERE session_id = $1`,
+      // Seats already spoken for: everyone who joined, plus — on an invite-only
+      // session — everyone still invited (creating one sized capacity to fit
+      // them; shrinking below that would lock invitees out of accepting).
+      const taken = (await client.query<{ n: number }>(
+        cur.visibility === 'invite_only'
+          ? `SELECT count(*)::int AS n FROM (
+               SELECT mentee_id AS u FROM group_session_attendees WHERE session_id = $1
+               UNION
+               SELECT user_id FROM group_session_invites WHERE session_id = $1) seats`
+          : `SELECT count(*)::int AS n FROM group_session_attendees WHERE session_id = $1`,
         [req.params.id],
       )).rows[0].n
-      if (d.capacity < joined) {
-        throw new ApiError(400, `${joined} ${joined === 1 ? 'person has' : 'people have'} already joined — capacity can't be lower than that`)
+      if (d.capacity < taken) {
+        throw new ApiError(400, cur.visibility === 'invite_only'
+          ? `${taken} people are joined or invited — capacity can't be lower than that`
+          : `${taken} ${taken === 1 ? 'person has' : 'people have'} already joined — capacity can't be lower than that`)
       }
       const changed = timeChanged || d.topic !== cur.topic || d.description !== cur.description || d.domain !== cur.domain
         || d.durationMinutes !== cur.duration_minutes || d.capacity !== cur.capacity || d.meetingLink !== (cur.meeting_link ?? '')

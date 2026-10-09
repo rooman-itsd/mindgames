@@ -74,12 +74,13 @@ export function GroupSessionsTab() {
         setOpen(o)
         setMine(m)
         // The Mentorship sidebar shows the same lists; hand them over.
-        publishGroupSessions({ open: o, mine: m })
+        publishGroupSessions(currentUser.id, { open: o, mine: m })
       })
       .catch(() => notify('Could not load group sessions.', 'error'))
       .finally(() => setLoading(false))
   }
-  useEffect(reload, [notify])
+  // Reload for whoever is signed in — the lists (and what the sidebar shows) are per member.
+  useEffect(reload, [notify, currentUser.id])
 
   // One search across Hosting, Attending and Discover: topic, mentor, skill or description.
   const hit = (g: GroupSession) => matchesQuery([g.topic, g.mentorName, g.domain, g.description], query)
@@ -125,7 +126,7 @@ export function GroupSessionsTab() {
     if (!focusId) return
     setQuery('')
     const hosted = hostingAll.find((g) => g.id === focusId)
-    if (hosted && hosted.status !== 'scheduled') setHostFilter('all')
+    if (hosted) setHostFilter(hosted.status === 'scheduled' ? 'scheduled' : 'all')
     if (attendingAll.some((g) => g.id === focusId)) setAttendPick('all')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, mine])

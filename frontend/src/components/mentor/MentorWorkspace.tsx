@@ -78,7 +78,10 @@ export function MentorWorkspace({
     if (!focusId) return
     setQuery('')
     if (newestFirst(finished).findIndex((s) => s.id === focusId) >= PAST_PREVIEW) setShowAllPast(true)
-  }, [focusId, finished])
+    // Once per calendar jump — re-running on every new `finished` array would
+    // keep wiping what the mentor types while ?focus is still in the URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId])
 
   const isMentor = currentUser.isMentor
 
@@ -89,7 +92,7 @@ export function MentorWorkspace({
       (s) => {
         setStats(s)
         // The sidebar's Badges card shows the same stats.
-        publishMentorStats(s)
+        publishMentorStats(currentUser.id, s)
       },
       () => {},
     )
