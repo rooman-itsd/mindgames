@@ -843,13 +843,25 @@ export const api = {
     }),
   deleteCareerResource: (id: string) =>
     http<void>(`/api/career-resources/${id}`, { method: 'DELETE' }),
-  // The session's mentee proving they did a resource the mentor marked
-  // requiresSubmission — a link, not a file upload (no storage for that yet).
-  submitCareerResource: (id: string, url: string) =>
+  // The mentee proving they did a resource the mentor marked
+  // requiresSubmission — a link, uploaded files (api.uploadLearningFile), or
+  // both. Sending again replaces what was sent.
+  submitCareerResource: (id: string, url?: string, fileIds?: string[]) =>
     http<CareerResource>(`/api/career-resources/${id}/submit`, {
       method: 'POST',
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, fileIds }),
     }),
+  /** One attachment on an assigned resource as a Blob — private to the mentor
+   *  and mentee, so it is fetched with the token (see getShareFile). */
+  getCareerResourceFile: async (resourceId: string, fileId: string): Promise<Blob> => {
+    const token = getToken()
+    const res = await fetch(
+      `/api/career-resources/${encodeURIComponent(resourceId)}/files/${encodeURIComponent(fileId)}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    )
+    if (!res.ok) throw await toHttpError(res)
+    return res.blob()
+  },
   // A mentor's side of direct assignments: what they gave this member without
   // a session, and the work sent back (submissionUrl). Newest first, up to 50.
   getAssignedByMe: (menteeId: string) =>

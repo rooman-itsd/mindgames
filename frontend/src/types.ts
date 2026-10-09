@@ -1383,6 +1383,9 @@ export interface CareerResource {
   status: CareerResourceStatus
   roadmapId?: string
   stepKey?: string
+  /** The title of that stage — for a mentor's assignment, one of the
+   *  mentee's own stages. */
+  stepTitle?: string
   sessionId?: string
   /** Visible to any signed-in member on the owner's profile, independent of
    *  the stage/session links above — those stay private either way, since
@@ -1415,6 +1418,10 @@ export interface CareerResource {
   /** The member a mentor assigned this to (by session or directly). */
   assignedToId?: string
   assignedToName?: string
+  /** Files the mentor attached when assigning it (private to the two). */
+  attachments?: ShareFile[]
+  /** Files the mentee sent back as their work (with or instead of a link). */
+  submissionFiles?: ShareFile[]
 }
 
 
@@ -1609,6 +1616,8 @@ export interface CareerResourceInput {
   assignedTo?: string
   isPublic?: boolean
   requiresSubmission?: boolean
+  /** Uploads (api.uploadLearningFile) to attach — assigned resources only. */
+  fileIds?: string[]
 }
 
 /** Admin: a session the mentor completed that still waits on the mentee's

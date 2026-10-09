@@ -958,7 +958,19 @@ function validateRoadmapResult(parsed: unknown): CareerRoadmapResult {
       relevantServiceIds: strings(s.relevantServiceIds),
     }))
   if (stages.length === 0) reject()
-  return { stages }
+  return { stages: pinStartMarker(stages) }
+}
+
+/** The timeline labels the first stage "Current" purely by position, but the
+ * model has been seen to drop its "current situation" marker mid-plan, which
+ * then shows as a step with a Reopen button while a real stage is labelled
+ * "Current". The prompt's own rule is that the marker has no duration, so a
+ * duration-less stage between real ones is moved back to the front. */
+function pinStartMarker(stages: CareerRoadmapStageResult[]): CareerRoadmapStageResult[] {
+  if (stages.length < 3 || stages[0].durationWeeks === null) return stages
+  const stray = stages.findIndex((s, i) => i > 0 && i < stages.length - 1 && s.durationWeeks === null)
+  if (stray === -1) return stages
+  return [stages[stray], ...stages.filter((_, i) => i !== stray)]
 }
 
 /** Generate a career roadmap from a pre-built context packet. Throws the same

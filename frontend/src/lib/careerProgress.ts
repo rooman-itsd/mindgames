@@ -73,3 +73,24 @@ export function nextStageAfter(stages: CareerStage[], stepKey: string): CareerSt
   }
   return null
 }
+
+/** Stages the member added through Edit roadmap carry this key prefix;
+ *  everything else came from the AI. It is how the timeline tells the two
+ *  apart without a separate "added by" column. */
+const MEMBER_STAGE_PREFIX = 'custom-'
+
+export function newMemberStageKey(): string {
+  return `${MEMBER_STAGE_PREFIX}${Date.now()}`
+}
+
+export function isMemberAdded(stage: Pick<CareerStage, 'stepKey'>): boolean {
+  return stage.stepKey.startsWith(MEMBER_STAGE_PREFIX)
+}
+
+/** A blank title, or "New stage" — the placeholder the edit panel used to
+ *  fill in. Either reads like an AI step with no meaning, so it can't be
+ *  saved. The server refuses the same thing. */
+export function isUnnamedStage(title: string): boolean {
+  const t = title.trim().toLowerCase()
+  return t === '' || t === 'new stage'
+}

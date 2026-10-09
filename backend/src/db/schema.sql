@@ -1937,3 +1937,38 @@ CREATE INDEX IF NOT EXISTS idx_career_resources_unassigned_session
 -- "sessions I mentor" read, which until now had only partial indexes.
 CREATE INDEX IF NOT EXISTS idx_sessions_mentor_mentee
   ON mentorship_sessions (mentor_id, mentee_id);
+
+-- ---------------------------------------------------------------------------
+-- career_resource_files: attachments on an assigned resource.
+--
+-- Two roles on one table, told apart by `role`:
+--   * 'assigned' — files the mentor attached when assigning (any media, with
+--     or without a link);
+--   * 'evidence' — the work the mentee sent back, as files instead of (or as
+--     well as) a link.
+--
+-- Files go up through the same pipeline as Add resource (POST
+-- /api/learning/uploads — its size limits, blocked types and daily cap), and
+-- are COPIED here when the resource or the submission claims them; the upload
+-- rows are then removed. A separate table rather than a column on
+-- learning_share_files, so that pipeline's sweep, × delete and pending cap
+-- (all "share_id IS NULL") never see a mentee's private files as abandoned.
+--
+-- Private: only the resource's owner (the mentor) and the member it was
+-- assigned to may download one — checked in careerResources.routes.ts. The
+-- resource going away takes its files with it (CASCADE).
+CREATE TABLE IF NOT EXISTS career_resource_files (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  resource_id TEXT NOT NULL REFERENCES career_resources(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL CHECK (role IN ('assigned', 'evidence')),
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  mime        TEXT NOT NULL,
+  size_bytes  INTEGER NOT NULL CHECK (size_bytes > 0),
+  data        BYTEA NOT NULL,
+  position    SMALLINT NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- A resource's files, in order (never the bytes — read one file at a time).
+CREATE INDEX IF NOT EXISTS idx_career_resource_files_resource
+  ON career_resource_files (resource_id, role, position);

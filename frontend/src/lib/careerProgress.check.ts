@@ -1,7 +1,7 @@
 // Sanity checks for roadmap progress + completion ordering. Run with:
 //   npm --prefix frontend run check
 import assert from 'node:assert'
-import { blockedBy, nextStageAfter, roadmapProgress, workableStages } from './careerProgress'
+import { blockedBy, isMemberAdded, isUnnamedStage, newMemberStageKey, nextStageAfter, roadmapProgress, workableStages } from './careerProgress'
 import { servicesForStage } from './careerServices'
 import { alumniCount } from './format'
 import type { CareerStage, CareerStageStatus } from '../types'
@@ -114,5 +114,14 @@ assert.strictEqual(blockedBy(plan('upcoming', 'upcoming', 'upcoming'), 'nope'), 
 assert.strictEqual(alumniCount(1), '1 alum')
 assert.strictEqual(alumniCount(2), '2 alumni')
 assert.strictEqual(alumniCount(0), '0 alumni')
+
+// Member-added stages are told apart from AI ones by their key.
+assert.ok(isMemberAdded({ stepKey: newMemberStageKey() }), 'a stage added in the edit panel must read as member-added')
+assert.ok(!isMemberAdded({ stepKey: 'current_situation' }), 'an AI stage must not read as member-added')
+
+// A stage can't be saved blank or under the old placeholder name.
+assert.ok(isUnnamedStage('   '))
+assert.ok(isUnnamedStage(' New Stage '))
+assert.ok(!isUnnamedStage('Build a RAG project'))
 
 console.log('careerProgress.check.ts — all assertions passed')

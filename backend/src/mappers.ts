@@ -798,6 +798,10 @@ export interface CareerResourceRow {
   share_files?: { id: string; name: string; mime: string; size: number }[] | null
   assigned_to?: string | null
   assignee_name?: string | null
+  /** Title of the roadmap stage it is filed under (RESOURCE_SELECT). */
+  step_title?: string | null
+  /** Its attachments, both roles, without bytes (RESOURCE_SELECT). */
+  resource_files?: { id: string; name: string; mime: string; size: number; role: 'assigned' | 'evidence' }[] | null
 }
 
 export function mapCareerResource(r: CareerResourceRow) {
@@ -813,6 +817,7 @@ export function mapCareerResource(r: CareerResourceRow) {
     // a session, both, or neither.
     roadmapId: r.roadmap_id ?? undefined,
     stepKey: r.step_key ?? undefined,
+    stepTitle: r.step_title ?? undefined,
     sessionId: r.session_id ?? undefined,
     isPublic: r.is_public,
     requiresSubmission: r.requires_submission,
@@ -827,8 +832,9 @@ export function mapCareerResource(r: CareerResourceRow) {
     // isLocked in careerResources.routes.ts: submitted work is always a
     // record; a completed session's resources from before it ended are its
     // record; anything a mentor added after it ended stays editable.
+    // submission_at, not submission_url: work can be sent back as files only.
     sessionLocked:
-      (!!r.assigned_to && !!r.submission_url) ||
+      (!!r.assigned_to && !!r.submission_at) ||
       (!!r.session_id && r.session_status === 'past' &&
         !(r.session_ended_at && new Date(r.created_at) > new Date(r.session_ended_at))),
     // Given at or after the session's end — a follow-up, not prep — whether
@@ -847,6 +853,13 @@ export function mapCareerResource(r: CareerResourceRow) {
     // for direct assignments alike.
     assignedToId: r.assigned_to ?? undefined,
     assignedToName: r.assignee_name ?? undefined,
+    // What the mentor attached, and the files the mentee sent back.
+    attachments: (r.resource_files ?? [])
+      .filter((f) => f.role === 'assigned')
+      .map(({ id, name, mime, size }) => ({ id, name, mime, size })),
+    submissionFiles: (r.resource_files ?? [])
+      .filter((f) => f.role === 'evidence')
+      .map(({ id, name, mime, size }) => ({ id, name, mime, size })),
   }
 }
 

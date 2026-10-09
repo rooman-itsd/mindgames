@@ -98,22 +98,25 @@ export function stepPosition(
 
 /** Where an assigned resource came from, as the card's caption. */
 export function assignmentOrigin(
-  r: Pick<CareerResource, 'sessionId' | 'sessionTopic' | 'requiresSubmission' | 'afterSession'>,
+  r: Pick<CareerResource, 'sessionId' | 'sessionTopic' | 'requiresSubmission' | 'afterSession' | 'stepTitle'>,
 ): string {
   if (r.sessionId) {
     const topic = r.sessionTopic ?? 'your session'
     // After the session it is a follow-up even when it asks for nothing back.
     return r.requiresSubmission || r.afterSession ? `Follow-up from ${topic}` : `Prep for ${topic}`
   }
+  // Assigned from the mentee's roadmap, against one of their stages.
+  if (r.stepTitle) return `For stage “${r.stepTitle}”`
   return 'Assigned directly'
 }
 
 /** Whether an assigned resource still needs the member to send work back. */
 export function submissionState(
-  r: Pick<CareerResource, 'requiresSubmission' | 'submissionUrl'>,
+  r: Pick<CareerResource, 'requiresSubmission' | 'submissionUrl' | 'submissionAt'>,
 ): 'not_needed' | 'needed' | 'submitted' {
   if (!r.requiresSubmission) return 'not_needed'
-  return r.submissionUrl ? 'submitted' : 'needed'
+  // submissionAt too: work sent back as files only has no link.
+  return r.submissionUrl || r.submissionAt ? 'submitted' : 'needed'
 }
 
 /** Appends a fetched page to what is shown, dropping any row already there —

@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import { query } from '../db/pool.js'
+import { query, withTransaction } from '../db/pool.js'
 import { requireAuth } from '../auth/middleware.js'
 import { ApiError, asyncHandler } from '../http.js'
 import { pushNotification } from '../notify.js'
@@ -8,6 +8,8 @@ import { HTTP_URL, HTTP_URL_MESSAGE } from '../validation.js'
 import { mapCareerResource, mapPublicCareerResource, type CareerResourceRow } from '../mappers.js'
 import { afterAtParam, cursorRowSql, pageLimit } from '../learning.js'
 import { RESOURCE_SELECT } from '../resourceQueries.js'
+import { MAX_RESOURCE_FILES, claimUploads } from '../resourceFiles.js'
+import { INLINE_TYPES, rfc8187 } from './learningResources.routes.js'
 
 /**
  * Learning resources — the things a member is learning from on the way
@@ -121,9 +123,10 @@ function isSessionLocked(status: string | null | undefined): boolean {
  *    - a direct assignment (no session) locks only on submission.
  *  Keep in step with sessionLocked in mappers.ts and the DELETE below. */
 function isLocked(
-  r: Pick<CareerResourceRow, 'session_id' | 'session_status' | 'assigned_to' | 'submission_url' | 'created_at' | 'session_ended_at'>,
+  r: Pick<CareerResourceRow, 'session_id' | 'session_status' | 'assigned_to' | 'submission_at' | 'created_at' | 'session_ended_at'>,
 ): boolean {
-  if (r.assigned_to && r.submission_url) return true
+  // submission_at, not submission_url: work can be sent back as files only.
+  if (r.assigned_to && r.submission_at) return true
   if (!r.session_id || !isSessionLocked(r.session_status)) return false
   return !(r.session_ended_at && new Date(r.created_at) > new Date(r.session_ended_at))
 }
@@ -132,7 +135,7 @@ function isLocked(
  *  one step (r = career_resources). One fragment, so the two can never apply
  *  different rules. */
 const LOCKED_SQL = `
-  ((r.assigned_to IS NOT NULL AND r.submission_url IS NOT NULL)
+  ((r.assigned_to IS NOT NULL AND r.submission_at IS NOT NULL)
    OR EXISTS (SELECT 1 FROM mentorship_sessions s
                WHERE s.id = r.session_id AND s.status = 'past'
                  AND (s.ended_at IS NULL OR r.created_at <= s.ended_at)))`
@@ -157,22 +160,31 @@ async function assertMentorOfSession(sessionId: string, me: string): Promise<str
   return status
 }
 
-/** Confirms the roadmap is the caller's own and really has that stage.
+/** Confirms the roadmap belongs to `owner` and really has that stage, and
+ *  returns the stage's title (undefined when no stage was named).
+ *
+ *  `owner` is the caller for a personal save, or the mentee for a direct
+ *  assignment filed under one of THEIR stages — the only roadmap whose stage
+ *  means anything to whoever ends up holding the row.
  *
  *  Mirrors the step-key check the roadmap step-status route already does: an
  *  unchecked key would quietly file a resource under a stage that does not
  *  exist, which the Resources page could then never show. */
-async function assertOwnStage(roadmapId: string, stepKey: string | undefined, me: string) {
-  const r = await query<{ data: { stages?: { stepKey?: string }[] } | null }>(
+async function assertOwnStage(
+  roadmapId: string,
+  stepKey: string | undefined,
+  owner: string,
+  notFound = 'Roadmap not found (or not yours)',
+): Promise<string | undefined> {
+  const r = await query<{ data: { stages?: { stepKey?: string; title?: string }[] } | null }>(
     `SELECT data FROM career_roadmaps WHERE id = $1 AND user_id = $2`,
-    [roadmapId, me],
+    [roadmapId, owner],
   )
-  if (!r.rowCount) throw new ApiError(404, 'Roadmap not found (or not yours)')
-  if (stepKey === undefined) return
-  const stages = r.rows[0].data?.stages ?? []
-  if (!stages.some((s) => s.stepKey === stepKey)) {
-    throw new ApiError(404, 'No such step in that roadmap')
-  }
+  if (!r.rowCount) throw new ApiError(404, notFound)
+  if (stepKey === undefined) return undefined
+  const stage = (r.rows[0].data?.stages ?? []).find((s) => s.stepKey === stepKey)
+  if (!stage) throw new ApiError(404, 'No such step in that roadmap')
+  return stage.title ?? undefined
 }
 
 const createSchema = z.object({
@@ -191,6 +203,12 @@ const createSchema = z.object({
   // accepted only so the request gets a clear refusal below: evidence tasks
   // for a session are created at completion, never as prep.
   requiresSubmission: z.boolean().optional().default(false),
+  // Uploads (POST /api/learning/uploads) to attach — assigned resources only.
+  fileIds: z
+    .array(z.string().min(1).max(64))
+    .max(MAX_RESOURCE_FILES, `Attach up to ${MAX_RESOURCE_FILES} files`)
+    .optional()
+    .default([]),
 })
 
 // Spelled out rather than createSchema.partial(), for the reason documented on
@@ -357,19 +375,30 @@ careerResourcesRouter.post(
     if (d.sessionId && d.assignedTo) {
       throw new ApiError(400, 'Assign through a session or directly — not both')
     }
-    // Both kinds of assignment hand the row to someone else, so the owner's
-    // own roadmap stage means nothing to the recipient.
-    if ((d.sessionId || d.assignedTo) && d.roadmapId) {
+    // Session prep hands the row to someone else, so the owner's own roadmap
+    // stage means nothing to the recipient. A direct assignment may name a
+    // stage — but only one of the recipient's, checked below once the
+    // mentor-of relationship is proven.
+    if (d.sessionId && d.roadmapId) {
       throw new ApiError(400, 'An assigned resource can’t be filed under your own roadmap stage')
     }
-    if (d.roadmapId) await assertOwnStage(d.roadmapId, d.stepKey, me)
+    if (d.assignedTo && d.roadmapId && !d.stepKey) {
+      throw new ApiError(400, 'Pick which of their stages this is for')
+    }
+    if (d.roadmapId && !d.assignedTo) await assertOwnStage(d.roadmapId, d.stepKey, me)
     if (d.assignedTo === me) throw new ApiError(400, 'You can’t assign a resource to yourself')
 
     // A resource handed to someone has to point at something they can open —
     // a title alone gives them nothing to read or act on. Personal saves can
     // still be a bare note.
-    if ((d.sessionId || d.assignedTo) && !d.url) {
-      throw new ApiError(400, 'Add a link — an assigned resource needs something to open')
+    // Attachments, like a link, are something a mentee can open — so either
+    // one will do. Files are for what a mentor hands over, not personal saves.
+    const fileIds = [...new Set(d.fileIds)]
+    if (fileIds.length && !d.sessionId && !d.assignedTo) {
+      throw new ApiError(400, 'Attachments are for resources you assign to someone')
+    }
+    if ((d.sessionId || d.assignedTo) && !d.url && !fileIds.length) {
+      throw new ApiError(400, 'Add a link or attach a file — an assigned resource needs something to open')
     }
 
     // Who receives it. For session prep that is the session's mentee; for a
@@ -378,6 +407,7 @@ careerResourcesRouter.post(
     let recipient: string | null = null
     let sessionTopic: string | null = null
     let followUp = false
+    let stageTitle: string | undefined
     if (d.sessionId) {
       const status = await assertMentorOfSession(d.sessionId, me)
       // After the session it is a follow-up, which may ask for proof of work.
@@ -395,25 +425,36 @@ careerResourcesRouter.post(
     } else if (d.assignedTo) {
       await assertMentorOf(d.assignedTo, me)
       recipient = d.assignedTo
+      // A mentor reading this member's roadmap assigned it to one stage of it.
+      // After assertMentorOf, so a stranger can't use this to probe roadmaps.
+      if (d.roadmapId) {
+        stageTitle = await assertOwnStage(d.roadmapId, d.stepKey, d.assignedTo, 'That roadmap is not this member’s')
+      }
     } else if (d.requiresSubmission) {
       throw new ApiError(400, 'Only a resource assigned to someone can ask for a submission')
     }
 
-    const ins = await query<{ id: string }>(
-      `INSERT INTO career_resources
-         (user_id, title, url, note, kind, status, roadmap_id, step_key, session_id, is_public,
-          requires_submission, assigned_to)
-       VALUES ($1, $2, $3, $4, COALESCE($5, 'article'), COALESCE($6, 'saved'), $7, $8, $9, $10, $11, $12)
-       RETURNING id`,
-      [
-        me, d.title, d.url ?? null, d.note ?? null, d.kind ?? null, d.status ?? null,
-        d.roadmapId ?? null, d.stepKey ?? null, d.sessionId ?? null, d.isPublic,
-        // Evidence only on a direct assignment or a post-session follow-up
-        // (session prep is refused above).
-        (!!d.assignedTo || followUp) && d.requiresSubmission,
-        recipient,
-      ],
-    )
+    // The row and its attachments land together: a missing upload rolls the
+    // resource back too, so nobody is ever assigned something short of files.
+    const ins = await withTransaction(async (client) => {
+      const row = await client.query<{ id: string }>(
+        `INSERT INTO career_resources
+           (user_id, title, url, note, kind, status, roadmap_id, step_key, session_id, is_public,
+            requires_submission, assigned_to)
+         VALUES ($1, $2, $3, $4, COALESCE($5, 'article'), COALESCE($6, 'saved'), $7, $8, $9, $10, $11, $12)
+         RETURNING id`,
+        [
+          me, d.title, d.url ?? null, d.note ?? null, d.kind ?? null, d.status ?? null,
+          d.roadmapId ?? null, d.stepKey ?? null, d.sessionId ?? null, d.isPublic,
+          // Evidence only on a direct assignment or a post-session follow-up
+          // (session prep is refused above).
+          (!!d.assignedTo || followUp) && d.requiresSubmission,
+          recipient,
+        ],
+      )
+      await claimUploads(client, row.rows[0].id, fileIds, me, 'assigned')
+      return row
+    })
 
     // An assignment is the one case where someone else gains a row they did
     // not create, so it is the one case worth a notification.
@@ -434,7 +475,9 @@ careerResourcesRouter.post(
         void pushNotification(
           recipient,
           'mentorship',
-          `${name} assigned you "${d.title}".`,
+          stageTitle
+            ? `${name} assigned you "${d.title}" for your stage "${stageTitle}".`
+            : `${name} assigned you "${d.title}".`,
           me,
           { type: 'resource', id: ins.rows[0].id },
         )
@@ -470,7 +513,14 @@ careerResourcesRouter.patch(
     const assigned = !!(c.session_id || c.assigned_to)
     if (assigned) {
       // Something handed to a mentee has to stay openable.
-      if (d.url === null) throw new ApiError(400, 'An assigned resource needs a link — change it instead of removing it')
+      // (Attachments count: a link can go if files are there to open.)
+      if (d.url === null) {
+        const files = await query(
+          `SELECT 1 FROM career_resource_files WHERE resource_id = $1 AND role = 'assigned' LIMIT 1`,
+          [c.id],
+        )
+        if (!files.rowCount) throw new ApiError(400, 'An assigned resource needs a link — change it instead of removing it')
+      }
       // Once the session is over — or, for a direct assignment, once the
       // mentee has submitted — what was assigned is a record. The owner can
       // still tick it done or make it public — their own bookkeeping — but not
@@ -507,11 +557,18 @@ careerResourcesRouter.patch(
 )
 
 const submitSchema = z.object({
-  url: z.string().trim().url().regex(HTTP_URL, HTTP_URL_MESSAGE).max(2000),
+  url: z.string().trim().url().regex(HTTP_URL, HTTP_URL_MESSAGE).max(2000).optional(),
+  // Uploads (POST /api/learning/uploads) sent back as the work itself.
+  fileIds: z
+    .array(z.string().min(1).max(64))
+    .max(MAX_RESOURCE_FILES, `Attach up to ${MAX_RESOURCE_FILES} files`)
+    .optional()
+    .default([]),
 })
 
 // POST /api/career-resources/:id/submit — the MENTEE it was assigned to proves
-// they did it, by pasting a link (a doc, a repo, a deployed site).
+// they did it, with a link (a doc, a repo, a deployed site), attached files,
+// or both. Sending again replaces what was sent before.
 // Deliberately not the owner: the mentor who assigned it is the one who set
 // requires_submission, and the mentee is who has to answer it. "The mentee" is
 // assigned_to — set for session follow-ups and direct assignments alike.
@@ -522,6 +579,8 @@ careerResourcesRouter.post(
     const parsed = submitSchema.safeParse(req.body)
     if (!parsed.success) throw new ApiError(400, parsed.error.issues[0].message)
     const me = req.user!.sub
+    const fileIds = [...new Set(parsed.data.fileIds)]
+    if (!parsed.data.url && !fileIds.length) throw new ApiError(400, 'Add a link or attach your work')
 
     const cur = await query<{ requires_submission: boolean; title: string; user_id: string; session_id: string | null }>(
       `SELECT r.requires_submission, r.title, r.user_id, r.session_id
@@ -532,10 +591,16 @@ careerResourcesRouter.post(
     if (!cur.rowCount) throw new ApiError(404, 'Resource not found (or not assigned to you)')
     if (!cur.rows[0].requires_submission) throw new ApiError(400, 'This resource does not ask for a submission')
 
-    await query(
-      `UPDATE career_resources SET submission_url = $2, submission_at = now(), updated_at = now() WHERE id = $1`,
-      [req.params.id, parsed.data.url],
-    )
+    // Old evidence out, new evidence in, and the submission stamped — one
+    // transaction, so a missing upload leaves the previous submission intact.
+    await withTransaction(async (client) => {
+      await client.query(`DELETE FROM career_resource_files WHERE resource_id = $1 AND role = 'evidence'`, [req.params.id])
+      await claimUploads(client, req.params.id, fileIds, me, 'evidence')
+      await client.query(
+        `UPDATE career_resources SET submission_url = $2, submission_at = now(), updated_at = now() WHERE id = $1`,
+        [req.params.id, parsed.data.url ?? null],
+      )
+    })
     const who = await query<{ name: string }>(`SELECT name FROM users WHERE id = $1`, [me])
     void pushNotification(
       cur.rows[0].user_id,
@@ -590,5 +655,33 @@ careerResourcesRouter.delete(
       throw new ApiError(409, 'This has been completed — what was assigned can no longer be removed')
     }
     res.status(204).end()
+  }),
+)
+
+// GET /api/career-resources/:id/files/:fileId — one attachment's bytes: what
+// the mentor attached, or what the mentee sent back. Private to the two of
+// them — the resource's owner and the member it was assigned to — and a 404
+// for anyone else, so a stranger cannot even tell the file exists. Sent like
+// Add resource's files: nosniff, a download unless browsers show the type
+// safely in place, and never cached (access ends when the resource goes).
+careerResourcesRouter.get(
+  '/:id/files/:fileId',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const r = await query<{ name: string; mime: string; data: Buffer }>(
+      `SELECT f.name, f.mime, f.data
+         FROM career_resource_files f
+         JOIN career_resources r ON r.id = f.resource_id
+        WHERE f.id = $1 AND r.id = $2 AND (r.user_id = $3 OR r.assigned_to = $3)`,
+      [req.params.fileId, req.params.id, req.user!.sub],
+    )
+    if (!r.rowCount) throw new ApiError(404, 'That file was not found')
+    const f = r.rows[0]
+    const inline = INLINE_TYPES.test(f.mime)
+    res.setHeader('Content-Type', inline ? f.mime : 'application/octet-stream')
+    res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${rfc8187(f.name)}`)
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Cache-Control', 'no-store')
+    res.send(f.data)
   }),
 )

@@ -4,16 +4,20 @@ import { api } from '../../lib/api'
 import { isHttpUrl } from '../../lib/links'
 import { KIND_LABEL, assignmentOrigin, displayLink, submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
+import { useAttachmentUploads } from '../../hooks/useAttachmentUploads'
+import { AttachmentPicker } from '../ui/AttachmentPicker'
 import type { CareerResource } from '../../types'
 import { KindBadge, KindIcon } from './KindIcon'
+import { ShareFiles } from './ShareFiles'
 
 /** career_resources.kind → the hub's kind, for the icon and badge. */
 const toHubKind = (kind: string) => (kind === 'other' || kind === 'book' ? 'link' : kind)
 
 /**
  * Something a mentor gave the member: before a session, after it, or
- * directly. Shows who it is from (name only — no photos in lists) and, when
- * the mentor asked for proof, a box to send the work back.
+ * directly. Shows who it is from (name only — no photos in lists), any files
+ * the mentor attached and, when the mentor asked for proof, a box to send the
+ * work back — a link, files, or both.
  */
 export function AssignedCard({
   resource,
@@ -25,18 +29,29 @@ export function AssignedCard({
   const { notify } = useApp()
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const att = useAttachmentUploads()
   const kind = toHubKind(resource.kind)
   const state = submissionState(resource)
+  const fetchFile = (fileId: string) => api.getCareerResourceFile(resource.id, fileId)
 
   const submit = async () => {
     const url = draft.trim()
-    if (!isHttpUrl(url)) {
-      notify('Paste a link that starts with http:// or https://', 'error')
+    if (url && !isHttpUrl(url)) {
+      notify('Links start with http:// or https://', 'error')
+      return
+    }
+    if (att.uploading) {
+      notify('Wait for the files to finish uploading.', 'error')
+      return
+    }
+    if (!url && !att.ready.length) {
+      notify('Add a link or attach your work.', 'error')
       return
     }
     setSending(true)
     try {
-      onChange(await api.submitCareerResource(resource.id, url))
+      onChange(await api.submitCareerResource(resource.id, url || undefined, att.readyIds))
+      att.claimed()
       setDraft('')
       notify('Submitted — your mentor has been notified.')
     } catch (e) {
@@ -66,6 +81,9 @@ export function AssignedCard({
           <ExternalLink size={10} className="shrink-0" />
         </a>
       )}
+      {resource.attachments && resource.attachments.length > 0 && (
+        <ShareFiles files={resource.attachments} fetchFile={fetchFile} />
+      )}
 
       <div className="mt-auto pt-3">
         <p className="flex items-center gap-1 text-[11px] text-muted">
@@ -78,22 +96,29 @@ export function AssignedCard({
         </p>
 
         {state === 'needed' && (
-          <div className="mt-2 flex gap-1">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Link to your work"
-              aria-label={`Your work for ${resource.title}`}
-              className="min-w-0 flex-1 rounded-lg border border-line px-2 py-1 text-xs"
-            />
-            <button
-              onClick={() => void submit()}
-              disabled={sending || !draft.trim()}
-              className="rounded-lg bg-brand px-2.5 text-xs font-semibold text-white disabled:opacity-50"
-            >
-              Submit
-            </button>
+          <div className="mt-2 flex flex-col gap-1.5">
+            <div className="flex gap-1">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Link to your work (optional with files)"
+                aria-label={`Your work for ${resource.title}`}
+                className="min-w-0 flex-1 rounded-lg border border-line px-2 py-1 text-xs"
+              />
+              <button
+                onClick={() => void submit()}
+                disabled={sending || (!draft.trim() && !att.ready.length)}
+                className="rounded-lg bg-brand px-2.5 text-xs font-semibold text-white disabled:opacity-50"
+              >
+                Submit
+              </button>
+            </div>
+            <AttachmentPicker att={att} disabled={sending} compact />
           </div>
+        )}
+
+        {state === 'submitted' && resource.submissionFiles && resource.submissionFiles.length > 0 && (
+          <ShareFiles files={resource.submissionFiles} fetchFile={fetchFile} />
         )}
 
         <div className="mt-2 flex items-center gap-2">

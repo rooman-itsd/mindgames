@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import { displayLink, submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import type { CareerResource } from '../../types'
+import { ShareFiles } from '../learning/ShareFiles'
 
 /**
  * The mentor's side of direct assignments: what they already gave this member
@@ -68,6 +69,16 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                     </a>
                   ) : (
                     <p className="truncate text-sm font-semibold text-ink">{r.title}</p>
+                  )}
+                  {r.stepTitle && <p className="truncate text-xs text-muted">For stage “{r.stepTitle}”</p>}
+                  {r.attachments && r.attachments.length > 0 && (
+                    <ShareFiles files={r.attachments} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
+                  )}
+                  {state === 'submitted' && r.submissionFiles && r.submissionFiles.length > 0 && (
+                    <>
+                      <p className="mt-1 text-xs font-semibold text-green-700">Sent back:</p>
+                      <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
+                    </>
                   )}
                   {state === 'submitted' && r.submissionUrl && (
                     <a

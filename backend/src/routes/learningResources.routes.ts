@@ -43,7 +43,7 @@ const STALE_SWEEP_BATCH = 50
 /** Types a browser may show in place (opened in a tab). Everything else is
  *  sent as a download with a generic type, so an uploaded HTML or SVG file
  *  can never run as a page on our origin. */
-const INLINE_TYPES = /^(image\/(png|jpe?g|gif|webp|avif)|video\/(mp4|webm|ogg|quicktime)|audio\/(mpeg|mp4|ogg|wav|webm|aac)|application\/pdf)$/
+export const INLINE_TYPES = /^(image\/(png|jpe?g|gif|webp|avif)|video\/(mp4|webm|ogg|quicktime)|audio\/(mpeg|mp4|ogg|wav|webm|aac)|application\/pdf)$/
 /** Never accepted: programs, scripts, shortcuts and installers. Tested after
  *  trailing dots/spaces are stripped (Windows drops them on save, so
  *  "setup.exe." would land as setup.exe). Keep in step with lib/learningHub.ts. */
@@ -208,7 +208,7 @@ learningResourcesRouter.post(
 /** A filename for Content-Disposition's filename* (RFC 8187): encodeURIComponent
  *  leaves ' ( ) * as they are, and ' is that field's delimiter — so a name like
  *  "Bob's notes (v2).pdf" broke the header. */
-function rfc8187(name: string): string {
+export function rfc8187(name: string): string {
   return encodeURIComponent(name).replace(/['()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
 }
 

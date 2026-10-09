@@ -6,6 +6,7 @@ import { KIND_LABEL, appendPage, assignmentOrigin, displayLink, submissionState 
 import type { CareerResource } from '../../types'
 import { KindBadge, KindIcon } from './KindIcon'
 import { CardGrid, LoadMore } from './SectionHeader'
+import { ShareFiles } from './ShareFiles'
 
 const PAGE = 20
 /** career_resources.kind → the hub's kind, for the icon and badge. */
@@ -82,6 +83,9 @@ function GivenCard({ resource }: { resource: CareerResource }) {
           <ExternalLink size={10} className="shrink-0" />
         </a>
       )}
+      {resource.attachments && resource.attachments.length > 0 && (
+        <ShareFiles files={resource.attachments} fetchFile={(f) => api.getCareerResourceFile(resource.id, f)} />
+      )}
 
       <div className="mt-auto pt-3">
         <p className="flex items-center gap-1 text-[11px] text-muted">
@@ -108,6 +112,16 @@ function GivenCard({ resource }: { resource: CareerResource }) {
           >
             <CircleCheck size={12} /> Work sent back — open it <ExternalLink size={10} />
           </a>
+        )}
+        {state === 'submitted' && resource.submissionFiles && resource.submissionFiles.length > 0 && (
+          <>
+            {!resource.submissionUrl && (
+              <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-green-700">
+                <CircleCheck size={12} /> Work sent back
+              </p>
+            )}
+            <ShareFiles files={resource.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(resource.id, f)} />
+          </>
         )}
         {state === 'needed' && (
           <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted">

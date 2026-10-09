@@ -36,6 +36,8 @@ assert.equal(assignmentOrigin({ sessionId: 's', sessionTopic: 'AWS basics', afte
 assert.equal(submissionState({}), 'not_needed')
 assert.equal(submissionState({ requiresSubmission: true }), 'needed')
 assert.equal(submissionState({ requiresSubmission: true, submissionUrl: 'https://x.dev' }), 'submitted')
+// Files-only evidence has no link — submissionAt alone means it was sent.
+assert.equal(submissionState({ requiresSubmission: true, submissionAt: '2026-10-09T00:00:00Z' }), 'submitted')
 
 // --- paging never shows a row twice ----------------------------------------
 assert.deepEqual(

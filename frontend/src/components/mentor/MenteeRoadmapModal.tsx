@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Flag, HelpCircle, Printer, Sparkles, Target, TrendingUp, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, Flag, HelpCircle, Plus, Printer, Sparkles, Target, TrendingUp, X } from 'lucide-react'
 import { Avatar, Button } from '../ui'
 import { api } from '../../lib/api'
-import { SERVICE_LABELS, type MenteeBrief, type MenteeRoadmap, type ServiceType } from '../../types'
+import { SERVICE_LABELS, type CareerStage, type MenteeBrief, type MenteeRoadmap, type ServiceType } from '../../types'
 import { SkeletonRows } from '../ui/Skeleton'
+import { AssignResourceModal } from './AssignResourceModal'
 
 /**
- * A mentee's roadmap, read-only, for the mentor about to meet them.
+ * A mentee's roadmap, for the mentor about to meet them. The plan itself is
+ * read-only; clicking a stage assigns the mentee a resource for that stage.
  *
  * Access is enforced server-side by an accepted session between the two —
  * this component simply reports whatever the API allows. The print button
@@ -16,12 +18,16 @@ import { SkeletonRows } from '../ui/Skeleton'
  */
 export function MenteeRoadmapModal({ menteeId, onClose }: { menteeId: string; onClose: () => void }) {
   const [data, setData] = useState<MenteeRoadmap | null>(null)
+  // The stage the mentor clicked, to assign a resource against.
+  const [assignStage, setAssignStage] = useState<CareerStage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   // The briefing is generated, so it loads separately and the roadmap never
   // waits on it — a slow or unavailable model must not block the plan.
   const [brief, setBrief] = useState<MenteeBrief | null>(null)
   const [briefState, setBriefState] = useState<'loading' | 'ready' | 'failed'>('loading')
+  // Summary always shows; the detail boxes fold away so the plan stays in view.
+  const [briefOpen, setBriefOpen] = useState(false)
 
   useEffect(() => {
     api
@@ -122,7 +128,7 @@ export function MenteeRoadmapModal({ menteeId, onClose }: { menteeId: string; on
             <div className="mb-5">
               <p className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted uppercase">
                 <Sparkles size={12} className="text-brand" />
-                Mentor briefing
+                AI briefing
               </p>
               {briefState === 'loading' ? (
                 <p className="rounded-xl border border-line px-4 py-3 text-sm text-muted">
@@ -137,60 +143,91 @@ export function MenteeRoadmapModal({ menteeId, onClose }: { menteeId: string; on
                   <p className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-ink">
                     {brief.summary}
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <BriefList icon={<TrendingUp size={13} />} title="Strengths" items={brief.strengths} tone="green" />
-                    <BriefList icon={<Target size={13} />} title="Gaps to close" items={brief.gaps} tone="orange" />
-                    <BriefList icon={<Flag size={13} />} title="Focus this session" items={brief.focusThisSession} tone="blue" />
-                    <BriefList icon={<HelpCircle size={13} />} title="Questions to ask" items={brief.questionsToAsk} tone="grey" />
+                  <button
+                    type="button"
+                    onClick={() => setBriefOpen((o) => !o)}
+                    aria-expanded={briefOpen}
+                    className="flex items-center gap-1 self-start text-xs font-semibold text-brand hover:underline print:hidden"
+                  >
+                    {briefOpen ? 'Hide full briefing' : 'Show full briefing'}
+                    <ChevronDown size={14} className={briefOpen ? 'rotate-180' : ''} />
+                  </button>
+                  {/* Hidden with CSS rather than unmounted, so Save as PDF
+                      always prints the full briefing (print:flex). */}
+                  <div className={`flex-col gap-3 ${briefOpen ? 'flex' : 'hidden'} print:flex`}>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <BriefList icon={<TrendingUp size={13} />} title="Strengths" items={brief.strengths} tone="green" />
+                      <BriefList icon={<Target size={13} />} title="Gaps to close" items={brief.gaps} tone="orange" />
+                      <BriefList icon={<Flag size={13} />} title="Focus this session" items={brief.focusThisSession} tone="blue" />
+                      <BriefList icon={<HelpCircle size={13} />} title="Questions to ask" items={brief.questionsToAsk} tone="grey" />
+                    </div>
+                    {brief.watchOuts.length > 0 && (
+                      <BriefList icon={<AlertTriangle size={13} />} title="Watch out for" items={brief.watchOuts} tone="amber" />
+                    )}
                   </div>
-                  {brief.watchOuts.length > 0 && (
-                    <BriefList icon={<AlertTriangle size={13} />} title="Watch out for" items={brief.watchOuts} tone="amber" />
-                  )}
                 </div>
               )}
             </div>
 
             <p className="mb-2 text-xs font-bold tracking-wide text-muted uppercase">Their plan</p>
+            <p className="mb-2 text-xs text-muted print:hidden">Click a stage to assign them a resource for it.</p>
             <ol className="flex flex-col gap-2">
               {data.stages.map((s, i) => (
-                <li
-                  key={s.stepKey}
-                  className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
-                    s.status === 'completed'
-                      ? 'border-green-200 bg-green-50/50'
-                      : s.status === 'in_progress'
-                        ? 'border-brand/30 bg-brand-50/40'
-                        : 'border-line'
-                  }`}
-                >
-                  <span
-                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                <li key={s.stepKey}>
+                  <button
+                    type="button"
+                    onClick={() => setAssignStage(s)}
+                    className={`group flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left hover:border-brand ${
                       s.status === 'completed'
-                        ? 'bg-green-500 text-white'
+                        ? 'border-green-200 bg-green-50/50'
                         : s.status === 'in_progress'
-                          ? 'bg-brand text-white'
-                          : 'bg-gray-200 text-muted'
+                          ? 'border-brand/30 bg-brand-50/40'
+                          : 'border-line'
                     }`}
                   >
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-ink">{s.title}</p>
-                    <p className="text-xs text-muted">
-                      {s.durationWeeks ? `${s.durationWeeks} weeks · ` : ''}
-                      {s.status === 'completed' ? 'Completed' : s.status === 'in_progress' ? 'In progress' : 'Upcoming'}
-                    </p>
-                  </div>
-                  {s.status === 'in_progress' && (
-                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
-                      <Flag size={10} /> NOW
+                    <span
+                      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                        s.status === 'completed'
+                          ? 'bg-green-500 text-white'
+                          : s.status === 'in_progress'
+                            ? 'bg-brand text-white'
+                            : 'bg-gray-200 text-muted'
+                      }`}
+                    >
+                      {i + 1}
                     </span>
-                  )}
+                    <span className="block min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-ink">{s.title}</span>
+                      <span className="block text-xs text-muted">
+                        {s.durationWeeks ? `${s.durationWeeks} weeks · ` : ''}
+                        {s.status === 'completed' ? 'Completed' : s.status === 'in_progress' ? 'In progress' : 'Upcoming'}
+                      </span>
+                    </span>
+                    {s.status === 'in_progress' && (
+                      <span className="flex shrink-0 items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
+                        <Flag size={10} /> NOW
+                      </span>
+                    )}
+                    <span className="flex shrink-0 items-center gap-1 self-center text-xs font-semibold text-muted group-hover:text-brand print:hidden">
+                      <Plus size={12} /> Assign resource
+                    </span>
+                  </button>
                 </li>
               ))}
             </ol>
           </div>
         ) : null}
+
+        {/* Rendered inside this box (which stops clicks) so clicks in the
+            form never reach the backdrop and close the roadmap behind it. */}
+        {data && assignStage && (
+          <AssignResourceModal
+            menteeId={data.member.id}
+            menteeName={data.member.name}
+            stage={{ roadmapId: data.roadmapId, stepKey: assignStage.stepKey, title: assignStage.title }}
+            onClose={() => setAssignStage(null)}
+          />
+        )}
       </div>
     </div>,
     document.body,

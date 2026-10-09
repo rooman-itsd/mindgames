@@ -5,6 +5,7 @@ import { api } from '../../lib/api'
 import { assignedRelativeToSession, isSharedWithMe, shortStamp } from '../../lib/careerResources'
 import { useApp } from '../../store/AppStore'
 import type { CareerResource, CareerResourceKind } from '../../types'
+import { ShareFiles } from '../learning/ShareFiles'
 
 /**
  * Resources attached to one mentorship session.
@@ -127,7 +128,8 @@ export function SessionResourcesModal({
     setSubmitting(null)
   }
 
-  const submittedCount = items.filter((r) => r.requiresSubmission && r.submissionUrl).length
+  // submissionAt too: evidence sent as files only has no link.
+  const submittedCount = items.filter((r) => r.requiresSubmission && (r.submissionUrl || r.submissionAt)).length
   const needsCount = items.filter((r) => r.requiresSubmission).length
 
   return (
@@ -249,7 +251,7 @@ export function SessionResourcesModal({
                 <div className="pl-9 text-xs">
                   {!r.requiresSubmission ? (
                     <span className="text-muted">No evidence needed</span>
-                  ) : r.submissionUrl ? (
+                  ) : r.submissionUrl || r.submissionAt ? (
                     <div className="rounded-lg bg-green-50 px-2.5 py-2">
                       <p className="flex items-center gap-1 font-semibold text-green-700">
                         <CheckCircle2 size={13} />
@@ -258,15 +260,20 @@ export function SessionResourcesModal({
                           <span className="font-normal text-green-700/80">· submitted {shortStamp(r.submissionAt)}</span>
                         )}
                       </p>
-                      <a
-                        href={r.submissionUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 flex min-w-0 items-center gap-1 text-blue-600 hover:underline"
-                      >
-                        <span className="truncate">{r.submissionUrl}</span>
-                        <ExternalLink size={11} className="shrink-0" />
-                      </a>
+                      {r.submissionUrl && (
+                        <a
+                          href={r.submissionUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 flex min-w-0 items-center gap-1 text-blue-600 hover:underline"
+                        >
+                          <span className="truncate">{r.submissionUrl}</span>
+                          <ExternalLink size={11} className="shrink-0" />
+                        </a>
+                      )}
+                      {r.submissionFiles && r.submissionFiles.length > 0 && (
+                        <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
+                      )}
                     </div>
                   ) : iAmMentor ? (
                     <span className="inline-flex items-center gap-1 font-medium text-amber-600"><Clock size={13} /> Evidence pending</span>
