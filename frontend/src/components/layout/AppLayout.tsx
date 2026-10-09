@@ -6,6 +6,7 @@ import { Navbar } from './Navbar'
 import { LeftSidebar } from './LeftSidebar'
 import { RightSidebar } from './RightSidebar'
 import { HomeRightSidebar } from './HomeRightSidebar'
+import { MentorshipRightSidebar } from './MentorshipRightSidebar'
 import { ChatPanel } from './ChatPanel'
 import { AskRoo } from './AskRoo'
 import { PostCreateModal } from '../feed/PostCreateModal'
@@ -79,7 +80,12 @@ export function AppLayout() {
       />
       {/* Career Guidance is a full-width workspace: its roadmap runs
           horizontally across the page, so it renders no right rail at all. */}
-      {isFullWidth ? null : pathname === '/home' ? <HomeRightSidebar /> : <RightSidebar />}
+      {/* Mentorship brings its own rail: a calendar and cards that follow the
+          open tab. The general RightSidebar is unchanged everywhere else. */}
+      {isFullWidth ? null
+        : pathname === '/home' ? <HomeRightSidebar />
+        : pathname.replace(/\/+$/, '') === '/mentorship' ? <MentorshipRightSidebar />
+        : <RightSidebar />}
 
       {/*
         Padding tracks the sidebars, which are offset by --shell-gutter so the

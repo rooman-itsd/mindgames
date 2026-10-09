@@ -1,15 +1,27 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { Calendar, Check, Clock, Crown, Lock, Plus, Repeat, Users, Video, X } from 'lucide-react'
+import { Calendar, Check, Clock, Crown, Lock, Pencil, Plus, Repeat, TriangleAlert, Users, Video, X } from 'lucide-react'
+import { isHttpUrl } from '../../lib/links'
 import { Avatar, Button, Card } from '../ui'
 import { api, isPaymentRequired } from '../../lib/api'
 import { roleLine } from '../../lib/format'
 import { useApp } from '../../store/AppStore'
 import { CompleteSessionModal } from './CompleteSessionModal'
 import { SubscriptionPlans } from '../subscription/SubscriptionPlans'
-import { DOMAINS, type GroupSession, type GroupSessionAttendee } from '../../types'
+import type { GroupSession, GroupSessionAttendee } from '../../types'
 import { SkeletonRows } from '../ui/Skeleton'
 import { EmptyState } from '../ui/EmptyState'
+import {
+  attendingUnder, hostingUnder, istDateTime, istDayKey, istInputParts, istInputToIso, istTime, matchesQuery, parseTags,
+  type AttendFilter, type HostFilter,
+} from '../../lib/agenda'
+import { DateTile } from './AgendaParts'
+import { publishGroupSessions } from './groupSessionsBus'
+import { IconAction } from './IconAction'
+import { useFocusId } from '../../hooks/useMentorshipFocus'
+import { SearchBox } from './SearchBox'
+import { DomainPicker } from './DomainPicker'
 import { UsersRound } from 'lucide-react'
 
 /**
@@ -22,6 +34,20 @@ import { UsersRound } from 'lucide-react'
  * visible to a mentor, and the 402 it can produce opens the plans rather
  * than erroring, exactly like accepting a 1:1 session does.
  */
+const ATTEND_FILTERS: { id: AttendFilter; label: string }[] = [
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'invited', label: 'Invited' },
+  { id: 'completed', label: 'Completed' },
+  { id: 'cancelled', label: 'Cancelled' },
+  { id: 'all', label: 'All' },
+]
+const HOST_FILTERS: { id: HostFilter; label: string }[] = [
+  { id: 'scheduled', label: 'Upcoming' },
+  { id: 'completed', label: 'Completed' },
+  { id: 'cancelled', label: 'Cancelled' },
+  { id: 'all', label: 'All' },
+]
+
 export function GroupSessionsTab() {
   const { currentUser, notify } = useApp()
   const [open, setOpen] = useState<GroupSession[]>([])
@@ -32,24 +58,68 @@ export function GroupSessionsTab() {
   const [completing, setCompleting] = useState<GroupSession | null>(null)
   const [rosterFor, setRosterFor] = useState<GroupSession | null>(null)
   const [repeating, setRepeating] = useState<GroupSession | null>(null)
+  const [editFor, setEditFor] = useState<GroupSession | null>(null)
+  const [query, setQuery] = useState('')
+  const [hostFilter, setHostFilter] = useState<HostFilter>('scheduled')
+  // null = pick the first tab that has something in it, so invites aren't missed.
+  const [attendPick, setAttendPick] = useState<AttendFilter | null>(null)
 
   function reload() {
     Promise.all([api.getGroupSessions(), api.getMyGroupSessions()])
-      .then(([o, m]) => { setOpen(o); setMine(m) })
+      .then(([o, m]) => {
+        setOpen(o)
+        setMine(m)
+        // The Mentorship sidebar shows the same lists; hand them over.
+        publishGroupSessions(currentUser.id, { open: o, mine: m })
+      })
       .catch(() => notify('Could not load group sessions.', 'error'))
       .finally(() => setLoading(false))
   }
-  useEffect(reload, [notify])
+  // Reload for whoever is signed in — the lists (and what the sidebar shows) are per member.
+  useEffect(reload, [notify, currentUser.id])
 
-  const hosting = mine.filter((g) => g.mentorId === currentUser.id)
+  // One search across Hosting, Attending and Discover: topic, mentor, skill or description.
+  const hit = (g: GroupSession) => matchesQuery([g.topic, g.mentorName, g.domain, g.description], query)
+  const searching = query.trim().length > 0
+  const hostingAll = mine.filter((g) => g.mentorId === currentUser.id)
+  const hosting = hostingAll.filter(hit)
+  // Filter chips, like My Sessions → History: upcoming soonest first,
+  // everything else most recent first.
+  const hostCount = (f: HostFilter) => hostingUnder(hosting, f).length
+  const hostingShown = hostingUnder(hosting, hostFilter)
   // An invite_only session I haven't joined yet: this is how it's found at
-  // all, since it's deliberately excluded from the public "Open sessions"
+  // all, since it's deliberately excluded from the public "Discover sessions"
   // list below.
   const invited = mine.filter((g) => g.mentorId !== currentUser.id && g.invitedByMe && !g.joinedByMe)
   const joined = mine.filter((g) => g.mentorId !== currentUser.id && g.joinedByMe)
+  const attendingAll = [...invited, ...joined]
+  const attending = attendingAll.filter(hit)
+  const attendCount = (f: AttendFilter) => attendingUnder(attending, f).length
+  const attendFilter: AttendFilter =
+    attendPick ?? ((['upcoming', 'invited', 'completed'] as const).find((f) => attendCount(f) > 0) ?? 'upcoming')
+  const attendingShown = attendingUnder(attending, attendFilter)
   // Don't repeat a session the member already sees in "mine".
   const mineIds = new Set(mine.map((g) => g.id))
-  const browsable = open.filter((g) => !mineIds.has(g.id))
+  const browsableAll = open.filter((g) => !mineIds.has(g.id))
+  const browsable = browsableAll.filter(hit)
+  const hasAny = hostingAll.length > 0 || attendingAll.length > 0 || browsableAll.length > 0
+  // A calendar click points at a row: clear the search and open whichever
+  // filter chip would hide it. Re-runs once the lists have loaded.
+  const focusId = useFocusId()
+  useEffect(() => {
+    if (!focusId) return
+    setQuery('')
+    const hosted = hostingAll.find((g) => g.id === focusId)
+    if (hosted) setHostFilter(hosted.status === 'scheduled' ? 'scheduled' : 'all')
+    if (attendingAll.some((g) => g.id === focusId)) setAttendPick('all')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, mine])
+  // The sidebar's "Discover by topic" links here with ?domain=…
+  const [params, setParams] = useSearchParams()
+  const domainFilter = params.get('domain') ?? ''
+  const shown = domainFilter ? browsable.filter((g) => parseTags(g.domain).includes(domainFilter)) : browsable
+  const clearDomain = () =>
+    setParams((prev) => { const p = new URLSearchParams(prev); p.delete('domain'); return p }, { replace: true })
 
   async function join(g: GroupSession) {
     try {
@@ -100,22 +170,42 @@ export function GroupSessionsTab() {
 
   return (
     <div className="flex flex-col gap-5">
-      {currentUser.isMentor && (
-        <div className="flex items-center justify-between rounded-xl border border-line bg-surface p-4">
-          <p className="text-sm text-muted">
-            Host one session, many mentees join with a capacity you set.
-          </p>
-          <Button icon={<Plus size={15} />} onClick={() => setShowCreate(true)}>
-            Host a group session
-          </Button>
+      {/* One bar: search the lists below, and (for mentors) host a new one. */}
+      {(currentUser.isMentor || hasAny) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-2 shadow-sm">
+          {hasAny && (
+            <SearchBox
+              value={query}
+              onChange={setQuery}
+              placeholder="Search by topic, mentor or skill"
+              label="Search group sessions"
+              className="min-w-0 flex-1 basis-56 !border-0 !shadow-none"
+            />
+          )}
+          {currentUser.isMentor && (
+            <Button
+              className={`w-full whitespace-nowrap sm:w-auto ${hasAny ? '' : 'sm:ml-auto'}`}
+              icon={<Plus size={15} />}
+              title="Host one session — many mentees join, up to the capacity you set"
+              onClick={() => setShowCreate(true)}
+            >
+              Host a group session
+            </Button>
+          )}
         </div>
       )}
 
-      {hosting.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-bold text-ink">You're hosting</h2>
-          <div className="flex flex-col gap-2">
-            {hosting.map((g) => (
+      {hostingAll.length > 0 && (
+        <Card className="overflow-hidden">
+          <SectionHead title="You're hosting" count={hosting.length} note="Sessions you run as the mentor" />
+          <FilterChips options={HOST_FILTERS} value={hostFilter} count={hostCount} onChange={setHostFilter} />
+          {hostingShown.length === 0 && (
+            <p className="border-t border-line px-5 py-4 text-sm text-muted">
+              {searching ? 'No hosted sessions match.' : hostFilter === 'scheduled' ? 'Nothing scheduled right now.' : 'Nothing here.'}
+            </p>
+          )}
+          <div className="divide-y divide-line border-t border-line">
+            {hostingShown.map((g) => (
               <HostRow
                 key={g.id}
                 session={g}
@@ -123,49 +213,72 @@ export function GroupSessionsTab() {
                 onComplete={() => setCompleting(g)}
                 onCancel={() => cancel(g)}
                 onRepeat={() => setRepeating(g)}
+                onEdit={() => setEditFor(g)}
               />
             ))}
           </div>
-        </section>
+        </Card>
       )}
 
-      {invited.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-bold text-ink">Invited</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {invited.map((g) => (
-              <BrowseCard key={g.id} session={g} onJoin={() => join(g)} />
-            ))}
+      {/* Everything this member takes part in, filtered like You're hosting. */}
+      {attendingAll.length > 0 && (
+        <Card className="overflow-hidden">
+          <SectionHead title="You're attending" count={attending.length} note="Sessions you joined or were invited to" />
+          <FilterChips options={ATTEND_FILTERS} value={attendFilter} count={attendCount} onChange={setAttendPick} />
+          {attendingShown.length === 0 && (
+            <p className="border-t border-line px-5 py-4 text-sm text-muted">{searching ? 'No sessions you attend match.' : 'Nothing here.'}</p>
+          )}
+          <div className="divide-y divide-line border-t border-line">
+            {attendingShown.map((g) =>
+              // Only a live, unanswered invite can be accepted; everything else
+              // (joined, cancelled, or an invite that lapsed) is a status row.
+              g.status === 'scheduled' && !g.joinedByMe ? (
+                <BrowseRow key={g.id} session={g} onJoin={() => join(g)} />
+              ) : (
+                <JoinedRow key={g.id} session={g} onLeave={() => leave(g)} onConfirm={() => confirm(g)} />
+              ),
+            )}
           </div>
-        </section>
-      )}
-
-      {joined.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-bold text-ink">You've joined</h2>
-          <div className="flex flex-col gap-2">
-            {joined.map((g) => (
-              <JoinedRow key={g.id} session={g} onLeave={() => leave(g)} onConfirm={() => confirm(g)} />
-            ))}
-          </div>
-        </section>
+        </Card>
       )}
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-ink">Open sessions</h2>
-        {browsable.length === 0 ? (
-          <EmptyState
-            icon={<UsersRound size={28} />}
-            title="No group sessions open right now"
-            body="Mentors post them here. Meanwhile you can book a one-to-one session."
-            action={{ label: 'Find a mentor', to: '/network/mentors' }}
-          />
+        {browsableAll.length === 0 ? (
+          <>
+            <h2 className="mb-3 text-base font-bold text-ink">Discover sessions</h2>
+            <EmptyState
+              icon={<UsersRound size={28} />}
+              title="No new sessions to discover right now"
+              body="Mentors post them here. Meanwhile you can book a one-to-one session."
+              action={{ label: 'Find a mentor', to: '/network/mentors' }}
+            />
+          </>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {browsable.map((g) => (
-              <BrowseCard key={g.id} session={g} onJoin={() => join(g)} />
-            ))}
-          </div>
+          <Card className="overflow-hidden">
+            <SectionHead
+              title="Discover sessions"
+              count={shown.length}
+              note={
+                domainFilter ? (
+                  <span className="flex items-center gap-1.5">
+                    Showing <b className="text-ink">{domainFilter}</b>
+                    <button onClick={clearDomain} className="font-semibold text-brand hover:underline">Clear</button>
+                  </span>
+                ) : "Public sessions from other mentors you haven't joined"
+              }
+            />
+            {shown.length === 0 ? (
+              <p className="px-5 pb-5 text-sm text-muted">
+                {searching ? 'No sessions to discover match your search.' : `No sessions to discover in ${domainFilter} right now.`}
+              </p>
+            ) : (
+              <div className="divide-y divide-line">
+                {shown.map((g) => (
+                  <BrowseRow key={g.id} session={g} onJoin={() => join(g)} />
+                ))}
+              </div>
+            )}
+          </Card>
         )}
       </section>
 
@@ -187,6 +300,8 @@ export function GroupSessionsTab() {
         <CompleteSessionModal
           topic={completing.topic}
           who={`the group (${completing.attendeeCount} joined)`}
+          // The host already chose its skills; don't offer a picker that can't change them.
+          hideDomain={!!completing.domain}
           onClose={() => setCompleting(null)}
           onConfirm={async (minutes, domain) => {
             try {
@@ -201,6 +316,13 @@ export function GroupSessionsTab() {
         />
       )}
       {rosterFor && <RosterModal session={rosterFor} onClose={() => setRosterFor(null)} />}
+      {editFor && (
+        <EditGroupSessionModal
+          session={editFor}
+          onClose={() => setEditFor(null)}
+          onSaved={() => { setEditFor(null); reload() }}
+        />
+      )}
       {repeating && (
         <RepeatSessionModal
           session={repeating}
@@ -221,50 +343,85 @@ export function GroupSessionsTab() {
   )
 }
 
-function fmt(iso: string): string {
-  return new Date(iso).toLocaleString('en-IN', {
-    day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
-  })
+/** The filter chips used by You're hosting and You're attending. */
+function FilterChips<T extends string>({ options, value, count, onChange }: {
+  options: { id: T; label: string }[]; value: T; count: (id: T) => number; onChange: (id: T) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 px-5 pb-3">
+      {options.map((f) => (
+        <button
+          key={f.id}
+          onClick={() => onChange(f.id)}
+          aria-pressed={value === f.id}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            value === f.id ? 'bg-brand text-white' : 'border border-line bg-surface text-muted hover:text-ink'
+          }`}
+        >
+          {f.label} <span className="opacity-60">{count(f.id)}</span>
+        </button>
+      ))}
+    </div>
+  )
 }
 
-function BrowseCard({ session, onJoin }: { session: GroupSession; onJoin: () => void }) {
+function SectionHead({ title, count, note }: { title: string; count: number; note?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 pb-2">
+      <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+        {title}
+        <span className="rounded-full bg-gray-100 px-2 py-px text-[11px] font-bold text-muted">{count}</span>
+      </h2>
+      {note && <span className="text-xs text-muted">{note}</span>}
+    </div>
+  )
+}
+
+/** An open or invited session: everything needed to decide, and Join. */
+function BrowseRow({ session, onJoin }: { session: GroupSession; onJoin: () => void }) {
   const full = session.seatsLeft === 0
   return (
-    <Card className="flex flex-col gap-2 p-4">
-      <div className="flex items-start gap-2.5">
-        <Avatar name={session.mentorName} src={session.mentorPhoto} size={36} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-ink">{session.topic}</p>
-          <p className="text-xs text-muted">by {session.mentorName}</p>
-        </div>
-        {session.visibility === 'invite_only' && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-700">
-            <Lock size={10} /> Invited
+    <div id={`row-${session.id}`} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+      <DateTile dayKey={istDayKey(session.scheduledAt)} />
+      <div className="min-w-0 flex-1 basis-48">
+        <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-ink">
+          <span className="truncate">{session.topic}</span>
+          {session.visibility === 'invite_only' && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-amethyst-100 px-2 py-0.5 text-[11px] font-semibold text-amethyst-700">
+              <Lock size={10} /> Invited
+            </span>
+          )}
+          {parseTags(session.domain).slice(0, 3).map((t) => (
+            <span key={t} className="shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand">{t}</span>
+          ))}
+          {parseTags(session.domain).length > 3 && (
+            <span className="shrink-0 text-[11px] font-semibold text-muted" title={parseTags(session.domain).slice(3).join(', ')}>
+              +{parseTags(session.domain).length - 3}
+            </span>
+          )}
+        </p>
+        {session.description && <p className="mt-0.5 line-clamp-1 text-xs text-muted">{session.description}</p>}
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
+          <span>by {session.mentorName}</span>
+          <span className="flex items-center gap-1"><Calendar size={11} /> {istTime(session.scheduledAt)}</span>
+          <span className="flex items-center gap-1"><Clock size={11} /> {session.durationMinutes} min</span>
+          <span className="flex items-center gap-1">
+            <Users size={11} /> {full ? 'Full' : `${session.seatsLeft} of ${session.capacity} seats left`}
           </span>
-        )}
-        {session.domain && (
-          <span className="shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand">
-            {session.domain}
-          </span>
-        )}
+        </p>
       </div>
-      {session.description && <p className="line-clamp-2 text-xs text-muted">{session.description}</p>}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        <span className="flex items-center gap-1"><Calendar size={12} /> {fmt(session.scheduledAt)}</span>
-        <span className="flex items-center gap-1"><Clock size={12} /> {session.durationMinutes} min</span>
-        <span className="flex items-center gap-1">
-          <Users size={12} /> {full ? 'Full' : `${session.seatsLeft} of ${session.capacity} seats left`}
-        </span>
-      </div>
-      <div className="mt-1 flex items-center justify-between">
-        <span className="text-sm font-bold text-ink">
-          {session.pricingMode === 'paid' ? `₹${session.pricePerSeat.toLocaleString('en-IN')}/seat` : 'Free'}
+      <div className="flex shrink-0 items-center gap-3">
+        <span className="text-right text-sm font-bold text-ink">
+          {session.pricingMode === 'paid' ? (
+            <>₹{session.pricePerSeat.toLocaleString('en-IN')}<span className="block text-[10px] font-normal text-muted">per seat</span></>
+          ) : 'Free'}
         </span>
         <Button variant="social" className="!px-3 !py-1.5 !text-xs" disabled={full} onClick={onJoin}>
-          {full ? 'Full' : 'Join'}
+          {/* "Join" also meant "join the call" — say what this one does. */}
+          {full ? 'Full' : session.visibility === 'invite_only' ? 'Accept invite' : 'Reserve seat'}
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -272,88 +429,250 @@ function JoinedRow({
   session, onLeave, onConfirm,
 }: { session: GroupSession; onLeave: () => void; onConfirm: () => void }) {
   return (
-    <Card className="flex flex-wrap items-center gap-3 p-3.5">
-      <Avatar name={session.mentorName} src={session.mentorPhoto} size={36} />
-      <div className="min-w-0 flex-1">
+    <div id={`row-${session.id}`} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+      <DateTile dayKey={istDayKey(session.scheduledAt)} dim={session.status !== 'scheduled'} />
+      <Avatar name={session.mentorName} src={session.mentorPhoto} size={32} to={`/profile/${session.mentorId}`} />
+      <div className={`min-w-0 flex-1 basis-48 ${session.status === 'cancelled' ? 'opacity-60' : ''}`}>
         <p className="truncate text-sm font-semibold text-ink">{session.topic}</p>
         <p className="text-xs text-muted">
-          with {session.mentorName} · {fmt(session.scheduledAt)}
+          with {session.mentorName} · {istDateTime(session.scheduledAt)} · {session.durationMinutes} min
         </p>
       </div>
-      {session.status === 'completed' ? (
-        <Button className="!px-3 !py-1.5 !text-xs" icon={<Check size={12} />} onClick={onConfirm}>
-          Confirm attendance
-        </Button>
+      {session.status === 'cancelled' ? (
+        // It isn't happening — no Join call or Leave to click.
+        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-muted">Cancelled by host</span>
+      ) : !session.joinedByMe ? (
+        // Invited, never accepted, and it has now happened.
+        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-muted">Invite expired</span>
+      ) : session.status === 'completed' ? (
+        session.confirmedByMe ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-jade-100 px-2.5 py-0.5 text-[11px] font-semibold text-jade-700">
+            <Check size={11} /> Attendance confirmed
+          </span>
+        ) : (
+          <Button className="!px-3 !py-1.5 !text-xs" icon={<Check size={12} />} onClick={onConfirm}>
+            Confirm attendance
+          </Button>
+        )
       ) : (
         <>
-          {session.meetingLink && (
-            <a href={session.meetingLink} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-semibold text-brand hover:underline">
+          {session.meetingLink ? (
+            <a
+              href={session.meetingLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full bg-ocean-50 px-3 py-1.5 text-xs font-semibold text-ocean-700 hover:bg-ocean-100"
+            >
               <Video size={12} /> Join call
             </a>
+          ) : (
+            // Before, nothing showed — it looked as if the link was hidden.
+            <span className="text-xs text-muted" title="The host hasn't added the meeting link yet">Link coming soon</span>
           )}
           <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={onLeave}>
             Leave
           </Button>
         </>
       )}
-    </Card>
+    </div>
   )
 }
 
 function HostRow({
-  session, onViewRoster, onComplete, onCancel, onRepeat,
+  session, onViewRoster, onComplete, onCancel, onRepeat, onEdit,
 }: {
   session: GroupSession
   onViewRoster: () => void
   onComplete: () => void
   onCancel: () => void
   onRepeat: () => void
+  onEdit: () => void
 }) {
+  const live = session.status === 'scheduled'
+  const pct = Math.round((session.attendeeCount / Math.max(session.capacity, 1)) * 100)
   return (
-    <Card className="flex flex-wrap items-center gap-3 p-3.5">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand">
-        <Users size={16} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink">
-          {session.topic}
-          {session.visibility === 'invite_only' && <Lock size={12} className="shrink-0 text-purple-600" />}
+    <div id={`row-${session.id}`} className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${session.status === 'cancelled' ? 'opacity-60' : ''}`}>
+      <DateTile dayKey={istDayKey(session.scheduledAt)} dim={session.status !== 'scheduled'} />
+      <div className="min-w-0 flex-1 basis-48">
+        <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+          <span className="truncate">{session.topic}</span>
+          {session.visibility === 'invite_only' && <Lock size={12} className="shrink-0 text-amethyst-600" />}
+          <span
+            className={`shrink-0 rounded-full px-2 py-px text-[11px] font-semibold capitalize ${
+              session.status === 'completed'
+                ? 'bg-jade-100 text-jade-700'
+                : session.status === 'cancelled'
+                  ? 'bg-gray-100 text-muted'
+                  : 'bg-brand-100 text-brand'
+            }`}
+          >
+            {session.status}
+          </span>
         </p>
-        <p className="text-xs text-muted">
-          {fmt(session.scheduledAt)} · {session.attendeeCount}/{session.capacity} joined
-        </p>
+        <p className="text-xs text-muted">{istDateTime(session.scheduledAt)}</p>
+        {/* How full it is, at a glance. */}
+        <div className="mt-1.5 flex max-w-[240px] items-center gap-2">
+          <div className="h-1.5 flex-1 rounded-full bg-gray-100">
+            <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+          </div>
+          <span className="shrink-0 text-[11px] text-muted">{session.attendeeCount} of {session.capacity} joined</span>
+        </div>
+        {/* Without a link nobody can get into the call — say so, and fix it here. */}
+        {live && !session.meetingLink && (
+          <p className="mt-1.5 flex flex-wrap items-center gap-1 text-xs font-semibold text-marigold-800">
+            <TriangleAlert size={12} /> No meeting link yet — attendees can't join.
+            <button onClick={onEdit} className="underline hover:text-ink">Add link</button>
+          </p>
+        )}
       </div>
-      <span
-        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-          session.status === 'completed'
-            ? 'bg-green-100 text-green-700'
-            : session.status === 'cancelled'
-              ? 'bg-gray-100 text-muted'
-              : 'bg-brand-100 text-brand'
-        }`}
-      >
-        {session.status}
-      </span>
-      <Button variant="outline" className="!px-3 !py-1.5 !text-xs" onClick={onViewRoster}>
-        Roster
-      </Button>
-      {session.status === 'scheduled' ? (
-        <>
-          <Button className="!px-3 !py-1.5 !text-xs" onClick={onComplete}>
-            Mark completed
-          </Button>
-          <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={onCancel}>
-            Cancel
-          </Button>
-        </>
-      ) : (
-        session.attendeeCount > 0 && (
-          <Button variant="outline" icon={<Repeat size={12} />} className="!px-3 !py-1.5 !text-xs" onClick={onRepeat}>
-            Repeat with same group
-          </Button>
-        )
-      )}
-    </Card>
+      {/* On phones the actions take their own line, lined up under the title. */}
+      <div className="flex shrink-0 basis-full items-center gap-1.5 pl-[60px] sm:basis-auto sm:pl-0">
+        {live && session.meetingLink && (
+          <a
+            href={session.meetingLink}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Join call"
+            title="Start or join the call"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-ocean-50 text-ocean-700 hover:bg-ocean-100"
+          >
+            <Video size={14} />
+          </a>
+        )}
+        {live && (
+          <IconAction label="Edit" tip="Edit topic, time, capacity or meeting link" onClick={onEdit}>
+            <Pencil size={14} />
+          </IconAction>
+        )}
+        {/* Was "Roster" — jargon; this is simply who has joined. */}
+        <IconAction label="Attendees" tip="See who has joined" onClick={onViewRoster}>
+          <Users size={14} />
+        </IconAction>
+        {session.status === 'scheduled' ? (
+          <>
+            <IconAction label="Mark completed" tip="Mark this session completed" onClick={onComplete}>
+              <Check size={15} />
+            </IconAction>
+            <IconAction label="Cancel" tip="Cancel this session (everyone who joined is told)" tone="muted" onClick={onCancel}>
+              <X size={15} />
+            </IconAction>
+          </>
+        ) : (
+          session.attendeeCount > 0 && (
+            <IconAction label="Repeat with same group" tip="Schedule it again with the same group" onClick={onRepeat}>
+              <Repeat size={14} />
+            </IconAction>
+          )
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Host edits a scheduled session — same fields and rules as creating one,
+ *  minus pricing and who can join (people may have joined on those terms). */
+function EditGroupSessionModal({ session, onClose, onSaved }: { session: GroupSession; onClose: () => void; onSaved: () => void }) {
+  const { notify } = useApp()
+  // IST, like every row, tile and the sidebar — whatever the device's timezone.
+  const start = istInputParts(session.scheduledAt)
+  const [topic, setTopic] = useState(session.topic)
+  const [description, setDescription] = useState(session.description ?? '')
+  const [date, setDate] = useState(start.date)
+  const [time, setTime] = useState(start.time)
+  const [duration, setDuration] = useState(session.durationMinutes)
+  const [capacity, setCapacity] = useState(session.capacity)
+  const [domain, setDomain] = useState(session.domain ?? '')
+  const [link, setLink] = useState(session.meetingLink ?? '')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const field = 'w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
+  const label = 'mb-1 block text-xs font-semibold text-muted'
+
+  async function save() {
+    if (!topic.trim()) return setError('Add a topic.')
+    const iso = istInputToIso(date, time)
+    if (!iso) return setError('Pick a valid date and time.')
+    const when = new Date(iso)
+    // Only a changed time must be in the future — an under-way session can still get its link fixed.
+    const timeChanged = Math.abs(when.getTime() - Date.parse(session.scheduledAt)) >= 60_000
+    if (timeChanged && when.getTime() < Date.now()) return setError('Pick a time in the future.')
+    if (capacity < session.attendeeCount) {
+      return setError(`${session.attendeeCount} already joined — capacity can't be lower than that.`)
+    }
+    if (!isHttpUrl(link.trim())) return setError('Add the meeting link, starting with https://')
+    setSaving(true)
+    try {
+      const { notified } = await api.editGroupSession(session.id, {
+        topic: topic.trim(), description: description.trim(), domain,
+        scheduledAt: when.toISOString(), durationMinutes: duration, capacity, meetingLink: link.trim(),
+      })
+      // The server only notifies when something actually changed (joiners + invitees).
+      notify(notified ? `Saved — ${notified} ${notified === 1 ? 'person was' : 'people were'} told.` : 'Saved.', 'success')
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-ink">Edit group session</h2>
+            <p className="text-sm text-muted">
+              {session.attendeeCount ? `${session.attendeeCount} joined — they'll be told about the changes.` : 'No one has joined yet.'}
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+        <label className={label}>Topic</label>
+        <input value={topic} onChange={(e) => { setTopic(e.target.value); setError('') }} maxLength={140} aria-label="Topic" className={`mb-3 ${field}`} />
+        <label className={label}>What will you cover? (optional)</label>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} maxLength={1000} aria-label="Description" className={`mb-3 resize-none ${field}`} />
+        <div className="mb-3 grid grid-cols-2 gap-3">
+          <div>
+            <label className={label}>Date</label>
+            <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setError('') }} aria-label="Date" className={field} />
+          </div>
+          <div>
+            <label className={label}>Time (IST)</label>
+            <input type="time" value={time} onChange={(e) => { setTime(e.target.value); setError('') }} aria-label="Time" className={field} />
+          </div>
+        </div>
+        <div className="mb-3 grid grid-cols-2 gap-3">
+          <div>
+            <label className={label}>Duration (min)</label>
+            <input type="number" min={15} max={480} value={duration} onChange={(e) => setDuration(Number(e.target.value) || 60)} aria-label="Duration" className={field} />
+          </div>
+          <div>
+            <label className={label}>Capacity</label>
+            <input type="number" min={Math.max(2, session.attendeeCount)} max={500} value={capacity} onChange={(e) => { setCapacity(Number(e.target.value) || 2); setError('') }} aria-label="Capacity" className={field} />
+          </div>
+        </div>
+        <label className="mb-1.5 block text-xs font-semibold text-muted">Domains / skills</label>
+        <div className="mb-3"><DomainPicker value={domain} onChange={setDomain} /></div>
+        <label className={label}>Meeting link <span className="text-red-500">*</span></label>
+        <input
+          value={link}
+          onChange={(e) => { setLink(e.target.value); setError('') }}
+          placeholder="https://meet.google.com/…"
+          aria-label="Meeting link"
+          className={field}
+        />
+        {error && <p className="mt-2 text-xs font-semibold text-red-600">{error}</p>}
+        <p className="mt-2 text-xs text-muted">Pricing and who can join stay as they were set.</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button loading={saving} onClick={() => void save()}>Save changes</Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -369,7 +688,7 @@ function RosterModal({ session, onClose }: { session: GroupSession; onClose: () 
       <div className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-ink">Roster</h2>
+            <h2 className="text-lg font-bold text-ink">Attendees</h2>
             <p className="text-sm text-muted">{session.topic}</p>
           </div>
           <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-gray-100" aria-label="Close">
@@ -385,7 +704,7 @@ function RosterModal({ session, onClose }: { session: GroupSession; onClose: () 
             {attendees.map((a) => (
               <div key={a.id} className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2">
                 <Avatar name={a.name} src={a.photo} size={32} to={`/profile/${a.id}`} />
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 basis-48">
                   <span className="block truncate text-sm font-medium text-ink">{a.name}</span>
                   {roleLine(a) && (
                     <span className="block truncate text-[11px] text-muted">{roleLine(a)}</span>
@@ -408,19 +727,24 @@ function RosterModal({ session, onClose }: { session: GroupSession; onClose: () 
 
 function RepeatSessionModal({
   session, onClose, onRepeat,
-}: { session: GroupSession; onClose: () => void; onRepeat: (scheduledAt: string, meetingLink?: string) => void }) {
+}: { session: GroupSession; onClose: () => void; onRepeat: (scheduledAt: string, meetingLink: string) => void }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
+  // Pre-filled with last time's link; required, so attendees can always join.
   const [meetingLink, setMeetingLink] = useState(session.meetingLink ?? '')
+  const [linkError, setLinkError] = useState('')
   const [saving, setSaving] = useState(false)
   const field = 'w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand'
 
   async function submit() {
     if (!date || !time) return
-    const scheduledAt = new Date(`${date}T${time}`)
-    if (Number.isNaN(scheduledAt.getTime())) return
+    // IST, like the Edit form and every row — whatever the device's timezone.
+    const iso = istInputToIso(date, time)
+    if (!iso) return
+    const scheduledAt = new Date(iso)
+    if (!isHttpUrl(meetingLink.trim())) return setLinkError('Add the meeting link, starting with https://')
     setSaving(true)
-    await onRepeat(scheduledAt.toISOString(), meetingLink.trim() || undefined)
+    await onRepeat(scheduledAt.toISOString(), meetingLink.trim())
     setSaving(false)
   }
 
@@ -445,20 +769,22 @@ function RepeatSessionModal({
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-muted">Time</label>
+            <label className="mb-1 block text-xs font-semibold text-muted">Time (IST)</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
           </div>
         </div>
-        <label className="mb-1 block text-xs font-semibold text-muted">Meeting link (optional)</label>
+<label className="mb-1 block text-xs font-semibold text-muted">Meeting link <span className="text-red-500">*</span></label>
         <input
           value={meetingLink}
-          onChange={(e) => setMeetingLink(e.target.value)}
+          onChange={(e) => { setMeetingLink(e.target.value); setLinkError('') }}
           placeholder="https://meet.google.com/…"
-          className={`mb-4 ${field}`}
+          aria-label="Meeting link"
+          className={field}
         />
-        <div className="flex justify-end gap-2">
+        {linkError && <p className="mt-1.5 text-xs font-semibold text-red-600">{linkError}</p>}
+        <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button loading={saving} disabled={!date || !time} onClick={submit}>Schedule</Button>
+          <Button loading={saving} disabled={!date || !time || !meetingLink.trim()} onClick={submit}>Schedule</Button>
         </div>
       </div>
     </div>,
@@ -500,13 +826,20 @@ function CreateGroupSessionModal({
       notify('Add a topic, date and time.', 'error')
       return
     }
-    const scheduledAt = new Date(`${date}T${time}`)
-    if (Number.isNaN(scheduledAt.getTime())) {
+    // IST, like the Edit form and every row — whatever the device's timezone.
+    const iso = istInputToIso(date, time)
+    const scheduledAt = new Date(iso ?? NaN)
+    if (!iso) {
       notify('That date/time doesn\'t look valid.', 'error')
       return
     }
     if (visibility === 'invite_only' && inviteeIds.size === 0) {
       notify('Pick at least one connection to invite.', 'error')
+      return
+    }
+    // Without a link nobody can get into the call, so it's required.
+    if (!isHttpUrl(meetingLink.trim())) {
+      notify('Add a meeting link (starting with https://) so attendees can join.', 'error')
       return
     }
     setSaving(true)
@@ -518,7 +851,7 @@ function CreateGroupSessionModal({
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: duration,
         capacity: visibility === 'invite_only' ? Math.max(capacity, inviteeIds.size) : capacity,
-        meetingLink: meetingLink.trim() || undefined,
+        meetingLink: meetingLink.trim(),
         pricingMode: paid ? 'paid' : 'free',
         pricePerSeat: paid ? Number(price) || 0 : 0,
         visibility,
@@ -576,12 +909,12 @@ function CreateGroupSessionModal({
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-muted">Time</label>
+            <label className="mb-1 block text-xs font-semibold text-muted">Time (IST)</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
         </div>
 
-        <div className="mb-3 grid grid-cols-3 gap-3">
+        <div className="mb-3 grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-xs font-semibold text-muted">Duration (min)</label>
             <input type="number" min={15} max={480} value={duration} onChange={(e) => setDuration(Number(e.target.value) || 60)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
@@ -590,14 +923,9 @@ function CreateGroupSessionModal({
             <label className="mb-1 block text-xs font-semibold text-muted">Capacity</label>
             <input type="number" min={2} max={500} value={capacity} onChange={(e) => setCapacity(Number(e.target.value) || 10)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-muted">Domain</label>
-            <select value={domain} onChange={(e) => setDomain(e.target.value)} className="w-full rounded-lg border border-line px-2 py-2 text-sm outline-none focus:border-brand">
-              <option value="">—</option>
-              {DOMAINS.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
         </div>
+        <label className="mb-1.5 block text-xs font-semibold text-muted">Domains / skills</label>
+        <div className="mb-3"><DomainPicker value={domain} onChange={setDomain} /></div>
 
         <label className="mb-1.5 block text-xs font-semibold text-muted">Who can join</label>
         <div className="mb-3 flex items-center gap-2">
@@ -640,7 +968,7 @@ function CreateGroupSessionModal({
                       className="h-4 w-4 shrink-0 accent-brand"
                     />
                     <Avatar name={u.name} src={u.photo} size={28} />
-                    <span className="min-w-0 flex-1 truncate text-sm text-ink">{u.name}</span>
+                    <span className="min-w-0 flex-1 basis-48 truncate text-sm text-ink">{u.name}</span>
                     {/* Names repeat across an alumni network — the role is
                         what tells two of the same name apart. */}
                     {roleLine(u) && (
@@ -655,11 +983,12 @@ function CreateGroupSessionModal({
           </div>
         )}
 
-        <label className="mb-1 block text-xs font-semibold text-muted">Meeting link (optional)</label>
+<label className="mb-1 block text-xs font-semibold text-muted">Meeting link <span className="text-red-500">*</span></label>
         <input
           value={meetingLink}
           onChange={(e) => setMeetingLink(e.target.value)}
           placeholder="https://meet.google.com/…"
+          aria-label="Meeting link"
           className="mb-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
         />
 
