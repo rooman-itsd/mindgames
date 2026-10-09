@@ -8,6 +8,7 @@ import { useApp } from '../../store/AppStore'
 import type { CareerResource, CareerResourceKind } from '../../types'
 import { ShareFiles } from '../learning/ShareFiles'
 import { ResubmitButton } from '../mentor/ResubmitButton'
+import { EvidenceLink } from '../mentor/EvidenceLink'
 
 /**
  * Resources attached to one mentorship session.
@@ -120,7 +121,8 @@ export function SessionResourcesModal({
     if (!draft) return
     setSubmitting(r.id)
     try {
-      const updated = await api.submitCareerResource(r.id, draft)
+      // Names what it replaces (none on a first send) so a retry isn't a replace.
+      const updated = await api.submitCareerResource(r.id, draft, undefined, r.submissionAt ?? null)
       setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
       setDrafts((prev) => ({ ...prev, [r.id]: '' }))
       notify('Submitted — your mentor has been notified.')
@@ -271,17 +273,15 @@ export function SessionResourcesModal({
                         )}
                       </p>
                       {r.submissionUrl && (
-                        <a
-                          href={r.submissionUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          // The mentor opening it ends the mentee's chance to swap it quietly.
-                          onClick={() => iAmMentor && r.submissionAt && void api.markEvidenceSeen(r.id, r.submissionAt).catch(() => {})}
+                        // Tracks "seen" only when the mentor opens it.
+                        <EvidenceLink
+                          resource={r}
+                          track={iAmMentor}
                           className="mt-1 flex min-w-0 items-center gap-1 text-blue-600 hover:underline"
                         >
                           <span className="truncate">{r.submissionUrl}</span>
                           <ExternalLink size={11} className="shrink-0" />
-                        </a>
+                        </EvidenceLink>
                       )}
                       {r.submissionFiles && r.submissionFiles.length > 0 && (
                         <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
@@ -294,9 +294,26 @@ export function SessionResourcesModal({
                       )}
                     </div>
                   ) : iAmMentor ? (
-                    <span className="inline-flex items-center gap-1 font-medium text-amber-600">
-                      <Clock size={13} /> {resubmitRequested(r) ? 'Asked to resubmit' : 'Evidence pending'}
-                    </span>
+                    <div>
+                      <span className="inline-flex items-center gap-1 font-medium text-amber-600">
+                        <Clock size={13} /> {resubmitRequested(r) ? 'Asked to resubmit' : 'Evidence pending'}
+                      </span>
+                      {/* After asking again, the work they rejected stays in view. */}
+                      {resubmitRequested(r) && (
+                        <div className="mt-1 text-muted">
+                          <p>Previously sent:</p>
+                          {r.submissionUrl && (
+                            <EvidenceLink resource={r} className="flex min-w-0 items-center gap-1 text-blue-600 hover:underline">
+                              <span className="truncate">{r.submissionUrl}</span>
+                              <ExternalLink size={11} className="shrink-0" />
+                            </EvidenceLink>
+                          )}
+                          {r.submissionFiles && r.submissionFiles.length > 0 && (
+                            <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex gap-2">
                       <input

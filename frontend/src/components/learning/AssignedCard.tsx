@@ -33,8 +33,12 @@ export function AssignedCard({
   const [sending, setSending] = useState(false)
   const att = useAttachmentUploads()
   // Set when the server says work was already sent (409) — from another tab,
-  // the session view, or a submit that timed out but landed.
-  const [alreadySent, setAlreadySent] = useState(false)
+  // the session view, or a submit that timed out but landed. Remembered for
+  // THIS version of the resource only: when the parent hands a newer one
+  // (e.g. the mentor asked to resubmit), it no longer applies.
+  const version = `${resource.submissionAt ?? ''}|${resource.resubmitRequestedAt ?? ''}`
+  const [sentVersion, setSentVersion] = useState<string | null>(null)
+  const alreadySent = sentVersion === version
   // "Replace your work" opened on work already sent (lib canReplaceWork).
   const [replacing, setReplacing] = useState(false)
   const kind = toHubKind(resource.kind)
@@ -61,7 +65,9 @@ export function AssignedCard({
     setSending(true)
     try {
       const wasSent = !!resource.submissionAt
-      onChange(await api.submitCareerResource(resource.id, url || undefined, att.readyIds))
+      // Names the submission being replaced (none on a first send), so a
+      // retried submit is refused rather than replacing itself.
+      onChange(await api.submitCareerResource(resource.id, url || undefined, att.readyIds, resource.submissionAt ?? null))
       att.claimed()
       setDraft('')
       setReplacing(false)
@@ -75,7 +81,7 @@ export function AssignedCard({
         att.discard()
         setDraft('')
         setReplacing(false)
-        setAlreadySent(true)
+        setSentVersion(version)
         notify(e.message)
       } else {
         notify(e instanceof Error ? e.message : 'Could not submit that.', 'error')
@@ -142,6 +148,22 @@ export function AssignedCard({
               </button>
             </div>
             <AttachmentPicker att={att} disabled={sending} compact />
+            {/* Opened from "Replace your work" — closable, and closing lets go
+                of anything attached in it. */}
+            {state === 'submitted' && replacing && (
+              <button
+                type="button"
+                onClick={() => {
+                  att.discard()
+                  setDraft('')
+                  setReplacing(false)
+                }}
+                disabled={sending}
+                className="self-start text-[11px] text-muted hover:text-ink"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         )}
 

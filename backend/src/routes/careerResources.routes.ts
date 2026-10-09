@@ -582,7 +582,17 @@ const submitSchema = z.object({
     .max(MAX_RESOURCE_FILES, `Attach up to ${MAX_RESOURCE_FILES} files`)
     .optional()
     .default([]),
+  // Which submission this replaces (its submissionAt as the client saw it),
+  // or absent for a first send. A mismatch means the request is a duplicate
+  // (a retry after a timeout, a second tab) or out of date — refused, so a
+  // retry never silently replaces the work it already sent.
+  replaces: z.string().datetime().nullable().optional(),
 })
+
+/** Same instant, to the millisecond (Postgres keeps microseconds; anything
+ *  that has been through a JS Date keeps milliseconds). */
+const sameMs = (a: Date | string, b: Date | string) =>
+  Math.floor(new Date(a).getTime()) === Math.floor(new Date(b).getTime())
 
 // POST /api/career-resources/:id/submit — the MENTEE it was assigned to proves
 // they did it, with a link (a doc, a repo, a deployed site), attached files,
@@ -623,6 +633,13 @@ careerResourcesRouter.post(
       if (!row.rowCount) throw new ApiError(404, 'Resource not found (or not assigned to you)')
       const c = row.rows[0]
       if (!c.requires_submission) throw new ApiError(400, 'This resource does not ask for a submission')
+      // Not the submission the client meant to replace (or a first send when
+      // one already landed): a duplicate or stale request. Checked BEFORE the
+      // uploads are claimed, so a retry gets a clear 409, not a 410.
+      const replaces = parsed.data.replaces ?? null
+      if (c.submission_at ? !replaces || !sameMs(replaces, c.submission_at) : !!replaces) {
+        throw new ApiError(409, 'You have already sent your work for this')
+      }
       const askedAgain = !!c.resubmit_requested_at && !!c.submission_at && c.resubmit_requested_at > c.submission_at
       if (c.submission_at && c.evidence_seen_at && !askedAgain) {
         throw new ApiError(409, 'Your mentor has already seen your work — they can ask you to resubmit')
@@ -632,9 +649,12 @@ careerResourcesRouter.post(
       await client.query(`DELETE FROM career_resource_files WHERE resource_id = $1 AND role = 'evidence'`, [req.params.id])
       await claimUploads(client, req.params.id, fileIds, me, 'evidence')
       // evidence_seen_at cleared: the mentor has not opened THIS work yet.
+      // clock_timestamp(), not now(): now() is when this transaction STARTED,
+      // and a submit that waited on the row lock behind a resubmit request
+      // would be stamped before the request it answers — still "asked again".
       await client.query(
         `UPDATE career_resources
-            SET submission_url = $2, submission_at = now(), evidence_seen_at = NULL, updated_at = now()
+            SET submission_url = $2, submission_at = clock_timestamp(), evidence_seen_at = NULL, updated_at = now()
           WHERE id = $1`,
         [req.params.id, parsed.data.url ?? null],
       )
@@ -710,8 +730,11 @@ careerResourcesRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const me = req.user!.sub
-    const r = await query<{ name: string; mime: string; data: Buffer; role: string; owner: string; submission_at: Date | null }>(
-      `SELECT f.name, f.mime, f.data, f.role, r.user_id AS owner, r.submission_at
+    const r = await query<{
+      name: string; mime: string; data: Buffer; role: string; owner: string
+      submission_at: Date | null; evidence_seen_at: Date | null
+    }>(
+      `SELECT f.name, f.mime, f.data, f.role, r.user_id AS owner, r.submission_at, r.evidence_seen_at
          FROM career_resource_files f
          JOIN career_resources r ON r.id = f.resource_id
         WHERE f.id = $1 AND r.id = $2 AND (r.user_id = $3 OR r.assigned_to = $3)`,
@@ -722,7 +745,8 @@ careerResourcesRouter.get(
     // The mentor opening the work sent back is what ends the mentee's chance
     // to replace it quietly. Only for this exact submission: if the mentee
     // replaced it meanwhile, submission_at moved on and nothing is marked.
-    if (f.role === 'evidence' && f.owner === me && f.submission_at) {
+    // Only the first time — repeat downloads skip the write entirely.
+    if (f.role === 'evidence' && f.owner === me && f.submission_at && !f.evidence_seen_at) {
       await markEvidenceSeen(req.params.id, me, f.submission_at)
     }
     const inline = INLINE_TYPES.test(f.mime)
@@ -769,22 +793,36 @@ careerResourcesRouter.post(
 // mentee to send their work again (a wrong link, the wrong file, not enough).
 // Only once something was sent. The request is newer than submission_at, which
 // reopens the submission (see /submit); sending again closes it.
+// The body names WHICH submission is being rejected (submittedAt, as the
+// mentor's screen showed it): from an out-of-date screen, rejecting work A
+// must not reopen newer work B the mentor has never seen.
+const resubmitSchema = z.object({ submittedAt: z.string().datetime() })
+
 careerResourcesRouter.post(
   '/:id/request-resubmission',
   requireAuth,
   asyncHandler(async (req, res) => {
+    const parsed = resubmitSchema.safeParse(req.body)
+    if (!parsed.success) throw new ApiError(400, 'Which submission?')
     const me = req.user!.sub
     const upd = await query<{ assigned_to: string; title: string; session_id: string | null }>(
-      `UPDATE career_resources SET resubmit_requested_at = now(), updated_at = now()
-        WHERE id = $1 AND user_id = $2 AND requires_submission AND submission_at IS NOT NULL
-          AND assigned_to IS NOT NULL
+      `UPDATE career_resources SET resubmit_requested_at = clock_timestamp(), updated_at = now()
+        WHERE id = $1 AND user_id = $2 AND requires_submission AND assigned_to IS NOT NULL
+          AND date_trunc('milliseconds', submission_at) = date_trunc('milliseconds', $3::timestamptz)
         RETURNING assigned_to, title, session_id`,
-      [req.params.id, me],
+      [req.params.id, me, parsed.data.submittedAt],
     )
     if (!upd.rowCount) {
-      const mine = await query(`SELECT 1 FROM career_resources WHERE id = $1 AND user_id = $2`, [req.params.id, me])
-      if (!mine.rowCount) throw new ApiError(404, 'Resource not found (or not yours)')
-      throw new ApiError(409, 'Nothing has been sent back yet')
+      // Say WHY, so the mentor isn't told "nothing was sent" while looking at it.
+      const cur = await query<{ submission_at: Date | null; assigned_to: string | null }>(
+        `SELECT submission_at, assigned_to FROM career_resources WHERE id = $1 AND user_id = $2`,
+        [req.params.id, me],
+      )
+      if (!cur.rowCount) throw new ApiError(404, 'Resource not found (or not yours)')
+      const c = cur.rows[0]
+      if (!c.assigned_to) throw new ApiError(409, 'That member is no longer on the network')
+      if (!c.submission_at) throw new ApiError(409, 'Nothing has been sent back yet')
+      throw new ApiError(409, 'They have sent new work since — refresh to see it first')
     }
     const u = upd.rows[0]
     const who = await query<{ name: string }>(`SELECT name FROM users WHERE id = $1`, [me])

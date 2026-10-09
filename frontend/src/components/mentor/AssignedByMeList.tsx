@@ -6,6 +6,7 @@ import { useApp } from '../../store/AppStore'
 import type { CareerResource } from '../../types'
 import { ShareFiles } from '../learning/ShareFiles'
 import { ResubmitButton } from './ResubmitButton'
+import { EvidenceLink } from './EvidenceLink'
 
 /**
  * The mentor's side of direct assignments: what they already gave this member
@@ -55,6 +56,7 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
       <ul className="mt-2 flex flex-col gap-2">
         {rows.map((r) => {
           const state = submissionState(r)
+          const asked = resubmitRequested(r)
           return (
             <li key={r.id} className="rounded-lg border border-line p-2.5">
               <div className="flex items-start justify-between gap-2">
@@ -75,24 +77,29 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                   {r.attachments && r.attachments.length > 0 && (
                     <ShareFiles files={r.attachments} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                   )}
-                  {state === 'submitted' && r.submissionUrl && (
-                    <a
-                      href={r.submissionUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      // Opening it ends the mentee's chance to swap it quietly.
-                      onClick={() => r.submissionAt && void api.markEvidenceSeen(r.id, r.submissionAt).catch(() => {})}
+                  {state === 'needed' && (
+                    <p className="mt-0.5 text-xs text-muted">
+                      {asked ? 'Asked them to send it again' : 'Waiting for their work'}
+                    </p>
+                  )}
+                  {/* The work sent back — and, after "Ask to resubmit", still
+                      the work they rejected, so it can be looked at again. */}
+                  {(state === 'submitted' || asked) && r.submissionUrl && (
+                    <EvidenceLink
+                      resource={r}
                       className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-green-700 hover:underline"
                     >
-                      Sent back: {displayLink(r.submissionUrl)} <ExternalLink size={11} />
-                    </a>
+                      {asked ? 'Previously sent:' : 'Sent back:'} {displayLink(r.submissionUrl)} <ExternalLink size={11} />
+                    </EvidenceLink>
                   )}
                   {/* Evidence files sit UNDER the "Sent back:" line, so they're
                       never mistaken for the mentor's own attachments above.
                       With no link, they get the label themselves. */}
-                  {state === 'submitted' && r.submissionFiles && r.submissionFiles.length > 0 && (
+                  {(state === 'submitted' || asked) && r.submissionFiles && r.submissionFiles.length > 0 && (
                     <>
-                      {!r.submissionUrl && <p className="mt-1 text-xs font-semibold text-green-700">Sent back:</p>}
+                      {!r.submissionUrl && (
+                        <p className="mt-1 text-xs font-semibold text-green-700">{asked ? 'Previously sent:' : 'Sent back:'}</p>
+                      )}
                       <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                     </>
                   )}
@@ -101,11 +108,6 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                       resource={r}
                       onChange={(next) => setRows((prev) => prev?.map((x) => (x.id === next.id ? next : x)) ?? prev)}
                     />
-                  )}
-                  {state === 'needed' && (
-                    <p className="mt-0.5 text-xs text-muted">
-                      {resubmitRequested(r) ? 'Asked them to send it again' : 'Waiting for their work'}
-                    </p>
                   )}
                 </div>
                 {/* Once they have sent work back, what was assigned is a record. */}

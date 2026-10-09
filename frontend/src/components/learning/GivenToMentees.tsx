@@ -8,6 +8,7 @@ import { KindBadge, KindIcon } from './KindIcon'
 import { CardGrid, LoadMore } from './SectionHeader'
 import { ShareFiles } from './ShareFiles'
 import { ResubmitButton } from '../mentor/ResubmitButton'
+import { EvidenceLink } from '../mentor/EvidenceLink'
 
 const PAGE = 20
 /** career_resources.kind → the hub's kind, for the icon and badge. */
@@ -67,6 +68,7 @@ export function GivenToMentees() {
 function GivenCard({ resource, onChange }: { resource: CareerResource; onChange: (next: CareerResource) => void }) {
   const kind = toHubKind(resource.kind)
   const state = submissionState(resource)
+  const asked = resubmitRequested(resource)
   return (
     <article className="flex h-full flex-col rounded-xl border border-line bg-surface p-3.5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
@@ -108,34 +110,33 @@ function GivenCard({ resource, onChange }: { resource: CareerResource; onChange:
             {assignmentOrigin(resource)}
           </span>
         </p>
-        {state === 'submitted' && resource.submissionUrl && (
-          <a
-            href={resource.submissionUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            // Opening it ends the mentee's chance to swap it quietly.
-            onClick={() => resource.submissionAt && void api.markEvidenceSeen(resource.id, resource.submissionAt).catch(() => {})}
+        {state === 'needed' && (
+          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted">
+            <Clock size={12} /> {asked ? 'Asked them to send it again' : 'Waiting for their work'}
+          </p>
+        )}
+        {/* The work sent back — and, after "Ask to resubmit", still the work
+            they rejected, so it can be looked at again. */}
+        {(state === 'submitted' || asked) && resource.submissionUrl && (
+          <EvidenceLink
+            resource={resource}
             className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 hover:underline"
           >
-            <CircleCheck size={12} /> Work sent back — open it <ExternalLink size={10} />
-          </a>
+            <CircleCheck size={12} /> {asked ? 'Previously sent — open it' : 'Work sent back — open it'}{' '}
+            <ExternalLink size={10} />
+          </EvidenceLink>
         )}
-        {state === 'submitted' && resource.submissionFiles && resource.submissionFiles.length > 0 && (
+        {(state === 'submitted' || asked) && resource.submissionFiles && resource.submissionFiles.length > 0 && (
           <>
             {!resource.submissionUrl && (
               <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-green-700">
-                <CircleCheck size={12} /> Work sent back
+                <CircleCheck size={12} /> {asked ? 'Previously sent' : 'Work sent back'}
               </p>
             )}
             <ShareFiles files={resource.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(resource.id, f)} />
           </>
         )}
         {state === 'submitted' && <ResubmitButton resource={resource} onChange={onChange} />}
-        {state === 'needed' && (
-          <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted">
-            <Clock size={12} /> {resubmitRequested(resource) ? 'Asked them to send it again' : 'Waiting for their work'}
-          </p>
-        )}
       </div>
     </article>
   )

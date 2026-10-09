@@ -847,10 +847,12 @@ export const api = {
   // requiresSubmission — a link, uploaded files (api.uploadLearningFile), or
   // both. Sending again replaces it while the mentor hasn't opened it yet, or
   // after they asked for it again; otherwise it is refused (409).
-  submitCareerResource: (id: string, url?: string, fileIds?: string[]) =>
+  // `replaces` is the submissionAt being replaced (none for a first send), so
+  // a retried or out-of-date submit is refused instead of replacing itself.
+  submitCareerResource: (id: string, url?: string, fileIds?: string[], replaces?: string | null) =>
     http<CareerResource>(`/api/career-resources/${id}/submit`, {
       method: 'POST',
-      body: JSON.stringify({ url, fileIds }),
+      body: JSON.stringify({ url, fileIds, replaces: replaces ?? null }),
     }),
   /** The mentor opened the evidence LINK (files are marked when downloaded).
    *  Names the submission seen, so newer work is never marked by mistake. */
@@ -859,9 +861,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ submittedAt }),
     }),
-  /** The mentor asks the mentee to send their work again. */
-  requestResubmission: (id: string) =>
-    http<CareerResource>(`/api/career-resources/${id}/request-resubmission`, { method: 'POST' }),
+  /** The mentor asks the mentee to send their work again — naming the
+   *  submission on screen, so newer work they haven't seen isn't reopened. */
+  requestResubmission: (id: string, submittedAt: string) =>
+    http<CareerResource>(`/api/career-resources/${id}/request-resubmission`, {
+      method: 'POST',
+      body: JSON.stringify({ submittedAt }),
+    }),
   /** One attachment on an assigned resource as a Blob — private to the mentor
    *  and mentee, so it is fetched with the token (see getShareFile). */
   getCareerResourceFile: async (resourceId: string, fileId: string): Promise<Blob> => {

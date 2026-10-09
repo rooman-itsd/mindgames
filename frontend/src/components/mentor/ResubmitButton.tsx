@@ -20,11 +20,17 @@ export function ResubmitButton({
   const { notify } = useApp()
   const [busy, setBusy] = useState(false)
 
+  // Nobody to ask (their account is gone) or nothing sent: the button could
+  // only fail, so it isn't offered.
+  if (!resource.assignedToId || !resource.submissionAt) return null
+  const submittedAt = resource.submissionAt
+
   const ask = async () => {
     if (!window.confirm(`Ask ${resource.assignedToName ?? 'them'} to send "${resource.title}" again?`)) return
     setBusy(true)
     try {
-      onChange(await api.requestResubmission(resource.id))
+      // Names the submission on screen, so newer work isn't reopened unseen.
+      onChange(await api.requestResubmission(resource.id, submittedAt))
       notify('Asked them to send it again.')
     } catch (e) {
       notify(e instanceof Error ? e.message : 'Could not ask for that.', 'error')
