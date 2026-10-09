@@ -399,7 +399,15 @@ const roadmapEditSchema = z.object({
     .array(
       z.object({
         stepKey: z.string().min(1).max(80),
-        title: z.string().trim().min(1).max(160),
+        // "New stage" is the edit panel's old placeholder. Saved as-is it reads
+        // like the AI wrote a meaningless step, so a member-added stage must
+        // be given a real name.
+        title: z
+          .string()
+          .trim()
+          .min(1)
+          .max(160)
+          .refine((t) => t.toLowerCase() !== 'new stage', 'Give your new stage a name of its own.'),
         status: z.enum(['upcoming', 'in_progress', 'completed', 'paused']),
         durationWeeks: z.number().int().min(1).max(260).nullable(),
       }),
@@ -431,6 +439,17 @@ careerRouter.patch(
     if (!existing.rowCount) throw new ApiError(404, 'No active roadmap')
 
     const current = mapCareerRoadmap(existing.rows[0])
+    // The first stage is the "you are here" marker and the last is the
+    // target; the timeline labels them by position. Moving or dropping either
+    // puts a real stage under the "Current"/"Target" label, so both stay put.
+    const savedKeys = (current.stages as { stepKey: string }[]).map((s) => s.stepKey)
+    const sentKeys = parsed.data.stages.map((s) => s.stepKey)
+    if (
+      savedKeys.length >= 2 &&
+      (sentKeys[0] !== savedKeys[0] || sentKeys[sentKeys.length - 1] !== savedKeys[savedKeys.length - 1])
+    ) {
+      throw new ApiError(400, 'Your starting point and target stay at the ends of the plan.')
+    }
     const bySavedKey = new Map(
       (current.stages as { stepKey: string; relevantAlumniIds?: string[]; relevantServiceIds?: string[] }[]).map(
         (s) => [s.stepKey, s],

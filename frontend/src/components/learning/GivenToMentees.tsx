@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CircleCheck, Clock, ExternalLink, GraduationCap, Link2, UserRound } from 'lucide-react'
 import { api } from '../../lib/api'
-import { KIND_LABEL, appendPage, assignmentOrigin, displayLink, submissionState } from '../../lib/learningHub'
+import { KIND_LABEL, appendPage, assignmentOrigin, displayLink, resubmitRequested, submissionState } from '../../lib/learningHub'
 import type { CareerResource } from '../../types'
 import { KindBadge, KindIcon } from './KindIcon'
 import { CardGrid, LoadMore } from './SectionHeader'
+import { ShareFiles } from './ShareFiles'
+import { ResubmitButton } from '../mentor/ResubmitButton'
+import { EvidenceLink } from '../mentor/EvidenceLink'
 
 const PAGE = 20
 /** career_resources.kind → the hub's kind, for the icon and badge. */
@@ -50,7 +53,11 @@ export function GivenToMentees() {
       <p className="mb-3 text-xs text-muted">Only you and that mentee can see these.</p>
       <CardGrid>
         {rows.map((r) => (
-          <GivenCard key={r.id} resource={r} />
+          <GivenCard
+            key={r.id}
+            resource={r}
+            onChange={(next) => setRows((prev) => prev?.map((x) => (x.id === next.id ? next : x)) ?? prev)}
+          />
         ))}
       </CardGrid>
       {more && <LoadMore loading={loading} onClick={() => void loadPage(rows[rows.length - 1])} />}
@@ -58,9 +65,10 @@ export function GivenToMentees() {
   )
 }
 
-function GivenCard({ resource }: { resource: CareerResource }) {
+function GivenCard({ resource, onChange }: { resource: CareerResource; onChange: (next: CareerResource) => void }) {
   const kind = toHubKind(resource.kind)
   const state = submissionState(resource)
+  const asked = resubmitRequested(resource)
   return (
     <article className="flex h-full flex-col rounded-xl border border-line bg-surface p-3.5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
@@ -82,6 +90,9 @@ function GivenCard({ resource }: { resource: CareerResource }) {
           <ExternalLink size={10} className="shrink-0" />
         </a>
       )}
+      {resource.attachments && resource.attachments.length > 0 && (
+        <ShareFiles files={resource.attachments} fetchFile={(f) => api.getCareerResourceFile(resource.id, f)} />
+      )}
 
       <div className="mt-auto pt-3">
         <p className="flex items-center gap-1 text-[11px] text-muted">
@@ -99,21 +110,33 @@ function GivenCard({ resource }: { resource: CareerResource }) {
             {assignmentOrigin(resource)}
           </span>
         </p>
-        {state === 'submitted' && resource.submissionUrl && (
-          <a
-            href={resource.submissionUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 hover:underline"
-          >
-            <CircleCheck size={12} /> Work sent back — open it <ExternalLink size={10} />
-          </a>
-        )}
         {state === 'needed' && (
           <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted">
-            <Clock size={12} /> Waiting for their work
+            <Clock size={12} /> {asked ? 'Asked them to send it again' : 'Waiting for their work'}
           </p>
         )}
+        {/* The work sent back — and, after "Ask to resubmit", still the work
+            they rejected, so it can be looked at again. */}
+        {(state === 'submitted' || asked) && resource.submissionUrl && (
+          <EvidenceLink
+            resource={resource}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 hover:underline"
+          >
+            <CircleCheck size={12} /> {asked ? 'Previously sent — open it' : 'Work sent back — open it'}{' '}
+            <ExternalLink size={10} />
+          </EvidenceLink>
+        )}
+        {(state === 'submitted' || asked) && resource.submissionFiles && resource.submissionFiles.length > 0 && (
+          <>
+            {!resource.submissionUrl && (
+              <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-green-700">
+                <CircleCheck size={12} /> {asked ? 'Previously sent' : 'Work sent back'}
+              </p>
+            )}
+            <ShareFiles files={resource.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(resource.id, f)} />
+          </>
+        )}
+        {state === 'submitted' && <ResubmitButton resource={resource} onChange={onChange} />}
       </div>
     </article>
   )

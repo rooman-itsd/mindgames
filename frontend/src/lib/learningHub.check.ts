@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import {
   appendPage, assignmentOrigin, displayLink, fileSizeLabel, isBlockedFile, opensInTab, resourceDomains, resourceFormProblem, helpedByLabel, isFiltering, monthsLabel, ratingSummary, stepPosition,
-  submissionState, supportLabel, toggleValue, waitingLabel, workable,
+  canReplaceWork, resubmitRequested, submissionState, supportLabel, toggleValue, waitingLabel, workable,
 } from './learningHub'
 import type { LearningStageLite } from '../types'
 
@@ -36,6 +36,21 @@ assert.equal(assignmentOrigin({ sessionId: 's', sessionTopic: 'AWS basics', afte
 assert.equal(submissionState({}), 'not_needed')
 assert.equal(submissionState({ requiresSubmission: true }), 'needed')
 assert.equal(submissionState({ requiresSubmission: true, submissionUrl: 'https://x.dev' }), 'submitted')
+// Files-only evidence has no link — submissionAt alone means it was sent.
+assert.equal(submissionState({ requiresSubmission: true, submissionAt: '2026-10-09T00:00:00Z' }), 'submitted')
+
+// --- correcting work sent back ----------------------------------------------
+const sent = '2026-10-09T10:00:00.000Z'
+// Asked again AFTER it was sent → needed again; a request older than the
+// latest submission (already answered) changes nothing.
+assert.equal(submissionState({ requiresSubmission: true, submissionAt: sent, resubmitRequestedAt: '2026-10-09T11:00:00.000Z' }), 'needed')
+assert.equal(submissionState({ requiresSubmission: true, submissionAt: sent, resubmitRequestedAt: '2026-10-09T09:00:00.000Z' }), 'submitted')
+assert.equal(resubmitRequested({ submissionAt: undefined, resubmitRequestedAt: sent }), false)
+// Replaceable until the mentor opens it; after that only if asked again.
+assert.equal(canReplaceWork({ submissionAt: sent }), true)
+assert.equal(canReplaceWork({ submissionAt: sent, evidenceSeenAt: '2026-10-09T10:30:00.000Z' }), false)
+assert.equal(canReplaceWork({ submissionAt: sent, evidenceSeenAt: '2026-10-09T10:30:00.000Z', resubmitRequestedAt: '2026-10-09T11:00:00.000Z' }), true)
+assert.equal(canReplaceWork({}), false)
 
 // --- paging never shows a row twice ----------------------------------------
 assert.deepEqual(

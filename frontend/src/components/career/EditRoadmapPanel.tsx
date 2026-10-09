@@ -4,6 +4,7 @@ import { Button, Card } from '../ui'
 import { api } from '../../lib/api'
 import { useApp } from '../../store/AppStore'
 import { diffRoadmap } from '../../lib/careerDiff'
+import { isUnnamedStage, newMemberStageKey } from '../../lib/careerProgress'
 import { ChangeSummary } from './ChangeSummary'
 import type { CareerRoadmap, CareerStage, CareerStageStatus } from '../../types'
 
@@ -35,6 +36,8 @@ export function EditRoadmapPanel({
     })),
   )
   const [saving, setSaving] = useState(false)
+  // The stage just added, so its empty name box takes focus straight away.
+  const [addedKey, setAddedKey] = useState<string | null>(null)
 
   // The saved plan, captured once from the roadmap prop. Everything the member
   // does below is compared against this, so the panel can say exactly what
@@ -46,6 +49,12 @@ export function EditRoadmapPanel({
     durationWeeks: s.durationWeeks,
   }))
   const changes = diffRoadmap(original, stages)
+
+  // The first stage is the "you are here" marker and the last is the target.
+  // The timeline labels them by position, so they stay at the ends: they
+  // can't be moved or removed, and nothing can be moved past them.
+  const last = stages.length - 1
+  const pinned = (i: number) => stages.length >= 2 && (i === 0 || i === last)
 
   const update = (i: number, patch: Partial<EditableStage>) =>
     setStages((list) => list.map((s, idx) => (idx === i ? { ...s, ...patch } : s)))
@@ -61,21 +70,26 @@ export function EditRoadmapPanel({
 
   const remove = (i: number) => setStages((list) => list.filter((_, idx) => idx !== i))
 
-  const add = () =>
+  // Starts with no name: a stage the member adds must be named by them, or
+  // it reads like the AI put a meaningless "New stage" in their plan.
+  const add = () => {
+    const stepKey = newMemberStageKey()
+    setAddedKey(stepKey)
     setStages((list) => [
       ...list.slice(0, Math.max(list.length - 1, 0)),
       {
-        stepKey: `custom-${Date.now()}`,
-        title: 'New stage',
+        stepKey,
+        title: '',
         status: 'upcoming' as CareerStageStatus,
         durationWeeks: 4,
       },
       ...list.slice(Math.max(list.length - 1, 0)),
     ])
+  }
 
   async function save() {
-    if (stages.some((s) => !s.title.trim())) {
-      notify('Every stage needs a title.', 'error')
+    if (stages.some((s) => isUnnamedStage(s.title))) {
+      notify('Give every stage a name of its own before saving.', 'error')
       return
     }
     if (changes.length === 0) {
@@ -120,7 +134,12 @@ export function EditRoadmapPanel({
             <input
               value={s.title}
               onChange={(e) => update(i, { title: e.target.value })}
-              className="min-w-[160px] flex-1 rounded-lg border border-line px-2.5 py-1.5 text-sm outline-none focus:border-brand"
+              autoFocus={s.stepKey === addedKey}
+              placeholder="Name this stage (required)"
+              aria-invalid={isUnnamedStage(s.title)}
+              className={`min-w-[160px] flex-1 rounded-lg border px-2.5 py-1.5 text-sm outline-none focus:border-brand ${
+                isUnnamedStage(s.title) ? 'border-red-300' : 'border-line'
+              }`}
             />
             <input
               type="number"
@@ -133,10 +152,10 @@ export function EditRoadmapPanel({
               className="w-16 rounded-lg border border-line px-2 py-1.5 text-center text-sm outline-none focus:border-brand"
               title="Weeks"
             />
-            <IconBtn label="Move up" onClick={() => move(i, -1)} disabled={i === 0}>
+            <IconBtn label="Move up" onClick={() => move(i, -1)} disabled={pinned(i) || pinned(i - 1)}>
               <ArrowUp size={14} />
             </IconBtn>
-            <IconBtn label="Move down" onClick={() => move(i, 1)} disabled={i === stages.length - 1}>
+            <IconBtn label="Move down" onClick={() => move(i, 1)} disabled={pinned(i) || pinned(i + 1) || i === last}>
               <ArrowDown size={14} />
             </IconBtn>
             <IconBtn
@@ -145,7 +164,7 @@ export function EditRoadmapPanel({
             >
               {s.status === 'paused' ? <Play size={14} /> : <Pause size={14} />}
             </IconBtn>
-            <IconBtn label="Remove stage" onClick={() => remove(i)} disabled={stages.length === 1}>
+            <IconBtn label="Remove stage" onClick={() => remove(i)} disabled={stages.length === 1 || pinned(i)}>
               <Trash2 size={14} />
             </IconBtn>
           </div>

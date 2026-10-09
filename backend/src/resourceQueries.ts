@@ -30,7 +30,27 @@ export const RESOURCE_SELECT = `
          -- A saved copy of a files-only resource (Add resource) has no url;
          -- its files' details let Saved Resources open them. Not once reports
          -- have hidden it: the download would refuse them anyway.
-         ${shareFilesJson('sh', 'NOT sh.hidden')} AS share_files
+         ${shareFilesJson('sh', 'NOT sh.hidden')} AS share_files,
+         -- The title of the stage it is filed under, so a mentee sees which of
+         -- their stages a mentor assigned it to. Only assigned rows use it
+         -- (personal saves group by stage client-side), so the CASE skips the
+         -- roadmap read for every other row; when it runs, it is one
+         -- primary-key lookup and a walk of that roadmap's few stages.
+         CASE WHEN r.assigned_to IS NOT NULL AND r.step_key IS NOT NULL THEN
+           (SELECT st->>'title'
+              FROM career_roadmaps cr, jsonb_array_elements(cr.data->'stages') st
+             WHERE cr.id = r.roadmap_id AND st->>'stepKey' = r.step_key
+             LIMIT 1)
+         END AS step_title,
+         -- Its attachments — the mentor's and any sent back as evidence —
+         -- names and sizes only, never the bytes. One index probe per row on
+         -- idx_career_resource_files_resource (pages are capped at 20–50).
+         -- Deliberately NOT gated on assigned_to: that is ON DELETE SET NULL,
+         -- so a mentee deleting their account would hide the mentor's files.
+         (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime,
+                                            'size', f.size_bytes, 'role', f.role)
+                          ORDER BY f.role, f.position)
+            FROM career_resource_files f WHERE f.resource_id = r.id) AS resource_files
     FROM career_resources r
     JOIN users u ON u.id = r.user_id
     LEFT JOIN mentorship_sessions s ON s.id = r.session_id

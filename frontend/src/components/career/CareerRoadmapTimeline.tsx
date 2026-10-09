@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BookOpen, Briefcase, Check, CircleDashed, Flag, Lock, Map, Target, Users, X } from 'lucide-react'
-import { Button, Card } from '../ui'
+import { Avatar, Button, Card } from '../ui'
 import { AlumniListModal } from './AlumniListModal'
-import { blockedBy, nextStageAfter } from '../../lib/careerProgress'
+import { blockedBy, isMemberAdded, nextStageAfter } from '../../lib/careerProgress'
 import { SERVICE_ICONS, serviceName, servicePrice, servicesForStage } from '../../lib/careerServices'
 import { alumniCount } from '../../lib/format'
+import { useApp } from '../../store/AppStore'
 import type { AlumniHelper, AlumniService, CareerRoadmap, CareerStage, CareerStageStatus } from '../../types'
 
 const BADGE: Record<CareerStageStatus, string> = {
@@ -243,6 +244,7 @@ function StageCard({
   onShowPeople: () => void
   onShowServices: () => void
 }) {
+  const { currentUser } = useApp()
   const Icon = isFirst ? Flag : isLast ? Target : stage.status === 'completed' ? Check : BookOpen
   const helpers = stage.relevantAlumniIds.length
   // An already-completed stage is never locked — reopening it stays available
@@ -263,11 +265,18 @@ function StageCard({
         <span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${BADGE[stage.status]}`}>
           {stage.status === 'completed' ? <Check size={13} /> : index + 1}
         </span>
-        {(isFirst || isLast) && (
+        {(isFirst || isLast) ? (
           <span className={`text-[10px] font-semibold ${isLast ? 'text-indigo-600' : 'text-muted'}`}>
             {isFirst ? 'Current' : 'Target'}
           </span>
-        )}
+        ) : isMemberAdded(stage) ? (
+          // The member's own stage, marked with their photo so it never reads
+          // as something the AI suggested. Children ignore the pointer so the
+          // hover shows this label rather than the avatar's own name tooltip.
+          <span title="Added by you" aria-label="Added by you" className="[&_*]:pointer-events-none">
+            <Avatar name={currentUser.name} src={currentUser.photo} size={18} />
+          </span>
+        ) : null}
       </div>
 
       <span className={`mb-2 grid h-9 w-9 place-items-center rounded-lg ${isLast ? 'bg-surface text-indigo-600' : 'bg-gray-50 text-muted'}`}>

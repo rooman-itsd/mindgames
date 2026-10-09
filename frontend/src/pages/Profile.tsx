@@ -45,11 +45,12 @@ import { bannerThemeGradient, type Badge, type MentorApplication } from '../type
 import { EmptyState } from '../components/ui/EmptyState'
 import { PenLine } from 'lucide-react'
 
-type Tab = 'overview' | 'posts' | 'about'
+type Tab = 'overview' | 'posts' | 'resources' | 'about'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'posts', label: 'Posts' },
+  { key: 'resources', label: 'Resources' },
   { key: 'about', label: 'About' },
 ]
 
@@ -211,10 +212,6 @@ export function Profile() {
             <MentorshipRecord userId={user.id} />
           </div>
 
-          <div className="mt-3">
-            <PublicResourcesSection userId={user.id} />
-          </div>
-
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {isMe ? (
               <Button variant="outline" icon={<Edit2 size={15} />} onClick={openEditor}>
@@ -270,7 +267,7 @@ export function Profile() {
         </div>
       </motion.div>
 
-      {/* ---- Tabs, borrowed from Reddit: three short pages instead of one
+      {/* ---- Tabs, borrowed from Reddit: a few short pages instead of one
           very long scroll. Sticky under the 56px app header. */}
       <div className="sticky top-14 z-10 -mx-4 border-b border-line bg-page/95 px-4 backdrop-blur">
         <div className="flex gap-1">
@@ -333,32 +330,54 @@ export function Profile() {
           )}
 
           {/*
-            A plain CSS grid, not masonry: items sit in reading order (left to
-            right, top to bottom) grouped by what they're actually about —
-            career (Experience, Education), proof of work (Projects,
-            Certifications), then the smaller extras. `items-start` stops a
-            short card from being stretched to match a tall neighbour; the
-            trailing solo card spans the full row instead of being stranded
-            to one side.
+            Two independent stacks, not a grid: a grid row is as tall as its
+            tallest card, so a short card next to a long one left a hole under
+            it. Each column here stacks tight on its own, paired by what the
+            cards are about — career (Experience | Education), proof of work
+            (Projects | Certifications), then the smaller extras.
+
+            Narrow: the column wrappers are `display: contents` (they vanish
+            from layout), so every card is one list, put back in reading order
+            with `order-N`. Columns follow the width of this column (a
+            container query, `@…:`), not the window: the side rails leave it
+            ~820px on a wide screen. `empty:hidden` drops the wrapper of a
+            section that renders nothing (Open to, when unset) so it adds no gap.
           */}
-          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {(
-              [
-                [<ExperienceSection user={user} isMe={isMe} onAdd={openEditor} />, ''],
-                [<EducationSection user={user} isMe={isMe} onAdd={openEditor} />, ''],
-                [<ProjectsSection user={user} isMe={isMe} onAdd={openEditor} />, ''],
-                [<CertificationsSection user={user} isMe={isMe} onAdd={openEditor} />, ''],
-                [<AchievementsSection user={user} isMe={isMe} onAdd={openEditor} />, ''],
-                [<OpenToSection user={user} />, ''],
-                // A lone trailing tile in a 3-column grid would otherwise sit
-                // stranded on the left with two empty slots beside it.
-                [<BadgesCard userId={user.id} isMe={isMe} />, 'md:col-span-2 xl:col-span-3'],
-              ] as const
-            ).map(([node, span], i) => (
-              <Reveal key={`bento-${i}`} index={i + 3} className={span}>
-                {node}
-              </Reveal>
-            ))}
+          <div className="@container flex flex-col gap-4">
+            <div className="flex flex-col gap-4 @2xl:flex-row @2xl:items-start">
+              {(
+                [
+                  [
+                    [<ExperienceSection user={user} isMe={isMe} onAdd={openEditor} />, 'order-1', 0],
+                    [<ProjectsSection user={user} isMe={isMe} onAdd={openEditor} />, 'order-3', 2],
+                    [<AchievementsSection user={user} isMe={isMe} onAdd={openEditor} />, 'order-5', 4],
+                  ],
+                  [
+                    [<EducationSection user={user} isMe={isMe} onAdd={openEditor} />, 'order-2', 1],
+                    [<CertificationsSection user={user} isMe={isMe} onAdd={openEditor} />, 'order-4', 3],
+                    [<OpenToSection user={user} />, 'order-6', 5],
+                  ],
+                ] as const
+              ).map((column, c) => (
+                <div
+                  key={`col-${c}`}
+                  className="contents @2xl:flex @2xl:min-w-0 @2xl:flex-1 @2xl:flex-col @2xl:gap-4"
+                >
+                  {column.map(([node, order, i]) => (
+                    <Reveal
+                      key={`bento-${i}`}
+                      index={i + 3}
+                      className={`${order} @2xl:order-none empty:hidden`}
+                    >
+                      {node}
+                    </Reveal>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <Reveal index={9}>
+              <BadgesCard userId={user.id} isMe={isMe} />
+            </Reveal>
           </div>
         </div>
       )}
@@ -385,6 +404,16 @@ export function Profile() {
               <EmptyState icon={<PenLine size={28} />} title="No posts yet" />
             ))}
         </>
+      )}
+
+      {/* Recommended resources — moved here from the header card. */}
+      {tab === 'resources' && (
+        <div className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+          <PublicResourcesSection
+            userId={user.id}
+            empty={<p className="py-8 text-center text-sm text-muted">No resources shared yet.</p>}
+          />
+        </div>
       )}
 
       {tab === 'about' && <AboutTab user={user} isMe={isMe} onEdit={openEditor} />}

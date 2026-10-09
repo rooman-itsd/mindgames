@@ -843,15 +843,45 @@ export const api = {
     }),
   deleteCareerResource: (id: string) =>
     http<void>(`/api/career-resources/${id}`, { method: 'DELETE' }),
-  // The session's mentee proving they did a resource the mentor marked
-  // requiresSubmission — a link, not a file upload (no storage for that yet).
-  submitCareerResource: (id: string, url: string) =>
+  // The mentee proving they did a resource the mentor marked
+  // requiresSubmission — a link, uploaded files (api.uploadLearningFile), or
+  // both. Sending again replaces it while the mentor hasn't opened it yet, or
+  // after they asked for it again; otherwise it is refused (409).
+  // `replaces` is the submissionAt being replaced (none for a first send), so
+  // a retried or out-of-date submit is refused instead of replacing itself.
+  submitCareerResource: (id: string, url?: string, fileIds?: string[], replaces?: string | null) =>
     http<CareerResource>(`/api/career-resources/${id}/submit`, {
       method: 'POST',
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, fileIds, replaces: replaces ?? null }),
     }),
+  /** The mentor opened the evidence LINK (files are marked when downloaded).
+   *  Names the submission seen, so newer work is never marked by mistake. */
+  markEvidenceSeen: (id: string, submittedAt: string) =>
+    http<void>(`/api/career-resources/${id}/evidence-seen`, {
+      method: 'POST',
+      body: JSON.stringify({ submittedAt }),
+    }),
+  /** The mentor asks the mentee to send their work again — naming the
+   *  submission on screen, so newer work they haven't seen isn't reopened. */
+  requestResubmission: (id: string, submittedAt: string) =>
+    http<CareerResource>(`/api/career-resources/${id}/request-resubmission`, {
+      method: 'POST',
+      body: JSON.stringify({ submittedAt }),
+    }),
+  /** One attachment on an assigned resource as a Blob — private to the mentor
+   *  and mentee, so it is fetched with the token (see getShareFile). */
+  getCareerResourceFile: async (resourceId: string, fileId: string): Promise<Blob> => {
+    const token = getToken()
+    const res = await fetch(
+      `/api/career-resources/${encodeURIComponent(resourceId)}/files/${encodeURIComponent(fileId)}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    )
+    if (!res.ok) throw await toHttpError(res)
+    return res.blob()
+  },
   // A mentor's side of direct assignments: what they gave this member without
-  // a session, and the work sent back (submissionUrl). Newest first, up to 50.
+  // a session, and the work sent back (submissionUrl and/or submissionFiles).
+  // Newest first, up to 50.
   getAssignedByMe: (menteeId: string) =>
     http<CareerResource[]>(`/api/career-resources/assigned-by-me?menteeId=${encodeURIComponent(menteeId)}`),
 

@@ -16,7 +16,10 @@ const ACCENT = {
 export function Toaster() {
   const { toasts, dismissToast } = useApp()
   return (
-    <div className="fixed bottom-24 right-5 z-[100] flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2 lg:bottom-5">
+    // z-[110]: above the app's modals (z-[100]), so a toast raised while one
+    // is open is never dimmed under its backdrop. (Two older note modals in
+    // RightSidebar/NetworkMatches still sit higher, at z-[999]+.)
+    <div className="fixed bottom-24 right-5 z-[110] flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2 lg:bottom-5">
       {toasts.map((t) => {
         const Icon = ICONS[t.kind]
         return (

@@ -10,8 +10,18 @@ import type { ShareFile } from '../../types'
  * token, so a file is fetched as a Blob and opened from an object URL: in a
  * new tab for types browsers show (the tab is opened on the click itself, so
  * pop-up blockers allow it), as a download for everything else.
+ *
+ * `fetchFile` lets another kind of attachment (an assigned resource's, which
+ * has its own private route) use the same list; without it, a share's file.
+ * The props are a union so a caller must give one or the other — passing
+ * neither is a compile error, not a request to /shares//files/….
  */
-export function ShareFiles({ shareId, files }: { shareId: string; files: ShareFile[] }) {
+type ShareFilesProps =
+  | { files: ShareFile[]; shareId: string; fetchFile?: undefined }
+  | { files: ShareFile[]; fetchFile: (fileId: string) => Promise<Blob>; shareId?: undefined }
+
+export function ShareFiles(props: ShareFilesProps) {
+  const { files } = props
   const { notify } = useApp()
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -20,7 +30,8 @@ export function ShareFiles({ shareId, files }: { shareId: string; files: ShareFi
     const tab = inTab ? window.open('', '_blank') : null
     setBusy(f.id)
     try {
-      const url = URL.createObjectURL(await api.getShareFile(shareId, f.id))
+      const blob = props.fetchFile ? await props.fetchFile(f.id) : await api.getShareFile(props.shareId, f.id)
+      const url = URL.createObjectURL(blob)
       if (tab) {
         tab.location.href = url
       } else {

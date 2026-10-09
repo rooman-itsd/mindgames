@@ -98,22 +98,41 @@ export function stepPosition(
 
 /** Where an assigned resource came from, as the card's caption. */
 export function assignmentOrigin(
-  r: Pick<CareerResource, 'sessionId' | 'sessionTopic' | 'requiresSubmission' | 'afterSession'>,
+  r: Pick<CareerResource, 'sessionId' | 'sessionTopic' | 'requiresSubmission' | 'afterSession' | 'stepTitle'>,
 ): string {
   if (r.sessionId) {
     const topic = r.sessionTopic ?? 'your session'
     // After the session it is a follow-up even when it asks for nothing back.
     return r.requiresSubmission || r.afterSession ? `Follow-up from ${topic}` : `Prep for ${topic}`
   }
+  // Assigned from the mentee's roadmap, against one of their stages.
+  if (r.stepTitle) return `For stage “${r.stepTitle}”`
   return 'Assigned directly'
 }
 
 /** Whether an assigned resource still needs the member to send work back. */
 export function submissionState(
-  r: Pick<CareerResource, 'requiresSubmission' | 'submissionUrl'>,
+  r: Pick<CareerResource, 'requiresSubmission' | 'submissionUrl' | 'submissionAt' | 'resubmitRequestedAt'>,
 ): 'not_needed' | 'needed' | 'submitted' {
   if (!r.requiresSubmission) return 'not_needed'
-  return r.submissionUrl ? 'submitted' : 'needed'
+  // The mentor asked for it again: needed once more, everywhere it's shown.
+  if (resubmitRequested(r)) return 'needed'
+  // submissionAt too: work sent back as files only has no link.
+  return r.submissionUrl || r.submissionAt ? 'submitted' : 'needed'
+}
+
+/** The mentor pressed "Ask to resubmit" after the work was last sent. */
+export function resubmitRequested(r: Pick<CareerResource, 'submissionAt' | 'resubmitRequestedAt'>): boolean {
+  return !!r.submissionAt && !!r.resubmitRequestedAt && r.resubmitRequestedAt > r.submissionAt
+}
+
+/** The mentee may replace the work they sent: it was sent, and nobody has
+ *  relied on it yet (the mentor hasn't opened it) — or the mentor asked for
+ *  it again. Mirrors the server's rule in POST /:id/submit. */
+export function canReplaceWork(
+  r: Pick<CareerResource, 'submissionAt' | 'evidenceSeenAt' | 'resubmitRequestedAt'>,
+): boolean {
+  return !!r.submissionAt && (!r.evidenceSeenAt || resubmitRequested(r))
 }
 
 /** Appends a fetched page to what is shown, dropping any row already there —

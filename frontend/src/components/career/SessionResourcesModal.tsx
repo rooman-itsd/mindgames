@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Clock, ExternalLink, Link2, Trash2, X } from 'lucide-react'
 import { Button, Card } from '../ui'
-import { api } from '../../lib/api'
+import { HttpError, api } from '../../lib/api'
 import { assignedRelativeToSession, isSharedWithMe, shortStamp } from '../../lib/careerResources'
+import { resubmitRequested, submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import type { CareerResource, CareerResourceKind } from '../../types'
+import { ShareFiles } from '../learning/ShareFiles'
+import { ResubmitButton } from '../mentor/ResubmitButton'
+import { EvidenceLink } from '../mentor/EvidenceLink'
 
 /**
  * Resources attached to one mentorship session.
@@ -117,17 +121,22 @@ export function SessionResourcesModal({
     if (!draft) return
     setSubmitting(r.id)
     try {
-      const updated = await api.submitCareerResource(r.id, draft)
+      // Names what it replaces (none on a first send) so a retry isn't a replace.
+      const updated = await api.submitCareerResource(r.id, draft, undefined, r.submissionAt ?? null)
       setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
       setDrafts((prev) => ({ ...prev, [r.id]: '' }))
       notify('Submitted — your mentor has been notified.')
     } catch (e) {
       notify(e instanceof Error ? e.message : 'Could not submit that.', 'error')
+      // 409: already sent elsewhere — reload so the row shows the evidence
+      // instead of an input that fails every retry.
+      if (e instanceof HttpError && e.status === 409) void load()
     }
     setSubmitting(null)
   }
 
-  const submittedCount = items.filter((r) => r.requiresSubmission && r.submissionUrl).length
+  // The shared rule (lib/learningHub): files-only evidence counts too.
+  const submittedCount = items.filter((r) => submissionState(r) === 'submitted').length
   const needsCount = items.filter((r) => r.requiresSubmission).length
 
   return (
@@ -225,8 +234,13 @@ export function SessionResourcesModal({
                         <span className="truncate">{r.url}</span>
                         <ExternalLink size={11} className="shrink-0" />
                       </a>
-                    ) : (
+                    ) : !r.attachments?.length ? (
                       <p className="mt-0.5 text-xs italic text-muted">No link attached</p>
+                    ) : null}
+                    {/* Files the mentor attached (the API allows them on
+                        session resources too, with or without a link). */}
+                    {r.attachments && r.attachments.length > 0 && (
+                      <ShareFiles files={r.attachments} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                     )}
                     <p className="mt-1 text-[11px] text-muted" title={shortStamp(r.createdAt)}>
                       Assigned {relative ?? shortStamp(r.createdAt)}
@@ -249,7 +263,7 @@ export function SessionResourcesModal({
                 <div className="pl-9 text-xs">
                   {!r.requiresSubmission ? (
                     <span className="text-muted">No evidence needed</span>
-                  ) : r.submissionUrl ? (
+                  ) : submissionState(r) === 'submitted' ? (
                     <div className="rounded-lg bg-green-50 px-2.5 py-2">
                       <p className="flex items-center gap-1 font-semibold text-green-700">
                         <CheckCircle2 size={13} />
@@ -258,18 +272,48 @@ export function SessionResourcesModal({
                           <span className="font-normal text-green-700/80">· submitted {shortStamp(r.submissionAt)}</span>
                         )}
                       </p>
-                      <a
-                        href={r.submissionUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 flex min-w-0 items-center gap-1 text-blue-600 hover:underline"
-                      >
-                        <span className="truncate">{r.submissionUrl}</span>
-                        <ExternalLink size={11} className="shrink-0" />
-                      </a>
+                      {r.submissionUrl && (
+                        // Tracks "seen" only when the mentor opens it.
+                        <EvidenceLink
+                          resource={r}
+                          track={iAmMentor}
+                          className="mt-1 flex min-w-0 items-center gap-1 text-blue-600 hover:underline"
+                        >
+                          <span className="truncate">{r.submissionUrl}</span>
+                          <ExternalLink size={11} className="shrink-0" />
+                        </EvidenceLink>
+                      )}
+                      {r.submissionFiles && r.submissionFiles.length > 0 && (
+                        <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
+                      )}
+                      {iAmMentor && (
+                        <ResubmitButton
+                          resource={r}
+                          onChange={(next) => setItems((prev) => prev.map((x) => (x.id === next.id ? next : x)))}
+                        />
+                      )}
                     </div>
                   ) : iAmMentor ? (
-                    <span className="inline-flex items-center gap-1 font-medium text-amber-600"><Clock size={13} /> Evidence pending</span>
+                    <div>
+                      <span className="inline-flex items-center gap-1 font-medium text-amber-600">
+                        <Clock size={13} /> {resubmitRequested(r) ? 'Asked to resubmit' : 'Evidence pending'}
+                      </span>
+                      {/* After asking again, the work they rejected stays in view. */}
+                      {resubmitRequested(r) && (
+                        <div className="mt-1 text-muted">
+                          <p>Previously sent:</p>
+                          {r.submissionUrl && (
+                            <EvidenceLink resource={r} className="flex min-w-0 items-center gap-1 text-blue-600 hover:underline">
+                              <span className="truncate">{r.submissionUrl}</span>
+                              <ExternalLink size={11} className="shrink-0" />
+                            </EvidenceLink>
+                          )}
+                          {r.submissionFiles && r.submissionFiles.length > 0 && (
+                            <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex gap-2">
                       <input
