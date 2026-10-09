@@ -2,12 +2,19 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
-  Award, BadgeCheck, BookOpen, CalendarClock, CheckCircle2, Clock, Crown, Flame, GraduationCap, Lock,
+  Award, BookOpen, Check, CheckCircle2, ChevronDown, Clock, Crown, Flame, GraduationCap, Lock, Pencil,
   Map as MapIcon, Plus, Star, Users, Wrench, X,
 } from 'lucide-react'
 import { Avatar, Button, Card } from '../ui'
+import { byWhen, dayHeading, matchesQuery, newestFirst, sessionDayKey } from '../../lib/agenda'
+import { DateTile, Dot, Timeline, TimelineItem } from './AgendaParts'
+import { MentorBadgeChips } from './MentorBadgeChips'
+import { IconAction } from './IconAction'
+import { useFocusId } from '../../hooks/useMentorshipFocus'
+import { SearchBox } from './SearchBox'
+import { MANAGE_SERVICES_EVENT, publishMentorStats } from './mentorSpaceBus'
 import { api } from '../../lib/api'
-import { badgeTierClasses, roleLine, sessionLabels } from '../../lib/format'
+import { roleLine, sessionLabels } from '../../lib/format'
 import { isHttpUrl } from '../../lib/links'
 import { useApp } from '../../store/AppStore'
 import { ManageServicesPanel } from '../career/ManageServicesPanel'
@@ -15,6 +22,10 @@ import { MenteeRoadmapModal } from './MenteeRoadmapModal'
 import { AssignResourceModal } from './AssignResourceModal'
 import { SubscriptionPlans } from '../subscription/SubscriptionPlans'
 import type { Mentee, MentorshipSession, ProfileStats } from '../../types'
+
+/** How many rows Past and My mentees show before "Show all". */
+const PAST_PREVIEW = 5
+const MENTEES_PREVIEW = 4
 
 /**
  * Everything a mentor needs in one place: who is waiting, who they are
@@ -56,14 +67,40 @@ export function MentorWorkspace({
   const [showServices, setShowServices] = useState(false)
   const [showPlans, setShowPlans] = useState(false)
   const [showOfferSession, setShowOfferSession] = useState(false)
+  // Long lists show a preview; the rest is one click away.
+  const [showAllPast, setShowAllPast] = useState(false)
+  const [showAllMentees, setShowAllMentees] = useState(false)
+  const [query, setQuery] = useState('')
+  // A calendar click points at a row here: clear the search, and open "Show
+  // all" if the row is past the preview.
+  const focusId = useFocusId()
+  useEffect(() => {
+    if (!focusId) return
+    setQuery('')
+    if (newestFirst(finished).findIndex((s) => s.id === focusId) >= PAST_PREVIEW) setShowAllPast(true)
+  }, [focusId, finished])
 
   const isMentor = currentUser.isMentor
 
   useEffect(() => {
     if (!isMentor) return
     api.getMentees().then(setMentees, () => {})
-    api.getProfileStats(currentUser.id).then(setStats, () => {})
+    api.getProfileStats(currentUser.id).then(
+      (s) => {
+        setStats(s)
+        // The sidebar's Badges card shows the same stats.
+        publishMentorStats(s)
+      },
+      () => {},
+    )
   }, [isMentor, currentUser.id])
+
+  // "Manage services" in the sidebar opens the panel here, where it has room.
+  useEffect(() => {
+    const open = () => setShowServices(true)
+    window.addEventListener(MANAGE_SERVICES_EVENT, open)
+    return () => window.removeEventListener(MANAGE_SERVICES_EVENT, open)
+  }, [])
 
   if (!isMentor) return <LockedState />
 
@@ -74,6 +111,13 @@ export function MentorWorkspace({
   // alarm, and a mentor who had used up the month's session cap got no
   // warning at all despite being blocked.
   const canAccept = subscription?.canAcceptSessions ?? false
+  // Requests and confirmed sessions share one timeline, soonest first.
+  // One search for the agenda, Past and My mentees: topic, mentee or date.
+  const hit = (s: MentorshipSession) => matchesQuery([s.topic, s.menteeName, s.date], query)
+  const agenda = byWhen([...requests, ...upcoming].filter(hit))
+  const past = newestFirst(finished.filter(hit))
+  const menteesShown = mentees.filter((m) => matchesQuery([m.name, m.designation, m.company, m.goal?.targetRole], query))
+  const searching = query.trim().length > 0
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,278 +134,305 @@ export function MentorWorkspace({
         </div>
       )}
 
-      {/* Offer a 1:1 session, rather than only ever waiting for someone to
-          request one. Restricted to connections, and they accept or decline
-          it the same way a mentor accepts a request today. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
-        <p className="text-sm text-muted">
-          Offer one of your connections a 1:1 session instead of waiting to be asked.
-        </p>
-        <Button icon={<Plus size={15} />} onClick={() => setShowOfferSession(true)}>
+      {/* At a glance, plus offering a 1:1 session rather than only ever waiting
+          for someone to request one. Restricted to connections, and they
+          accept or decline it the same way a mentor accepts a request today. */}
+      <Card className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+        <div className="flex flex-wrap gap-x-8 gap-y-3">
+          <Stat icon={<GraduationCap size={13} />} label="Sessions given" value={stats?.sessionsGiven ?? 0} />
+          <Stat icon={<Clock size={13} />} label="Hours mentored" value={stats?.hoursGiven ?? 0} />
+          <Stat
+            icon={<Star size={13} />}
+            label="Rating"
+            value={stats?.avgRating ? `${stats.avgRating}★` : '—'}
+            sub={stats?.ratingCount ? `${stats.ratingCount} rated` : 'no ratings yet'}
+          />
+          <Stat
+            icon={<Flame size={13} />}
+            label="Streak"
+            value={stats?.mentorStreakWeeks ?? 0}
+            sub={stats?.mentorStreakWeeks === 1 ? 'week' : 'weeks'}
+          />
+        </div>
+      </Card>
+
+      {/* One bar: search the lists below, and offer a new 1:1 session. */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-2 shadow-sm">
+        <SearchBox
+          value={query}
+          onChange={setQuery}
+          placeholder="Search by topic, mentee or date"
+          label="Search mentor space"
+          className="min-w-0 flex-1 basis-56 !border-0 !shadow-none"
+        />
+        <Button
+          className="w-full whitespace-nowrap sm:w-auto"
+          icon={<Plus size={15} />}
+          title="Offer one of your connections a 1:1 session instead of waiting to be asked"
+          onClick={() => setShowOfferSession(true)}
+        >
           Host a session
         </Button>
       </div>
 
-      {/* At a glance */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon={<GraduationCap size={16} />} label="Sessions given" value={stats?.sessionsGiven ?? 0} />
-        <Stat icon={<Clock size={16} />} label="Hours mentored" value={stats?.hoursGiven ?? 0} />
-        <Stat
-          icon={<Star size={16} />}
-          label="Rating"
-          value={stats?.avgRating ? `${stats.avgRating}★` : '—'}
-          sub={stats?.ratingCount ? `${stats.ratingCount} rated` : 'no ratings yet'}
-        />
-        <Stat
-          icon={<Flame size={16} />}
-          label="Streak"
-          value={stats?.mentorStreakWeeks ?? 0}
-          sub={stats?.mentorStreakWeeks === 1 ? 'week' : 'weeks'}
-        />
-      </div>
-
-      {/* Requests waiting on this mentor */}
-      <Card className="p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
-            <CalendarClock size={18} className="text-brand" />
-            Requests
+      {/* Requests waiting on this mentor and confirmed sessions on one
+          timeline, in date order — whatever is next is always at the top. */}
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+            Your agenda
             {requests.length > 0 && (
               <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">
-                {requests.length}
+                {requests.length} {requests.length === 1 ? 'request' : 'requests'}
               </span>
             )}
           </h2>
+          <span className="flex items-center gap-3 text-[11px] text-muted">
+            <span className="flex items-center gap-1"><Dot kind="waiting" /> needs a reply</span>
+            <span className="flex items-center gap-1"><Dot kind="confirmed" /> confirmed</span>
+          </span>
         </div>
-        {requests.length === 0 ? (
-          <p className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-muted">
-            No one is waiting on you right now.
+        {agenda.length === 0 ? (
+          <p className="rounded-xl border border-line bg-surface px-4 py-8 text-center text-sm text-muted">
+            {searching ? 'No sessions match.' : 'No one is waiting on you right now.'}
           </p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {requests.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">
-                <Avatar name={s.menteeName} size={38} to={`/profile/${s.menteeId}`} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{s.topic}</p>
-                  <p className="text-xs text-muted">
-                    {s.menteeName} · {s.date} at {s.time}
-                    {s.isPaid && (s.price ?? 0) > 0 && ` · ₹${(s.price ?? 0).toLocaleString('en-IN')}`}
-                  </p>
-                </div>
-                {/* A slot this mentor offered is waiting on the other side —
-                    accepting it here would confirm a session they never
-                    agreed to, so it only offers a way to take it back. */}
-                {s.requestedBy === 'mentor' ? (
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
-                      Waiting on them
-                    </span>
-                    <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => onDecline(s.id)}>
-                      Withdraw
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex shrink-0 gap-2">
-                    <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => onDecline(s.id)}>
-                      Decline
-                    </Button>
-                    <Button className="!px-3 !py-1.5 !text-xs" onClick={() => onAccept(s.id)}>
-                      Accept
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <Timeline>
+            {agenda.map((s) => {
+              const isRequest = s.status === 'requested'
+              const day = sessionDayKey(s)
+              return (
+                <TimelineItem key={s.id} kind={isRequest ? 'waiting' : 'confirmed'}>
+                  <Card id={`row-${s.id}`} className="flex flex-wrap items-center gap-3 p-4">
+                    <div className="w-24 shrink-0">
+                      <p className="text-sm font-bold text-ink">{day ? dayHeading(day) : s.date}</p>
+                      <p className="text-[11px] text-muted">{s.time}</p>
+                    </div>
+                    <Avatar name={s.menteeName} size={38} to={`/profile/${s.menteeId}`} />
+                    <div className="min-w-0 flex-1 basis-48">
+                      <p className="truncate text-sm font-semibold text-ink">{s.topic}</p>
+                      <p className="text-xs text-muted">
+                        {s.menteeName}
+                        {isRequest && (s.requestedBy === 'mentor' ? ' · you offered this' : ' · requested')}
+                        {isRequest && s.isPaid && (s.price ?? 0) > 0 && (
+                          <span className="font-semibold text-brand"> · ₹{(s.price ?? 0).toLocaleString('en-IN')}</span>
+                        )}
+                      </p>
+                    </div>
+                    {isRequest ? (
+                      /* A slot this mentor offered is waiting on the other side —
+                         accepting it here would confirm a session they never
+                         agreed to, so it only offers a way to take it back. */
+                      s.requestedBy === 'mentor' ? (
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="rounded-full bg-marigold-100 px-2.5 py-0.5 text-[11px] font-semibold text-marigold-800">
+                            Waiting on them
+                          </span>
+                          <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => onDecline(s.id)}>
+                            Withdraw
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex shrink-0 gap-2">
+                          <Button variant="ghost" className="!px-3 !py-1.5 !text-xs" onClick={() => onDecline(s.id)}>
+                            Decline
+                          </Button>
+                          <Button className="!px-3 !py-1.5 !text-xs" onClick={() => onAccept(s.id)}>
+                            Accept
+                          </Button>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                        {s.meetingLink ? (
+                          <a
+                            href={s.meetingLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Join the meeting"
+                            className="rounded-full bg-ocean-50 px-3 py-1.5 text-xs font-semibold text-ocean-700 hover:bg-ocean-100"
+                          >
+                            Join
+                          </a>
+                        ) : (
+                          <span title="Add a meeting link with Edit" className="px-1 text-xs text-muted">
+                            No link
+                          </span>
+                        )}
+                        {/* One editor for topic, time and the meeting link — the
+                            separate link shortcut was a second door to the same
+                            field. */}
+                        <IconAction label="Edit" tip="Edit topic, time or meeting link" onClick={() => onEdit(s)}>
+                          <Pencil size={14} />
+                        </IconAction>
+                        {onResources && (
+                          <IconAction
+                            label={s.resourceCount ? `Resources · ${s.resourceCount}` : 'Resources'}
+                            tip="Prep resources for this session"
+                            count={s.resourceCount}
+                            onClick={() => onResources(s)}
+                          >
+                            <BookOpen size={14} />
+                          </IconAction>
+                        )}
+                        <IconAction label="Complete" tip="Mark this session completed" onClick={() => onComplete(s)}>
+                          <Check size={15} />
+                        </IconAction>
+                      </div>
+                    )}
+                  </Card>
+                </TimelineItem>
+              )
+            })}
+          </Timeline>
         )}
-      </Card>
-
-      {/* Confirmed, still to happen */}
-      {upcoming.length > 0 && (
-        <Card className="p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-ink">
-            <CalendarClock size={18} className="text-green-600" />
-            Upcoming
-          </h2>
-          <div className="flex flex-col gap-2">
-            {upcoming.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">
-                <Avatar name={s.menteeName} size={38} to={`/profile/${s.menteeId}`} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">{s.topic}</p>
-                  <p className="text-xs text-muted">
-                    {s.menteeName} · {s.date} at {s.time}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {s.meetingLink ? (
-                    <a
-                      href={s.meetingLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      title="Join the meeting"
-                      className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-100"
-                    >
-                      Join
-                    </a>
-                  ) : (
-                    <span title="Add a meeting link with Edit" className="px-1 text-xs text-muted">
-                      No link
-                    </span>
-                  )}
-                  {/* One editor for topic, time and the meeting link — the
-                      separate link shortcut was a second door to the same
-                      field. */}
-                  <Button variant="outline" className="!px-3 !py-1.5 !text-xs" title="Edit topic, time or meeting link" onClick={() => onEdit(s)}>
-                    Edit
-                  </Button>
-                  {onResources && (
-                    <Button variant="outline" className="!px-3 !py-1.5 !text-xs" icon={<BookOpen size={12} />} onClick={() => onResources(s)}>
-                      Resources{s.resourceCount ? ` · ${s.resourceCount}` : ''}
-                    </Button>
-                  )}
-                  <Button className="!px-3 !py-1.5 !text-xs" onClick={() => onComplete(s)}>
-                    Complete
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      </section>
 
       {/* Completed or declined — this mentor's own record, since "My
           Sessions → Past" only shows the mentee side of the history. */}
       {finished.length > 0 && (
-        <Card className="p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-ink">
-            <GraduationCap size={18} className="text-muted" />
+        <Card className="overflow-hidden">
+          <h2 className="flex items-center gap-2 px-5 pt-4 pb-2 text-base font-bold text-ink">
+            <GraduationCap size={16} className="text-muted" />
             Past
+            <span className="rounded-full bg-gray-100 px-2 py-px text-[11px] font-bold text-muted">{past.length}</span>
           </h2>
-          <div className="flex flex-col gap-2">
-            {finished.map((s) => {
+          {past.length === 0 && <p className="px-5 pb-4 text-sm text-muted">No past sessions match.</p>}
+          <div className="divide-y divide-line">
+            {(showAllPast ? past : past.slice(0, PAST_PREVIEW)).map((s) => {
               const declined = s.status === 'declined'
               return (
-                <div key={s.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3 opacity-80">
-                  <Avatar name={s.menteeName} size={38} to={`/profile/${s.menteeId}`} />
-                  <div className="min-w-0 flex-1">
+                <div key={s.id} id={`row-${s.id}`} className="flex items-center gap-3 px-5 py-3">
+                  <DateTile dayKey={sessionDayKey(s)} label={s.date} dim />
+                  <Avatar name={s.menteeName} size={32} to={`/profile/${s.menteeId}`} />
+                  {/* Status reads as part of the description, under the title,
+                      so the right edge holds only the one thing to do. */}
+                  <div className={`min-w-0 flex-1 basis-48 ${declined ? 'opacity-60' : ''}`}>
                     <p className="truncate text-sm font-semibold text-ink">{s.topic}</p>
-                    <p className="text-xs text-muted">{s.menteeName} · {s.date}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                      <span className="mr-0.5">{s.menteeName}</span>
+                      {/* Why a completed session isn't in the stats yet: it counts
+                          once the mentee confirms too. Neutral grey, not amber —
+                          the mentor has nothing to do here, so it isn't a warning.
+                          Names who it's waiting on; the hover says why it matters. */}
+                      {!declined && s.mentorConfirmed && !s.menteeConfirmed && (
+                        <span
+                          title={`Counts toward your hours and badges once ${s.menteeName} confirms it happened.`}
+                          className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-px text-[11px] font-semibold text-gray-600"
+                        >
+                          <Clock size={10} /> {s.menteeName} to confirm
+                        </span>
+                      )}
+                      {!declined && s.mentorConfirmed && s.menteeConfirmed && (
+                        <span
+                          title="Both of you confirmed it — it counts toward your record."
+                          className="inline-flex items-center gap-1 rounded-full bg-jade-100 px-2 py-px text-[11px] font-semibold text-jade-700"
+                        >
+                          <CheckCircle2 size={10} /> Confirmed
+                        </span>
+                      )}
+                      {!declined && s.rating && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-marigold-50 px-2 py-px text-[11px] font-semibold text-marigold-800">
+                          <Star size={10} className="fill-marigold text-marigold" /> {s.rating}
+                        </span>
+                      )}
+                      {/* Everything under Past is completed, so only the
+                          exception gets a badge. */}
+                      {declined && (
+                        <span className="rounded-full bg-rosewood-50 px-2 py-px text-[11px] font-semibold text-rosewood-700">Declined</span>
+                      )}
+                    </div>
                   </div>
-                  {/* Why a completed session isn't in the stats yet: it counts
-                      once the mentee confirms too. Neutral grey, not amber —
-                      the mentor has nothing to do here, so it isn't a warning.
-                      Names who it's waiting on; the hover says why it matters. */}
-                  {!declined && s.mentorConfirmed && !s.menteeConfirmed && (
-                    <span
-                      title={`Counts toward your hours and badges once ${s.menteeName} confirms it happened.`}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600"
-                    >
-                      <Clock size={11} /> {s.menteeName} to confirm
-                    </span>
-                  )}
-                  {!declined && s.mentorConfirmed && s.menteeConfirmed && (
-                    <span
-                      title="Both of you confirmed it — it counts toward your record."
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-semibold text-green-700"
-                    >
-                      <CheckCircle2 size={11} /> Confirmed
-                    </span>
-                  )}
-                  {!declined && s.rating && (
-                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-600">
-                      <Star size={11} className="fill-amber-500 text-amber-500" /> {s.rating}
-                    </span>
-                  )}
-                  {/* Everything under Past is completed, so only the
-                      exception gets a badge. */}
-                  {declined && (
-                    <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-500">Declined</span>
-                  )}
                   {/* After a session the mentor can still add follow-ups for
                       that mentee, so the button shows even with nothing
                       assigned yet. A declined session never happened. */}
                   {!declined && onResources && (
-                    <Button variant="outline" className="!px-3 !py-1.5 !text-xs" icon={<BookOpen size={12} />} onClick={() => onResources(s)}>
-                      {s.resourceCount ? `Resources · ${s.resourceCount}` : 'Add follow-up'}
-                    </Button>
+                    <IconAction
+                      label={s.resourceCount ? `Resources · ${s.resourceCount}` : 'Add follow-up'}
+                      tip={s.resourceCount ? 'Resources shared for this session' : 'Add a follow-up resource for them'}
+                      count={s.resourceCount}
+                      onClick={() => onResources(s)}
+                    >
+                      <BookOpen size={14} />
+                    </IconAction>
                   )}
                 </div>
               )
             })}
           </div>
+          {past.length > PAST_PREVIEW && (
+            <ShowAllToggle open={showAllPast} total={past.length} onToggle={() => setShowAllPast((v) => !v)} />
+          )}
         </Card>
       )}
 
-      {/* People being helped */}
-      <Card className="p-5">
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-ink">
-          <Users size={18} className="text-brand" />
+      {/* People being helped — compact cards, two to a row. */}
+      <Card className="overflow-hidden">
+        <h2 className="flex items-center gap-2 px-5 pt-4 pb-2 text-base font-bold text-ink">
+          <Users size={16} className="text-brand" />
           My mentees
+          {mentees.length > 0 && (
+            <span className="rounded-full bg-gray-100 px-2 py-px text-[11px] font-bold text-muted">{menteesShown.length}</span>
+          )}
         </h2>
         {mentees.length === 0 ? (
-          <p className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-muted">
+          <p className="mx-5 mb-5 rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-muted">
             Once you accept a session, that member appears here with what they're working towards.
           </p>
+        ) : menteesShown.length === 0 ? (
+          <p className="px-5 pb-4 text-sm text-muted">No mentees match.</p>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {mentees.map((m) => (
-              <div key={m.id} className="flex flex-col gap-2 rounded-xl border border-line p-3">
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={m.name} src={m.photo} size={38} to={`/profile/${m.id}`} />
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/profile/${m.id}`} className="block truncate text-sm font-bold text-ink hover:underline">
-                      {m.name}
-                    </Link>
-                    <p className="truncate text-xs text-muted">
-                      {[m.designation, m.company].filter(Boolean).join(' · ')}
-                    </p>
+          <div className="grid gap-3 px-5 pt-1 pb-4 sm:grid-cols-2">
+            {(showAllMentees ? menteesShown : menteesShown.slice(0, MENTEES_PREVIEW)).map((m) => (
+              <div key={m.id} className="flex min-w-0 flex-col rounded-xl border border-line p-3.5 transition-colors hover:border-brand-200">
+                <div className="flex items-start gap-3">
+                  <Avatar name={m.name} src={m.photo} size={40} to={`/profile/${m.id}`} />
+                  <div className="min-w-0 flex-1 basis-48">
+                    <Link to={`/profile/${m.id}`} className="block truncate text-sm font-bold text-ink hover:underline">{m.name}</Link>
+                    {[m.designation, m.company].filter(Boolean).length > 0 && (
+                      <p className="truncate text-xs text-muted">{[m.designation, m.company].filter(Boolean).join(' · ')}</p>
+                    )}
                   </div>
                   <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-muted">
                     {m.sessions} {m.sessions === 1 ? 'session' : 'sessions'}
                   </span>
                 </div>
-
                 {m.goal?.targetRole && (
-                  <p className="flex items-center gap-1.5 text-xs text-muted">
+                  <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted">
                     <MapIcon size={12} className="shrink-0 text-brand" />
-                    Working towards <strong className="text-ink">{m.goal.targetRole}</strong>
+                    <span className="truncate">Working towards <strong className="text-ink">{m.goal.targetRole}</strong></span>
                   </p>
                 )}
-
-                {m.hasRoadmap ? (
-                  <Button
-                    variant="outline"
-                    className="!py-1.5 !text-xs"
-                    icon={<MapIcon size={13} />}
-                    onClick={() => setRoadmapFor(m.id)}
-                  >
-                    View their roadmap
-                  </Button>
-                ) : (
-                  <span className="rounded-lg bg-gray-50 py-1.5 text-center text-xs text-muted">
-                    No roadmap yet
-                  </span>
-                )}
-
-                {/* Hand them something to learn without tying it to a session. */}
-                <Button
-                  variant="ghost"
-                  className="!py-1.5 !text-xs"
-                  icon={<BookOpen size={13} />}
-                  onClick={() => setAssignTo({ id: m.id, name: m.name })}
-                >
-                  Assign resource
-                </Button>
+                <div className="mt-auto pt-3">
+                  <div className="flex items-center justify-between gap-2 border-t border-line pt-2.5">
+                    {/* Roadmap status reads as text; the actions are icons. */}
+                    <span className="truncate text-xs text-muted">{m.hasRoadmap ? 'Roadmap shared' : 'No roadmap yet'}</span>
+                    <div className="flex shrink-0 gap-1.5">
+                      {m.hasRoadmap && (
+                        <IconAction label="View their roadmap" tip="View their career roadmap" onClick={() => setRoadmapFor(m.id)}>
+                          <MapIcon size={14} />
+                        </IconAction>
+                      )}
+                      {/* Hand them something to learn without tying it to a session. */}
+                      <IconAction label="Assign resource" tip="Assign them something to learn" onClick={() => setAssignTo({ id: m.id, name: m.name })}>
+                        <BookOpen size={14} />
+                      </IconAction>
+                    </div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         )}
+        {menteesShown.length > MENTEES_PREVIEW && (
+          <ShowAllToggle open={showAllMentees} total={menteesShown.length} onToggle={() => setShowAllMentees((v) => !v)} />
+        )}
       </Card>
 
-      {/* What they offer + what they've earned */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* What they offer + what they've earned. On wide screens these live in
+          the Mentorship right sidebar instead; below xl that sidebar is
+          hidden, so they stay here and never disappear. */}
+      <div className="grid gap-4 lg:grid-cols-2 xl:hidden">
         <Card className="p-5">
           <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-ink">
             <Wrench size={18} className="text-brand" />
@@ -380,24 +451,7 @@ export function MentorWorkspace({
             <Award size={18} className="text-brand" />
             Badges
           </h2>
-          {!stats || stats.badges.length === 0 ? (
-            <p className="text-sm text-muted">
-              Complete a session and have your mentee confirm it to earn your first badge.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {stats.badges.map((b) => (
-                <span
-                  key={b.id}
-                  title={b.description}
-                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeTierClasses(b.tier)}`}
-                >
-                  <BadgeCheck size={13} />
-                  {b.name}
-                </span>
-              ))}
-            </div>
-          )}
+          <MentorBadgeChips stats={stats} />
         </Card>
       </div>
 
@@ -509,7 +563,7 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
                   className="h-4 w-4 shrink-0 accent-brand"
                 />
                 <Avatar name={u.name} src={u.photo} size={30} />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{u.name}</span>
+                <span className="min-w-0 flex-1 basis-48 truncate text-sm font-medium text-ink">{u.name}</span>
                 {roleLine(u) && (
                   <span className="max-w-[45%] shrink-0 truncate text-right text-[11px] text-muted">
                     {roleLine(u)}
@@ -585,6 +639,19 @@ function OfferSessionModal({ onClose, onNeedsPlan }: { onClose: () => void; onNe
   )
 }
 
+function ShowAllToggle({ open, total, onToggle }: { open: boolean; total: number; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex w-full items-center justify-center gap-1 border-t border-line py-2.5 text-xs font-semibold text-brand hover:bg-brand-50"
+    >
+      {open ? 'Show less' : `Show all ${total}`}
+      <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+    </button>
+  )
+}
+
 function Stat({
   icon,
   label,
@@ -597,14 +664,16 @@ function Stat({
   sub?: string
 }) {
   return (
-    <Card className="p-4">
-      <span className="flex items-center gap-1.5 text-xs font-medium text-muted">
+    <div>
+      <p className="flex items-center gap-1 text-[11px] font-medium tracking-wide text-muted uppercase">
         <span className="text-brand">{icon}</span>
         {label}
-      </span>
-      <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
-      {sub && <p className="text-xs text-muted">{sub}</p>}
-    </Card>
+      </p>
+      <p className="mt-0.5 text-xl font-bold text-ink">
+        {value}
+        {sub && <span className="ml-1 text-xs font-medium text-muted">{sub}</span>}
+      </p>
+    </div>
   )
 }
 

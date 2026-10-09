@@ -19,6 +19,7 @@ export function CompleteSessionModal({
   topic,
   who,
   allowFollowUp = false,
+  hideDomain = false,
   onClose,
   onConfirm,
 }: {
@@ -26,6 +27,8 @@ export function CompleteSessionModal({
   who: string
   /** 1:1 sessions only: lets the mentor set a task that needs evidence. */
   allowFollowUp?: boolean
+  /** Hide "What was it about?" when the session already has its domain/skills. */
+  hideDomain?: boolean
   onClose: () => void
   onConfirm: (durationMinutes: number, domain: string, followUp?: { title: string; url: string }) => void
 }) {
@@ -95,19 +98,23 @@ export function CompleteSessionModal({
           </span>
         </div>
 
-        <label className="mb-1.5 block text-xs font-semibold text-muted">What was it about? (optional)</label>
-        <select
-          value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-        >
-          <option value="">Not specified</option>
-          {DOMAINS.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
+        {!hideDomain && (
+          <>
+            <label className="mb-1.5 block text-xs font-semibold text-muted">What was it about? (optional)</label>
+            <select
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              className="mb-4 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+            >
+              <option value="">Not specified</option>
+              {DOMAINS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
 
         {allowFollowUp && (
           <div className="mb-4 rounded-lg border border-line p-3">

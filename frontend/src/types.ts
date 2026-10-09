@@ -1323,6 +1323,8 @@ export interface GroupSession {
   /** True for an invite_only session this member was invited to but hasn't
    *  joined yet — how they find it, since it isn't in the public list. */
   invitedByMe: boolean
+  /** This member confirmed they attended (once the host marked it completed). */
+  confirmedByMe?: boolean
   mentorConfirmed: boolean
 }
 
@@ -1343,7 +1345,8 @@ export interface GroupSessionInput {
   scheduledAt: string
   durationMinutes?: number
   capacity?: number
-  meetingLink?: string
+  /** Required — without it nobody can get into the call. */
+  meetingLink: string
   pricingMode?: 'free' | 'paid'
   pricePerSeat?: number
   visibility?: 'public' | 'invite_only'

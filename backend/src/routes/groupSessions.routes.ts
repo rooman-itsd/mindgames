@@ -28,6 +28,7 @@ interface GroupSessionRow {
   attendee_count: number
   joined_by_me: boolean
   invited_by_me: boolean
+  confirmed_by_me: boolean
   mentor_confirmed: boolean
 }
 
@@ -53,7 +54,11 @@ const LIST_SELECT = (viewerParam: string) => `
          END AS meeting_link,
          (SELECT count(*)::int FROM group_session_attendees a WHERE a.session_id = g.id) AS attendee_count,
          EXISTS (SELECT 1 FROM group_session_attendees a WHERE a.session_id = g.id AND a.mentee_id = ${viewerParam}) AS joined_by_me,
-         EXISTS (SELECT 1 FROM group_session_invites gi WHERE gi.session_id = g.id AND gi.user_id = ${viewerParam}) AS invited_by_me
+         EXISTS (SELECT 1 FROM group_session_invites gi WHERE gi.session_id = g.id AND gi.user_id = ${viewerParam}) AS invited_by_me,
+         -- Whether this viewer already confirmed attending — without it the
+         -- "Confirm attendance" button could never go away.
+         EXISTS (SELECT 1 FROM group_session_attendees a
+                  WHERE a.session_id = g.id AND a.mentee_id = ${viewerParam} AND a.mentee_confirmed) AS confirmed_by_me
     FROM group_sessions g JOIN users u ON u.id = g.mentor_id`
 
 function mapGroupSession(r: GroupSessionRow) {
@@ -77,6 +82,7 @@ function mapGroupSession(r: GroupSessionRow) {
     visibility: r.visibility,
     joinedByMe: r.joined_by_me,
     invitedByMe: r.invited_by_me,
+    confirmedByMe: r.confirmed_by_me,
     mentorConfirmed: r.mentor_confirmed,
   }
 }
@@ -84,11 +90,15 @@ function mapGroupSession(r: GroupSessionRow) {
 const createSchema = z.object({
   topic: z.string().trim().min(1).max(140),
   description: z.string().trim().max(1000).optional().default(''),
-  domain: z.string().trim().max(60).optional().default(''),
+  // One or more domains/skills, stored comma-separated ("Cloud, AI/ML, Kubernetes").
+  domain: z.string().trim().max(200).optional().default(''),
   scheduledAt: z.string().datetime({ offset: true }).or(z.string().datetime()),
   durationMinutes: z.number().int().min(15).max(480).optional().default(60),
   capacity: z.number().int().min(2).max(500).optional().default(10),
-  meetingLink: z.string().trim().url().optional().or(z.literal('')),
+  // Required: without a link nobody can get into the call.
+  meetingLink: z.string().trim().min(1, 'Add a meeting link so attendees can join')
+    .url('The meeting link must be a full link, starting with https://')
+    .refine((u) => /^https?:\/\//i.test(u), 'The meeting link must start with https://'),
   pricingMode: z.enum(['free', 'paid']).optional().default('free'),
   pricePerSeat: z.number().int().min(0).max(1_000_000).optional().default(0),
   // 'public' (default) keeps today's behaviour — open to browse and join.
@@ -388,7 +398,7 @@ groupSessionsRouter.post(
       await client.query(
         `UPDATE group_sessions SET status = 'completed', mentor_confirmed = TRUE,
                 duration_minutes = COALESCE($2, duration_minutes),
-                domain = CASE WHEN $3 <> '' THEN $3 ELSE domain END
+                domain = CASE WHEN domain = '' AND $3 <> '' THEN $3 ELSE domain END
           WHERE id = $1`,
         [req.params.id, parsed.data.durationMinutes ?? null, parsed.data.domain ?? ''],
       )
@@ -470,9 +480,92 @@ groupSessionsRouter.post(
   }),
 )
 
+// Same rules as creating one — picked from createSchema so they can't drift.
+// Pricing and visibility are deliberately not editable: people may already
+// have joined (or paid) on those terms.
+const editSchema = createSchema.pick({
+  topic: true, description: true, domain: true, scheduledAt: true,
+  durationMinutes: true, capacity: true, meetingLink: true,
+})
+
+// POST /api/group-sessions/:id/edit — the host fixes the details of a
+// scheduled session (topic, time, length, capacity, link). Before this, a
+// typo or a time change meant cancelling and starting over.
+groupSessionsRouter.post(
+  '/:id/edit',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const parsed = editSchema.safeParse(req.body)
+    if (!parsed.success) throw new ApiError(400, parsed.error.issues[0].message)
+    const d = parsed.data
+    const startsAt = new Date(d.scheduledAt)
+    if (Number.isNaN(+startsAt)) throw new ApiError(400, 'A valid date/time is required')
+
+    const recipients = await withTransaction(async (client) => {
+      // Locked like /join, so a join can't land between the capacity check
+      // and the update and leave more attendees than seats.
+      const g = await client.query<{
+        mentor_id: string; status: string; topic: string; description: string; domain: string
+        scheduled_at: Date; duration_minutes: number; capacity: number; meeting_link: string | null
+      }>(
+        `SELECT mentor_id, status, topic, description, domain, scheduled_at, duration_minutes, capacity, meeting_link
+           FROM group_sessions WHERE id = $1 FOR UPDATE`,
+        [req.params.id],
+      )
+      if (!g.rowCount || g.rows[0].mentor_id !== req.user!.sub) {
+        throw new ApiError(404, 'Group session not found (or you are not its host)')
+      }
+      const cur = g.rows[0]
+      if (cur.status !== 'scheduled') throw new ApiError(400, `Session is already ${cur.status}`)
+      // Only a NEW time must be in the future: a session already under way (or
+      // one created before links were required) must stay editable — e.g. to
+      // add the meeting link it's missing.
+      const timeChanged = Math.abs(+startsAt - +new Date(cur.scheduled_at)) >= 60_000
+      if (timeChanged && +startsAt < Date.now() - 60_000) throw new ApiError(400, 'The session must be in the future')
+      const joined = (await client.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM group_session_attendees WHERE session_id = $1`,
+        [req.params.id],
+      )).rows[0].n
+      if (d.capacity < joined) {
+        throw new ApiError(400, `${joined} ${joined === 1 ? 'person has' : 'people have'} already joined — capacity can't be lower than that`)
+      }
+      const changed = timeChanged || d.topic !== cur.topic || d.description !== cur.description || d.domain !== cur.domain
+        || d.durationMinutes !== cur.duration_minutes || d.capacity !== cur.capacity || d.meetingLink !== (cur.meeting_link ?? '')
+      if (!changed) return []
+
+      await client.query(
+        `UPDATE group_sessions
+            SET topic = $2, description = $3, domain = $4, scheduled_at = $5,
+                duration_minutes = $6, capacity = $7, meeting_link = $8
+          WHERE id = $1`,
+        [req.params.id, d.topic, d.description, d.domain, timeChanged ? startsAt.toISOString() : cur.scheduled_at,
+          d.durationMinutes, d.capacity, d.meetingLink],
+      )
+      // Everyone it affects: who joined, and who was invited but hasn't answered.
+      const people = await client.query<{ user_id: string }>(
+        `SELECT mentee_id AS user_id FROM group_session_attendees WHERE session_id = $1
+          UNION
+         SELECT user_id FROM group_session_invites WHERE session_id = $1`,
+        [req.params.id],
+      )
+      return people.rows.map((p) => p.user_id)
+    })
+
+    for (const userId of recipients) {
+      void pushNotification(
+        userId, 'mentorship',
+        `"${d.topic}" was updated by the host — check Group Sessions for the latest time and link.`, req.user!.sub,
+      )
+    }
+    res.json({ ok: true })
+  }),
+)
+
 const repeatSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }).or(z.string().datetime()),
-  meetingLink: z.string().trim().url().optional().or(z.literal('')),
+  meetingLink: z.string().trim().min(1, 'Add a meeting link so attendees can join')
+    .url('The meeting link must be a full link, starting with https://')
+    .refine((u) => /^https?:\/\//i.test(u), 'The meeting link must start with https://'),
 })
 
 // POST /api/group-sessions/:id/repeat — run a past group session again with

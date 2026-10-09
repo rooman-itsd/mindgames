@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { BookOpen, ExternalLink, Video, Award, Calendar, GraduationCap, Star, X } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { BookOpen, ExternalLink, Video, Award, Calendar, Gift, Hourglass, Star, X } from 'lucide-react'
 import { useApp } from '../store/AppStore'
 import { SubscriptionPlans } from '../components/subscription/SubscriptionPlans'
 import { MentorWorkspace } from '../components/mentor/MentorWorkspace'
@@ -8,14 +8,28 @@ import { GroupSessionsTab } from '../components/mentor/GroupSessionsTab'
 import { CompleteSessionModal } from '../components/mentor/CompleteSessionModal'
 import { EditSessionModal } from '../components/mentor/EditSessionModal'
 import { SessionResourcesModal } from '../components/career/SessionResourcesModal'
+import { DateTile, Timeline, TimelineItem } from '../components/mentor/AgendaParts'
+import { IconAction } from '../components/mentor/IconAction'
+import { SearchBox } from '../components/mentor/SearchBox'
 import { api } from '../lib/api'
 import { roleLine, sessionLabels, sessionPriceLabel } from '../lib/format'
 import { isHttpUrl } from '../lib/links'
 import { isBookableMentor } from '../lib/profileCompleteness'
+import {
+  dayHeading, daysFromToday, freeSessionsLeft, groupByDay, matchesHistory, matchesMentorSearch, matchesQuery, newestFirst,
+  relativeDayLabel, sessionDayKey, sortMentors, type HistoryFilter, type MentorSort,
+} from '../lib/agenda'
+import { MENTORSHIP_TABS, useMentorshipTab } from '../hooks/useMentorshipTab'
+import { useFocusId, useMentorshipFocus } from '../hooks/useMentorshipFocus'
 import { Avatar, Button, Card } from '../components/ui'
 import { FREE_MENTORSHIP_SESSIONS, type MentorshipSession, type User } from '../types'
 
-type Tab = 'Find a Mentor' | 'My Sessions' | 'Mentor Space' | 'Group Sessions'
+const HISTORY_FILTERS: { id: HistoryFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'toConfirm', label: 'To confirm' },
+  { id: 'toRate', label: 'To rate' },
+  { id: 'declined', label: 'Declined' },
+]
 
 export function Mentorship() {
   const {
@@ -36,7 +50,9 @@ export function Mentorship() {
     refreshSubscription,
     query,
   } = useApp()
-  const [tab, setTab] = useState<Tab>('Find a Mentor')
+  // In the URL (?tab=…) so the Mentorship right sidebar can follow it.
+  const [tab, setTab] = useMentorshipTab()
+  const [params, setParams] = useSearchParams()
   const [accepting, setAccepting] = useState<string | null>(null)
   // Session the mentor was accepting when the paywall interrupted.
   const [payFor, setPayFor] = useState<{
@@ -44,6 +60,18 @@ export function Mentorship() {
   } | null>(null)
   const [rating, setRating] = useState<MentorshipSession | null>(null)
   const [ratings, setRatings] = useState<Map<string, { avg: number; count: number }>>(new Map())
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<MentorSort>('rating')
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all')
+  const [sessionQuery, setSessionQuery] = useState('')
+  // A calendar click (?focus=…) scrolls to that row — so nothing may hide it.
+  useMentorshipFocus()
+  const focusId = useFocusId()
+  useEffect(() => {
+    if (!focusId) return
+    setSessionQuery('')
+    setHistoryFilter('all')
+  }, [focusId])
 
   useEffect(() => {
     api.getMentorRatings().then(
@@ -58,10 +86,26 @@ export function Mentorship() {
   const [editing, setEditing] = useState<MentorshipSession | null>(null)
   const [resourcesFor, setResourcesFor] = useState<MentorshipSession | null>(null)
 
+  // "Book again" in the sidebar links here with ?book=<mentorId>: open the
+  // same booking form the Find a Mentor list uses, then drop the param so a
+  // refresh doesn't reopen it.
+  const bookId = params.get('book')
+  useEffect(() => {
+    if (!bookId) return
+    const m = users.find((u) => u.id === bookId)
+    if (!m) return // users still loading — this runs again once they arrive
+    const alreadyPending = sessions.some(
+      (s) => s.status === 'requested' && s.menteeId === currentUser.id && s.requestedBy !== 'mentor' && s.mentorId === m.id,
+    )
+    if (isBookableMentor(m) && m.id !== currentUser.id && !alreadyPending) setBooking(m)
+    setParams((prev) => { const p = new URLSearchParams(prev); p.delete('book'); return p }, { replace: true })
+  }, [bookId, users, sessions, currentUser.id, setParams])
+
   const q = query.trim().toLowerCase()
-  const mentors = users
+  const allMentors = users
     .filter((u) => isBookableMentor(u) && u.id !== currentUser.id && u.id !== 'rooman')
     .filter((u) => !q || `${u.name} ${u.domain} ${u.expertise.join(' ')}`.toLowerCase().includes(q))
+  const mentors = sortMentors(allMentors.filter((u) => matchesMentorSearch(u, search)), sort, ratings)
 
   // Split by role rather than mixing both into one list: a mentor's incoming
   // requests and their own bookings as a mentee were previously interleaved,
@@ -69,22 +113,20 @@ export function Mentorship() {
   // waiting on someone". Mentor-side items now live in Mentor Space.
   const asMentee = sessions.filter((s) => s.menteeId === currentUser.id)
   const asMentor = sessions.filter((s) => s.mentorId === currentUser.id)
-  const requested = asMentee.filter((s) => s.status === 'requested')
-  const upcoming = asMentee.filter((s) => s.status === 'upcoming')
-  const finished = asMentee.filter((s) => s.status === 'past' || s.status === 'declined')
+  // My Sessions search: topic, the other person, or the date.
+  const sessionHit = (s: MentorshipSession) =>
+    matchesQuery([s.topic, s.mentorId === currentUser.id ? s.menteeName : userById(s.mentorId)?.name, s.date], sessionQuery)
+  const requested = asMentee.filter((s) => s.status === 'requested' && sessionHit(s))
+  const upcoming = asMentee.filter((s) => s.status === 'upcoming' && sessionHit(s))
+  const finished = newestFirst(asMentee.filter((s) => (s.status === 'past' || s.status === 'declined') && sessionHit(s)))
+  const searching = sessionQuery.trim().length > 0
   const mentorRequests = asMentor.filter((s) => s.status === 'requested')
   const mentorUpcoming = asMentor.filter((s) => s.status === 'upcoming')
   const mentorFinished = asMentor.filter((s) => s.status === 'past' || s.status === 'declined')
 
-  // Mentee free-session allowance: the first N booked (non-declined) sessions
-  // are free; beyond that, sessions are paid at the mentor's rate. Sessions a
-  // mentor offered are excluded — they were given, not spent, so they must
-  // not eat an allowance the member never used. Mirrors the same rule in
-  // mentorship.routes.ts.
-  const freeUsed = sessions.filter(
-    (s) => s.menteeId === currentUser.id && s.status !== 'declined' && s.requestedBy !== 'mentor',
-  ).length
-  const freeRemaining = Math.max(0, FREE_MENTORSHIP_SESSIONS - freeUsed)
+  // Mentee free-session allowance (lib/agenda.ts — the same rule the
+  // sidebar's meter and mentorship.routes.ts use).
+  const freeRemaining = freeSessionsLeft(sessions, currentUser.id, FREE_MENTORSHIP_SESSIONS)
 
   // Mentors I already have a pending request with (as the mentee). A slot a
   // mentor offered *me* doesn't belong here — "Requested — awaiting
@@ -96,10 +138,32 @@ export function Mentorship() {
       .map((s) => s.mentorId),
   )
 
+  const now = Date.now()
+  const shownHistory = finished.filter((s) => matchesHistory(s, historyFilter))
+  const select = 'rounded-full border border-line bg-page px-4 py-2 text-sm text-ink outline-none focus:border-brand'
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink">Mentorship</h1>
+    <div className="flex flex-col gap-5">
+      {/* Emerald band: title, free-session allowance and the tabs, kept compact. */}
+      <section className="rounded-2xl bg-linear-to-br from-brand-700 to-brand-900 p-3 text-white shadow-sm sm:px-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-1 pt-0.5">
+        <div>
+          <h1 className="text-xl font-bold text-white">Mentorship</h1>
+          {/* Free-session allowance */}
+          <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-brand-100">
+            <Gift size={14} className={freeRemaining > 0 ? 'text-marigold' : 'text-brand-200'} />
+            {freeRemaining > 0 ? (
+              <span>
+                <strong className="text-white">{freeRemaining}</strong> of {FREE_MENTORSHIP_SESSIONS} free mentorship{' '}
+                {freeRemaining === 1 ? 'session' : 'sessions'} left — book any mentor you like, free.
+              </span>
+            ) : (
+              <span>
+                You've used your {FREE_MENTORSHIP_SESSIONS} free sessions. New sessions are <strong className="text-white">paid</strong> at the mentor's hourly rate (arranged with the mentor).
+              </span>
+            )}
+          </p>
+        </div>
         {!currentUser.isMentor && (
           // Links to the real verification flow on the profile. It used to
           // call updateProfile({isMentor:true}), which the backend rejects
@@ -114,83 +178,120 @@ export function Mentorship() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-line bg-surface p-1 shadow-sm">
-        {(['Find a Mentor', 'My Sessions', 'Mentor Space', 'Group Sessions'] as Tab[]).map((t) => (
+      <nav aria-label="Mentorship sections" className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-white/10 p-1 ring-1 ring-white/15 sm:flex sm:rounded-full">
+        {MENTORSHIP_TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
-              tab === t ? 'bg-brand text-white' : 'text-muted hover:bg-gray-100'
+            key={t.id}
+            aria-pressed={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors sm:flex-1 sm:rounded-full sm:px-4 ${
+              tab === t.id ? 'bg-white text-brand shadow-sm' : 'text-white/85 hover:bg-white/10 hover:text-white'
             }`}
           >
-            {t}
+            {t.label}
           </button>
         ))}
-      </div>
+      </nav>
+      </section>
 
-      {/* Free-session allowance */}
-      <div className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${freeRemaining > 0 ? 'border-green-200 bg-green-50 text-green-800' : 'border-line bg-surface text-muted'}`}>
-        {freeRemaining > 0 ? (
-          <>🎁 You have <strong>{freeRemaining}</strong> of {FREE_MENTORSHIP_SESSIONS} free mentorship {freeRemaining === 1 ? 'session' : 'sessions'} left — book any mentor you like, free.</>
-        ) : (
-          <>You've used your {FREE_MENTORSHIP_SESSIONS} free sessions. New sessions are <strong>paid</strong> at the mentor's hourly rate (arranged with the mentor).</>
-        )}
-      </div>
-
-      {tab === 'Find a Mentor' ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {mentors.map((m) => (
-            <Card key={m.id} className="p-5">
-              <div className="flex items-center gap-3">
-                <Avatar name={m.name} src={m.photo} size={56} to={`/profile/${m.id}`} />
-                <div className="min-w-0">
-                  <Link to={`/profile/${m.id}`} className="font-semibold text-ink hover:underline">{m.name}</Link>
-                  {roleLine(m) && <p className="truncate text-xs text-muted">{roleLine(m)}</p>}
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand">{m.domain}</span>
-                {m.expertise.slice(0, 2).map((e) => (
-                  <span key={e} className="rounded-full bg-page px-2.5 py-0.5 text-xs text-muted">{e}</span>
-                ))}
-              </div>
-              <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1 text-muted">
-                  <Star size={14} className="fill-amber-400 text-amber-400" />
-                  {ratings.has(m.id)
-                    ? `${ratings.get(m.id)!.avg} (${ratings.get(m.id)!.count}) · ${m.sessionsConducted ?? 0} sessions`
-                    : `${m.sessionsConducted ?? 0} sessions`}
-                </span>
-                {m.mentorRate ? (
-                  <span className="font-bold text-ink">₹{m.mentorRate.toLocaleString('en-IN')}<span className="text-xs font-normal text-muted">/hr</span></span>
-                ) : (
-                  <span className="text-xs text-muted">Rate on request</span>
+      {tab === 'find' ? (
+        <>
+          {/* One bar, like the other tabs: search + sort. */}
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-2 shadow-sm">
+            <SearchBox
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by name, skill or company"
+              label="Search mentors"
+              className="min-w-0 flex-1 basis-56 !border-0 !shadow-none"
+            />
+            <select value={sort} onChange={(e) => setSort(e.target.value as MentorSort)} className={select} aria-label="Sort mentors">
+              <option value="rating">Top rated</option>
+              <option value="sessions">Most sessions</option>
+              <option value="rate">Lowest rate</option>
+            </select>
+          </div>
+          {mentors.length === 0 ? (
+            <Empty label={search.trim() || q ? 'No mentors match that search.' : 'No mentors available yet.'} />
+          ) : (
+            <Card className="overflow-hidden">
+              {/* The count lives on the list's own heading, like Past / You're hosting. */}
+              <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 pb-3">
+                <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+                  Mentors
+                  <span className="rounded-full bg-gray-100 px-2 py-px text-[11px] font-bold text-muted">{mentors.length}</span>
+                </h2>
+                {mentors.length < allMentors.length && (
+                  <span className="text-xs text-muted">Showing {mentors.length} of {allMentors.length}</span>
                 )}
               </div>
-              {pendingMentorRequestIds.has(m.id) ? (
-                <Button variant="subtle" className="mt-4 w-full" disabled>
-                  <Calendar size={15} /> Requested — awaiting confirmation
-                </Button>
-              ) : (
-                <Button className="mt-4 w-full" onClick={() => setBooking(m)}>
-                  <Calendar size={15} />{' '}
-                  {freeRemaining > 0
-                    ? 'Book a free session'
-                    : m.mentorRate
-                      ? `Book · ₹${m.mentorRate.toLocaleString('en-IN')}/hr`
-                      : 'Book a session'}
-                </Button>
-              )}
+              <div className="divide-y divide-line border-t border-line">
+              {mentors.map((m) => (
+                <div key={m.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+                  <Avatar name={m.name} src={m.photo} size={48} to={`/profile/${m.id}`} />
+                  <div className="min-w-0 flex-1 basis-48">
+                    <div className="flex flex-wrap items-center gap-x-2">
+                      <Link to={`/profile/${m.id}`} className="truncate font-semibold text-ink hover:underline">{m.name}</Link>
+                      <span className="flex items-center gap-1 text-xs text-muted">
+                        <Star size={13} className="fill-marigold text-marigold" />
+                        {ratings.has(m.id)
+                          ? <><b className="text-ink">{ratings.get(m.id)!.avg}</b> ({ratings.get(m.id)!.count})</>
+                          : 'No ratings yet'}
+                      </span>
+                    </div>
+                    <p className="truncate text-xs text-muted">
+                      {[roleLine(m), `${m.sessionsConducted ?? 0} sessions`].filter(Boolean).join(' · ')}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-semibold text-brand">{m.domain}</span>
+                      {m.expertise.slice(0, 2).map((e) => (
+                        <span key={e} className="rounded-full bg-page px-2.5 py-0.5 text-xs text-muted">{e}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    {m.mentorRate ? (
+                      <span className="font-bold text-ink">₹{m.mentorRate.toLocaleString('en-IN')}<span className="text-xs font-normal text-muted">/hr</span></span>
+                    ) : (
+                      <span className="text-xs text-muted">Rate on request</span>
+                    )}
+                    {pendingMentorRequestIds.has(m.id) ? (
+                      <Button variant="subtle" className="!px-3 !py-1.5 text-xs" disabled>
+                        <Calendar size={14} /> Requested — awaiting confirmation
+                      </Button>
+                    ) : (
+                      <Button className="!px-3 !py-1.5 text-xs" onClick={() => setBooking(m)}>
+                        <Calendar size={14} />{' '}
+                        {freeRemaining > 0
+                          ? 'Book a free session'
+                          : m.mentorRate
+                            ? `Book · ₹${m.mentorRate.toLocaleString('en-IN')}/hr`
+                            : 'Book a session'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              </div>
             </Card>
-          ))}
-        </div>
-      ) : tab === 'My Sessions' ? (
-        <div className="flex flex-col gap-5">
+          )}
+        </>
+      ) : tab === 'sessions' ? (
+        <div className="flex flex-col gap-6">
+          <SearchBox
+            value={sessionQuery}
+            onChange={setSessionQuery}
+            placeholder="Search by topic, mentor or date"
+            label="Search my sessions"
+          />
           {/* Requests: mentor decides; mentee awaits */}
           {requested.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-lg font-bold text-ink">Requests</h2>
-              <div className="flex flex-col gap-3">
+            <Card className="overflow-hidden border-l-4 border-l-marigold">
+              <h2 className="flex items-center gap-2 px-5 pt-4 pb-2 text-base font-bold text-ink">
+                <Hourglass size={16} className="text-marigold-800" /> Waiting on a reply
+                <span className="rounded-full bg-gray-100 px-2 py-px text-[11px] font-bold text-muted">{requested.length}</span>
+              </h2>
+              <div className="divide-y divide-line">
                 {requested.map((s) => {
                   const iAmMentor = s.mentorId === currentUser.id
                   const other = iAmMentor ? s.menteeName : userById(s.mentorId)?.name
@@ -198,17 +299,14 @@ export function Mentorship() {
                   // of the other way round, so this row gets the buttons.
                   const offeredToMe = !iAmMentor && s.requestedBy === 'mentor'
                   return (
-                    <Card key={s.id} className="flex flex-wrap items-center gap-3 p-4">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                        <GraduationCap size={20} />
-                      </span>
-                      <div className="min-w-0 flex-1">
+                    <div key={s.id} id={`row-${s.id}`} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                      <div className="min-w-0 flex-1 basis-48">
                         <p className="font-semibold text-ink">{s.topic}</p>
                         <p className="text-xs text-muted">
                           {iAmMentor
                             ? `${other} requested this session`
                             : offeredToMe
-                              ? `${other} offered you this session`
+                              ? <><b className="text-ink">{other}</b> offered you this session</>
                               : `with ${other}`} · {s.date} · {s.time}
                           {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
                         </p>
@@ -224,157 +322,204 @@ export function Mentorship() {
                         </div>
                       ) : offeredToMe ? (
                         <div className="flex gap-2">
+                          <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => declineSessionOffer(s.id)}>
+                            Decline
+                          </Button>
                           <Button className="!px-3 !py-1.5 text-xs" onClick={() => acceptSessionOffer(s.id)}>
                             Accept
-                          </Button>
-                          <Button variant="subtle" className="!px-3 !py-1.5 text-xs" onClick={() => declineSessionOffer(s.id)}>
-                            Decline
                           </Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                          <span className="rounded-full bg-marigold-100 px-2.5 py-0.5 text-xs font-semibold text-marigold-800">
                             Awaiting confirmation
                           </span>
                           {/* Until now a request you sent could not be taken
                               back — it sat in the mentor's queue forever. */}
-                          <Button variant="subtle" className="!px-3 !py-1.5 text-xs" onClick={() => cancelSession(s.id)}>
+                          <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => cancelSession(s.id)}>
                             Withdraw
                           </Button>
                         </div>
                       )}
-                    </Card>
+                    </div>
                   )
                 })}
               </div>
-            </section>
+            </Card>
           )}
 
           <section>
-            <h2 className="mb-3 text-lg font-bold text-ink">Upcoming</h2>
-            <div className="flex flex-col gap-3">
-              {upcoming.map((s) => {
-                const iAmMentor = s.mentorId === currentUser.id
-                const other = iAmMentor ? s.menteeName : userById(s.mentorId)?.name
-                return (
-                  <Card key={s.id} className="flex flex-wrap items-center gap-3 p-4">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-brand">
-                      <GraduationCap size={20} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-ink">{s.topic}</p>
-                      <p className="text-xs text-muted">
-                        {iAmMentor ? 'mentoring' : 'with'} {other} · {s.date} · {s.time}
-                        {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
-                      </p>
-                    </div>
-                    {s.meetingLink ? (
-                      <a
-                        href={s.meetingLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-600 hover:bg-blue-100"
-                      >
-                        <Video size={12} /> Join <ExternalLink size={10} />
-                      </a>
-                    ) : (
-                      // Previously this rendered nothing at all, so a session
-                      // with no link looked identical to one you simply
-                      // couldn't see the link for.
-                      <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-muted">
-                        No link yet
-                      </span>
-                    )}
-                    <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Confirmed</span>
-                    {iAmMentor && (
-                      <Button variant="outline" className="!px-3 !py-1.5 text-xs" onClick={() => completeSession(s.id)}>
-                        Mark completed
-                      </Button>
-                    )}
-                    {/* A student's own session: only their mentor assigns
-                        resources here, so the button only appears once
-                        there is actually something to see. On an upcoming
-                        session that's prep to go through before it, so it's
-                        outlined and shows the count. */}
-                    {!!s.resourceCount && (
-                      <Button variant="outline" className="!px-3 !py-1.5 text-xs" icon={<BookOpen size={12} />} onClick={() => setResourcesFor(s)}>
-                        Resources · {s.resourceCount}
-                      </Button>
-                    )}
-                    <Button variant="subtle" className="!px-3 !py-1.5 text-xs" onClick={() => cancelSession(s.id)}>
-                      Cancel
-                    </Button>
-                  </Card>
-                )
-              })}
-              {upcoming.length === 0 && <Empty label="No upcoming sessions." />}
-            </div>
+            <h2 className="mb-3 text-base font-bold text-ink">Coming up</h2>
+            {upcoming.length === 0 ? (
+              <Empty label={searching ? 'No upcoming sessions match.' : 'No upcoming sessions.'} />
+            ) : (
+              <Timeline>
+                {groupByDay(upcoming).map((g) => (
+                  <div key={g.dayKey ?? 'undated'}>
+                    <p className="mb-2 text-xs font-bold tracking-wider text-muted uppercase">
+                      {g.dayKey ? dayHeading(g.dayKey) : 'Other dates'}
+                      {g.dayKey && (
+                        <span className="font-medium tracking-normal normal-case"> · {relativeDayLabel(daysFromToday(g.dayKey, now))}</span>
+                      )}
+                    </p>
+                    {g.items.map((s) => {
+                      const iAmMentor = s.mentorId === currentUser.id
+                      const other = iAmMentor ? s.menteeName : userById(s.mentorId)?.name
+                      const person = iAmMentor ? undefined : userById(s.mentorId)
+                      return (
+                        <TimelineItem key={s.id} kind="confirmed">
+                          <Card id={`row-${s.id}`} className="mb-4 flex flex-wrap items-center gap-3 p-4">
+                            <div className="w-20 shrink-0">
+                              <p className="text-sm font-bold text-ink">{s.time.replace(/\s*IST$/, '')}</p>
+                              <p className="text-[11px] text-muted">{g.dayKey ? 'IST' : s.date}</p>
+                            </div>
+                            <Avatar name={other ?? 'Mentor'} src={person?.photo} size={36} />
+                            <div className="min-w-0 flex-1 basis-48">
+                              <p className="font-semibold text-ink">{s.topic}</p>
+                              <p className="text-xs text-muted">
+                                {iAmMentor ? 'mentoring' : 'with'} {other}
+                                {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {s.meetingLink ? (
+                                <a
+                                  href={s.meetingLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-full bg-ocean-50 px-2.5 py-1 text-xs font-semibold text-ocean-700 hover:bg-ocean-100"
+                                >
+                                  <Video size={12} /> Join <ExternalLink size={10} />
+                                </a>
+                              ) : (
+                                // Previously this rendered nothing at all, so a session
+                                // with no link looked identical to one you simply
+                                // couldn't see the link for.
+                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-muted">
+                                  No link yet
+                                </span>
+                              )}
+                              <span className="rounded-full bg-jade-100 px-2.5 py-0.5 text-xs font-semibold text-jade-700">Confirmed</span>
+                              {iAmMentor && (
+                                <Button variant="outline" className="!px-3 !py-1.5 text-xs" onClick={() => completeSession(s.id)}>
+                                  Mark completed
+                                </Button>
+                              )}
+                              {/* A student's own session: only their mentor assigns
+                                  resources here, so the button only appears once
+                                  there is actually something to see. On an upcoming
+                                  session that's prep to go through before it, so the
+                                  icon shows the count. */}
+                              {!!s.resourceCount && (
+                                <IconAction label={`Resources · ${s.resourceCount}`} tip="Resources your mentor shared" count={s.resourceCount} onClick={() => setResourcesFor(s)}>
+                                  <BookOpen size={14} />
+                                </IconAction>
+                              )}
+                              <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => cancelSession(s.id)}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </Card>
+                        </TimelineItem>
+                      )
+                    })}
+                  </div>
+                ))}
+              </Timeline>
+            )}
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-bold text-ink">Past</h2>
-            <div className="flex flex-col gap-3">
-              {finished.map((s) => {
-                const iAmMentor = s.mentorId === currentUser.id
-                const other = iAmMentor ? s.menteeName : userById(s.mentorId)?.name
-                const declined = s.status === 'declined'
-                return (
-                  <Card key={s.id} className="flex items-center gap-3 p-4 opacity-80">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-muted">
-                      <GraduationCap size={20} />
-                    </span>
-                    <div className="flex-1">
-                      <p className="font-semibold text-ink">{s.topic}</p>
-                      <p className="text-xs text-muted">
-                        {iAmMentor ? 'mentored' : 'with'} {other} · {s.date}
-                        {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
-                      </p>
-                    </div>
-                    {/* The mentee's half of mutual confirmation. Without this
-                        the session never gets confirmed_at, and so never
-                        counts toward either side's stats or badges. */}
-                    {!declined && s.mentorConfirmed && !s.menteeConfirmed && (
-                      <Button className="!px-3 !py-1.5 text-xs" onClick={() => confirmSession(s.id)}>
-                        Confirm it happened
-                      </Button>
-                    )}
-                    {!declined && s.mentorConfirmed && s.menteeConfirmed && (
-                      <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                        Confirmed
-                      </span>
-                    )}
-                    {!declined && s.rating && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-600">
-                        <Star size={11} className="fill-amber-500 text-amber-500" /> {s.rating}
-                      </span>
-                    )}
-                    {!declined && !s.rating && !iAmMentor && (
-                      <Button variant="outline" className="!px-3 !py-1.5 text-xs" onClick={() => setRating(s)}>
-                        <Star size={13} /> Rate
-                      </Button>
-                    )}
-                    {/* Everything under Past is completed, so only the
-                        exception gets a badge. */}
-                    {declined && (
-                      <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-500">Declined</span>
-                    )}
-                    {/* A declined session never happened, so there is nothing
-                        to attach reading material to. Otherwise, same rule as
-                        Upcoming: only the mentee's own session, only shown
-                        once the mentor has actually assigned something. */}
-                    {!declined && !!s.resourceCount && (
-                      <Button variant="subtle" className="!px-3 !py-1.5 text-xs" icon={<BookOpen size={12} />} onClick={() => setResourcesFor(s)}>
-                        Resources · {s.resourceCount}
-                      </Button>
-                    )}
-                  </Card>
-                )
-              })}
-              {finished.length === 0 && <Empty label="No past sessions." />}
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-bold text-ink">History</h2>
+              {finished.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {HISTORY_FILTERS.map((f) => {
+                    const n = finished.filter((s) => matchesHistory(s, f.id)).length
+                    return (
+                      <button
+                        key={f.id}
+                        onClick={() => setHistoryFilter(f.id)}
+                        aria-pressed={historyFilter === f.id}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                          historyFilter === f.id ? 'bg-brand text-white' : 'border border-line bg-surface text-muted hover:text-ink'
+                        }`}
+                      >
+                        {f.label} <span className="opacity-60">{n}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
+            {finished.length === 0 ? (
+              <Empty label={searching ? 'No past sessions match.' : 'No past sessions.'} />
+            ) : shownHistory.length === 0 ? (
+              <Empty label="Nothing here." />
+            ) : (
+              <Card className="divide-y divide-line overflow-hidden">
+                {shownHistory.map((s) => {
+                  const iAmMentor = s.mentorId === currentUser.id
+                  const other = iAmMentor ? s.menteeName : userById(s.mentorId)?.name
+                  const declined = s.status === 'declined'
+                  const day = sessionDayKey(s)
+                  return (
+                    <div key={s.id} id={`row-${s.id}`} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                      <DateTile dayKey={day} label={s.date} dim />
+                      <div className="min-w-0 flex-1 basis-48 opacity-90">
+                        <p className="font-semibold text-ink">{s.topic}</p>
+                        <p className="text-xs text-muted">
+                          {iAmMentor ? 'mentored' : 'with'} {other}{day ? '' : ` · ${s.date}`}
+                          {sessionPriceLabel(s) && <span className="font-semibold text-brand"> · {sessionPriceLabel(s)}</span>}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {/* The mentee's half of mutual confirmation. Without this
+                            the session never gets confirmed_at, and so never
+                            counts toward either side's stats or badges. */}
+                        {!declined && s.mentorConfirmed && !s.menteeConfirmed && (
+                          <Button className="!px-3 !py-1.5 text-xs" onClick={() => confirmSession(s.id)}>
+                            Confirm it happened
+                          </Button>
+                        )}
+                        {!declined && s.mentorConfirmed && s.menteeConfirmed && (
+                          <span className="rounded-full bg-jade-100 px-2.5 py-0.5 text-xs font-semibold text-jade-700">
+                            Confirmed
+                          </span>
+                        )}
+                        {!declined && s.rating && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-marigold-50 px-2.5 py-0.5 text-xs font-semibold text-marigold-800">
+                            <Star size={11} className="fill-marigold text-marigold" /> {s.rating}
+                          </span>
+                        )}
+                        {!declined && !s.rating && !iAmMentor && (
+                          <Button variant="outline" className="!px-3 !py-1.5 text-xs" onClick={() => setRating(s)}>
+                            <Star size={13} /> Rate
+                          </Button>
+                        )}
+                        {/* Everything in History is completed, so only the
+                            exception gets a badge. */}
+                        {declined && (
+                          <span className="rounded-full bg-rosewood-50 px-2.5 py-0.5 text-xs font-semibold text-rosewood-700">Declined</span>
+                        )}
+                        {/* A declined session never happened, so there is nothing
+                            to attach reading material to. Otherwise, same rule as
+                            Coming up: only the mentee's own session, only shown
+                            once the mentor has actually assigned something. */}
+                        {!declined && !!s.resourceCount && (
+                          <IconAction label={`Resources · ${s.resourceCount}`} tip="Resources your mentor shared" count={s.resourceCount} onClick={() => setResourcesFor(s)}>
+                            <BookOpen size={14} />
+                          </IconAction>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </Card>
+            )}
           </section>
         </div>
-      ) : tab === 'Mentor Space' ? (
+      ) : tab === 'space' ? (
         <MentorWorkspace
           requests={mentorRequests}
           upcoming={mentorUpcoming}
@@ -486,7 +631,7 @@ export function Mentorship() {
             bookSession(booking.id, topic, date, time)
             setBooking(null)
             // Land the user on My Sessions so the new request is visible.
-            setTab('My Sessions')
+            setTab('sessions')
           }}
         />
       )}

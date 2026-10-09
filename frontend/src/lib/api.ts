@@ -732,9 +732,14 @@ export const api = {
     http<GroupSession>(`/api/group-sessions/${id}/confirm`, { method: 'POST' }),
   cancelGroupSession: (id: string) =>
     http<{ ok: boolean }>(`/api/group-sessions/${id}/cancel`, { method: 'POST' }),
+  /** Host edits a scheduled group session (not pricing or who can join). */
+  editGroupSession: (
+    id: string,
+    input: { topic: string; description: string; domain: string; scheduledAt: string; durationMinutes: number; capacity: number; meetingLink: string },
+  ) => http<{ ok: boolean }>(`/api/group-sessions/${id}/edit`, { method: 'POST', body: JSON.stringify(input) }),
   /** Schedule a new session for the same people who attended a past one —
    *  always invite_only, invited to exactly that roster. */
-  repeatGroupSession: (id: string, input: { scheduledAt: string; meetingLink?: string }) =>
+  repeatGroupSession: (id: string, input: { scheduledAt: string; meetingLink: string }) =>
     http<GroupSession>(`/api/group-sessions/${id}/repeat`, { method: 'POST', body: JSON.stringify(input) }),
   /** A mentee's roadmap. Allowed only where an accepted session exists. */
   getMenteeRoadmap: (userId: string) => http<MenteeRoadmap>(`/api/career/roadmap/of/${userId}`),
