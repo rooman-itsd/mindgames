@@ -568,7 +568,8 @@ const submitSchema = z.object({
 
 // POST /api/career-resources/:id/submit — the MENTEE it was assigned to proves
 // they did it, with a link (a doc, a repo, a deployed site), attached files,
-// or both. Sending again replaces what was sent before.
+// or both. Once sent it is a record (isLocked): a second submit is refused
+// rather than replacing evidence the mentor may already have reviewed.
 // Deliberately not the owner: the mentor who assigned it is the one who set
 // requires_submission, and the mentee is who has to answer it. "The mentee" is
 // assigned_to — set for session follow-ups and direct assignments alike.
@@ -582,24 +583,30 @@ careerResourcesRouter.post(
     const fileIds = [...new Set(parsed.data.fileIds)]
     if (!parsed.data.url && !fileIds.length) throw new ApiError(400, 'Add a link or attach your work')
 
-    const cur = await query<{ requires_submission: boolean; title: string; user_id: string; session_id: string | null }>(
-      `SELECT r.requires_submission, r.title, r.user_id, r.session_id
-         FROM career_resources r
-        WHERE r.id = $1 AND r.assigned_to = $2`,
-      [req.params.id, me],
-    )
-    if (!cur.rowCount) throw new ApiError(404, 'Resource not found (or not assigned to you)')
-    if (!cur.rows[0].requires_submission) throw new ApiError(400, 'This resource does not ask for a submission')
-
-    // Old evidence out, new evidence in, and the submission stamped — one
-    // transaction, so a missing upload leaves the previous submission intact.
-    await withTransaction(async (client) => {
-      await client.query(`DELETE FROM career_resource_files WHERE resource_id = $1 AND role = 'evidence'`, [req.params.id])
+    // Check and write as one step under a row lock (FOR UPDATE): two submits
+    // at once — two tabs, or a retry after a timeout — would otherwise both
+    // pass the "not yet submitted" check and both claim their files. The
+    // second waits here, then sees submission_at and is refused.
+    const cur = await withTransaction(async (client) => {
+      const row = await client.query<{
+        requires_submission: boolean; title: string; user_id: string; session_id: string | null; submission_at: Date | null
+      }>(
+        `SELECT r.requires_submission, r.title, r.user_id, r.session_id, r.submission_at
+           FROM career_resources r
+          WHERE r.id = $1 AND r.assigned_to = $2
+          FOR UPDATE`,
+        [req.params.id, me],
+      )
+      if (!row.rowCount) throw new ApiError(404, 'Resource not found (or not assigned to you)')
+      if (!row.rows[0].requires_submission) throw new ApiError(400, 'This resource does not ask for a submission')
+      if (row.rows[0].submission_at) throw new ApiError(409, 'You have already sent your work for this')
+      // A missing upload rolls the whole submission back.
       await claimUploads(client, req.params.id, fileIds, me, 'evidence')
       await client.query(
         `UPDATE career_resources SET submission_url = $2, submission_at = now(), updated_at = now() WHERE id = $1`,
         [req.params.id, parsed.data.url ?? null],
       )
+      return row
     })
     const who = await query<{ name: string }>(`SELECT name FROM users WHERE id = $1`, [me])
     void pushNotification(

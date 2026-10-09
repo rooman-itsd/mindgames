@@ -32,12 +32,16 @@ export const RESOURCE_SELECT = `
          -- have hidden it: the download would refuse them anyway.
          ${shareFilesJson('sh', 'NOT sh.hidden')} AS share_files,
          -- The title of the stage it is filed under, so a mentee sees which of
-         -- their stages a mentor assigned it to. One primary-key lookup and a
-         -- walk of that roadmap's few stages, only for rows that name one.
-         (SELECT st->>'title'
-            FROM career_roadmaps cr, jsonb_array_elements(cr.data->'stages') st
-           WHERE cr.id = r.roadmap_id AND st->>'stepKey' = r.step_key
-           LIMIT 1) AS step_title,
+         -- their stages a mentor assigned it to. Only assigned rows use it
+         -- (personal saves group by stage client-side), so the CASE skips the
+         -- roadmap read for every other row; when it runs, it is one
+         -- primary-key lookup and a walk of that roadmap's few stages.
+         CASE WHEN r.assigned_to IS NOT NULL AND r.step_key IS NOT NULL THEN
+           (SELECT st->>'title'
+              FROM career_roadmaps cr, jsonb_array_elements(cr.data->'stages') st
+             WHERE cr.id = r.roadmap_id AND st->>'stepKey' = r.step_key
+             LIMIT 1)
+         END AS step_title,
          -- Its attachments — the mentor's and any sent back as evidence —
          -- names and sizes only, never the bytes. One index range on
          -- idx_career_resource_files_resource.

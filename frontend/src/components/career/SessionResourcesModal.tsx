@@ -227,8 +227,13 @@ export function SessionResourcesModal({
                         <span className="truncate">{r.url}</span>
                         <ExternalLink size={11} className="shrink-0" />
                       </a>
-                    ) : (
+                    ) : !r.attachments?.length ? (
                       <p className="mt-0.5 text-xs italic text-muted">No link attached</p>
+                    ) : null}
+                    {/* Files the mentor attached (the API allows them on
+                        session resources too, with or without a link). */}
+                    {r.attachments && r.attachments.length > 0 && (
+                      <ShareFiles files={r.attachments} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                     )}
                     <p className="mt-1 text-[11px] text-muted" title={shortStamp(r.createdAt)}>
                       Assigned {relative ?? shortStamp(r.createdAt)}
