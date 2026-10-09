@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import {
-  byWhen, dayHeading, daysFromToday, itemsByDay, istInputParts, istInputToIso, istTime, pendingRequestMentorIds, defaultSelectedDay, freeSessionsLeft, groupCalendar, groupByDay, hostingRecord, istDayKey,
+  attendKind, attendingUnder, hostingUnder, istDateTime, nextHosted, byWhen, dayHeading, daysFromToday, itemsByDay, istInputParts, istInputToIso, istTime, pendingRequestMentorIds, defaultSelectedDay, freeSessionsLeft, groupCalendar, groupByDay, hostingRecord, istDayKey,
   labelMinutes, matchesHistory, matchesMentorSearch, matchesQuery, menteeCalendar, mentorCalendar, monthGrid, myMentors, nextSession, openByDomain,
   relativeDayLabel, sessionDayKey, shiftMonth, sortMentors, newestFirst, tileParts, joinTags, parseTags, MAX_TAGS,
 } from './agenda'
@@ -143,7 +143,8 @@ const sameDay = itemsByDay([
   { dayKey: '2026-10-14', kind: 'confirmed', title: 'early', detail: '', mins: 9 * 60, ref: { tab: 'sessions', id: 'y' } },
 ]).get('2026-10-14')!.map((i) => i.title)
 assert.deepStrictEqual(sameDay, ['early', 'late'], 'a day lists its items by time')
-assert.deepStrictEqual(hostingRecord(mine.filter((x) => x.mentorId === 'me')), { hosted: 1, attendees: 18, avgFill: 72 })
+assert.deepStrictEqual(hostingRecord(mine.filter((x) => x.mentorId === 'me')), { hosted: 0, attendees: 0, avgFill: null }, 'upcoming + cancelled are not a record')
+assert.deepStrictEqual(hostingRecord([...mine, g({ id: '7', mentorId: 'me', status: 'completed', attendeeCount: 20 })].filter((x) => x.mentorId === 'me')), { hosted: 1, attendees: 20, avgFill: 80 }, 'only completed sessions count')
 assert.deepStrictEqual(hostingRecord([]), { hosted: 0, attendees: 0, avgFill: null })
 assert.deepStrictEqual(openByDomain(open), [{ domain: 'Security', count: 2 }, { domain: 'Cloud', count: 1 }])
 assert.deepStrictEqual(openByDomain(open, mine), [{ domain: 'Security', count: 2 }], 'sessions I host or joined are not "open" to me')
@@ -169,5 +170,30 @@ assert.strictEqual(istTime('2026-10-14T13:00:00.000Z'), '6:30 PM')
 assert.strictEqual(groupCalendar([g({ id: 'l', invitedByMe: true, status: 'completed' })], [], 'me').length, 0, 'lapsed invite not on calendar')
 // one pending rule
 assert.deepStrictEqual([...pendingRequestMentorIds([...sessions, s({ id: 'r', status: 'requested', requestedBy: 'mentee', mentorId: 'm4' })], 'me')], ['m4'], 'own requests only — not the mentor offer from m2, nor requests where I mentor')
+
+// --- group lists (review b) -------------------------------------------------------
+assert.strictEqual(istDateTime('2026-09-26T13:00:00.000Z'), '26 Sep, 6:30 PM', 'never "Sept"')
+assert.strictEqual(istDateTime('2026-10-14T19:00:00.000Z'), '15 Oct, 12:30 AM', 'IST day, not UTC day')
+assert.strictEqual(attendKind(g({ joinedByMe: true })), 'upcoming')
+assert.strictEqual(attendKind(g({ joinedByMe: true, status: 'completed' })), 'completed')
+assert.strictEqual(attendKind(g({ invitedByMe: true })), 'invited')
+assert.strictEqual(attendKind(g({ invitedByMe: true, status: 'completed' })), null, 'lapsed invite')
+assert.strictEqual(attendKind(g({ joinedByMe: true, status: 'cancelled' })), 'cancelled')
+const hosted = [
+  g({ id: 'a', mentorId: 'me', scheduledAt: '2026-10-20T10:00:00.000Z' }),
+  g({ id: 'b', mentorId: 'me', scheduledAt: '2026-10-12T10:00:00.000Z' }),
+  g({ id: 'c', mentorId: 'me', status: 'completed', scheduledAt: '2026-09-01T10:00:00.000Z' }),
+  g({ id: 'd', mentorId: 'me', status: 'completed', scheduledAt: '2026-10-01T10:00:00.000Z' }),
+  g({ id: 'e', mentorId: 'me', status: 'cancelled', scheduledAt: '2026-10-05T10:00:00.000Z' }),
+]
+assert.deepStrictEqual(hostingUnder(hosted, 'scheduled').map((x) => x.id), ['b', 'a'], 'upcoming soonest first')
+assert.deepStrictEqual(hostingUnder(hosted, 'completed').map((x) => x.id), ['d', 'c'], 'completed most recent first')
+assert.deepStrictEqual(hostingUnder(hosted, 'all').map((x) => x.id), ['a', 'b', 'e', 'd', 'c'])
+assert.deepStrictEqual(attendingUnder([g({ id: 'x', invitedByMe: true, status: 'completed' }), g({ id: 'y', invitedByMe: true })], 'invited').map((x) => x.id), ['y'])
+assert.deepStrictEqual(attendingUnder([g({ id: 'x', invitedByMe: true, status: 'completed' })], 'all').map((x) => x.id), ['x'], 'lapsed only under All')
+const NOW_TS = Date.parse('2026-10-12T05:00:00.000Z')
+assert.strictEqual(nextHosted(hosted, 'me', NOW_TS)?.id, 'b')
+assert.strictEqual(nextHosted(hosted, 'someone-else', NOW_TS), undefined)
+assert.strictEqual(nextHosted(hosted, 'me', Date.parse('2026-10-25T00:00:00.000Z')), undefined, 'nothing left to host')
 
 console.log('agenda.check.ts — all assertions passed')

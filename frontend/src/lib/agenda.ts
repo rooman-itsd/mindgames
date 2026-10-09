@@ -9,6 +9,7 @@
  * device is set to another timezone.
  */
 import type { GroupSession, MentorshipSession } from '../types'
+import { sessionLabels } from './format'
 
 const IST = 'Asia/Kolkata'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -183,7 +184,14 @@ export function mentorCalendar(sessions: MentorshipSession[], me: string): Calen
 
 /** "6:30 PM" — an instant's time of day in IST. The one formatter for group sessions. */
 export function istTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-IN', { timeZone: IST, hour: 'numeric', minute: '2-digit' }).toUpperCase()
+  // Same formatter the 1:1 session labels use ("8:00 PM IST"), minus the suffix.
+  return sessionLabels(new Date(iso)).timeLabel.replace(/ IST$/, '')
+}
+
+/** "14 Oct, 6:30 PM" — an instant's IST date and time. Fixed month names, so never "Sept". */
+export function istDateTime(iso: string): string {
+  const key = istDayKey(iso)
+  return key ? `${Number(key.slice(8, 10))} ${monthShort(key)}, ${istTime(iso)}` : ''
 }
 
 /** An instant as IST date + time strings, for date/time inputs ("2026-10-14", "18:30"). */
@@ -381,10 +389,47 @@ export function nextSession<T extends MentorshipSession>(list: T[], now: number)
 
 /** A hosting record from the member's own group sessions. */
 export function hostingRecord(hosted: GroupSession[]): { hosted: number; attendees: number; avgFill: number | null } {
-  const done = hosted.filter((g) => g.status !== 'cancelled')
+  // Only sessions that actually happened — upcoming ones aren't a record yet.
+  const done = hosted.filter((g) => g.status === 'completed')
   const attendees = done.reduce((n, g) => n + g.attendeeCount, 0)
   const seats = done.reduce((n, g) => n + g.capacity, 0)
   return { hosted: done.length, attendees, avgFill: seats ? Math.round((attendees / seats) * 100) : null }
+}
+
+// ---- Group session lists ------------------------------------------------------
+
+export type HostFilter = 'scheduled' | 'completed' | 'cancelled' | 'all'
+export type AttendFilter = 'upcoming' | 'invited' | 'completed' | 'cancelled' | 'all'
+
+/** Which "You're attending" chip a session sits under; null = a lapsed invite (only under All). */
+export function attendKind(g: GroupSession): AttendFilter | null {
+  if (g.status === 'cancelled') return 'cancelled'
+  if (g.joinedByMe) return g.status === 'completed' ? 'completed' : 'upcoming'
+  return g.status === 'scheduled' ? 'invited' : null
+}
+
+const soonestFirst = (a: GroupSession, b: GroupSession) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt)
+
+/** Hosted sessions under a chip: upcoming soonest first, everything else most recent first. */
+export function hostingUnder(list: GroupSession[], f: HostFilter): GroupSession[] {
+  return list
+    .filter((g) => f === 'all' || g.status === f)
+    .sort((a, b) => (f === 'scheduled' ? soonestFirst(a, b) : soonestFirst(b, a)))
+}
+
+/** Attended/invited sessions under a chip: upcoming and invites soonest first, the rest most recent first. */
+export function attendingUnder(list: GroupSession[], f: AttendFilter): GroupSession[] {
+  return list
+    .filter((g) => f === 'all' || attendKind(g) === f)
+    .sort((a, b) => (f === 'upcoming' || f === 'invited' ? soonestFirst(a, b) : soonestFirst(b, a)))
+}
+
+/** The next session this member hosts, today or later (IST days). */
+export function nextHosted(mine: GroupSession[], me: string, now: number = Date.now()): GroupSession | undefined {
+  const today = istDayKey(now) ?? ''
+  return mine
+    .filter((g) => g.mentorId === me && g.status === 'scheduled' && (istDayKey(g.scheduledAt) ?? '') >= today)
+    .sort(soonestFirst)[0]
 }
 
 // ---- Group session skills ------------------------------------------------------

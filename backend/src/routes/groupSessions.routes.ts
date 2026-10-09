@@ -159,25 +159,32 @@ groupSessionsRouter.post(
     }
 
     const isPaid = g.pricingMode === 'paid' && g.pricePerSeat > 0
-    const ins = await query<{ id: string }>(
-      `INSERT INTO group_sessions
-         (mentor_id, topic, description, domain, scheduled_at, duration_minutes, capacity,
-          meeting_link, pricing_mode, price_per_seat, visibility)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-      [
-        req.user!.sub, g.topic, g.description, g.domain, startsAt, g.durationMinutes, g.capacity,
-        g.meetingLink || null, isPaid ? 'paid' : 'free', isPaid ? g.pricePerSeat : 0, g.visibility,
-      ],
-    )
+    // The session and its invites are written together or not at all — an
+    // invite-only session with nobody invited could never be joined.
+    const sessionId = await withTransaction(async (client) => {
+      const ins = await client.query<{ id: string }>(
+        `INSERT INTO group_sessions
+           (mentor_id, topic, description, domain, scheduled_at, duration_minutes, capacity,
+            meeting_link, pricing_mode, price_per_seat, visibility)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+        [
+          req.user!.sub, g.topic, g.description, g.domain, startsAt, g.durationMinutes, g.capacity,
+          g.meetingLink || null, isPaid ? 'paid' : 'free', isPaid ? g.pricePerSeat : 0, g.visibility,
+        ],
+      )
+      if (g.visibility === 'invite_only') {
+        await client.query(
+          `INSERT INTO group_session_invites (session_id, user_id)
+           SELECT $1, x FROM unnest($2::text[]) AS x`,
+          [ins.rows[0].id, inviteeIds],
+        )
+      }
+      return ins.rows[0].id
+    })
 
     const mentor = await query<{ name: string }>(`SELECT name FROM users WHERE id = $1`, [req.user!.sub])
 
     if (g.visibility === 'invite_only') {
-      await query(
-        `INSERT INTO group_session_invites (session_id, user_id)
-         SELECT $1, x FROM unnest($2::text[]) AS x`,
-        [ins.rows[0].id, inviteeIds],
-      )
       // Notify only the people actually invited — never the whole network,
       // which is the entire point of choosing invite_only over public.
       for (const id of inviteeIds) {
@@ -195,7 +202,7 @@ groupSessionsRouter.post(
       )
     }
 
-    const full = await query<GroupSessionRow>(`${LIST_SELECT('$2')} WHERE g.id = $1`, [ins.rows[0].id, req.user!.sub])
+    const full = await query<GroupSessionRow>(`${LIST_SELECT('$2')} WHERE g.id = $1`, [sessionId, req.user!.sub])
     res.status(201).json(mapGroupSession(full.rows[0]))
   }),
 )
@@ -627,22 +634,27 @@ groupSessionsRouter.post(
     if (!allowed.allowed) throw new ApiError(402, allowed.reason ?? 'A plan is needed to host group sessions.')
 
     const s = src.rows[0]
-    const ins = await query<{ id: string }>(
-      `INSERT INTO group_sessions
-         (mentor_id, topic, description, domain, scheduled_at, duration_minutes, capacity,
-          meeting_link, pricing_mode, price_per_seat, visibility)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'invite_only') RETURNING id`,
-      [
-        req.user!.sub, s.topic, s.description, s.domain, startsAt, s.duration_minutes,
-        Math.max(s.capacity, attendees.rowCount), parsed.data.meetingLink || null,
-        s.pricing_mode, s.price_per_seat,
-      ],
-    )
-    await query(
-      `INSERT INTO group_session_invites (session_id, user_id)
-       SELECT $1, mentee_id FROM group_session_attendees WHERE session_id = $2`,
-      [ins.rows[0].id, req.params.id],
-    )
+    const capacity = Math.max(s.capacity, attendees.rowCount)
+    // The new session and its invites are written together or not at all.
+    const newId = await withTransaction(async (client) => {
+      const ins = await client.query<{ id: string }>(
+        `INSERT INTO group_sessions
+           (mentor_id, topic, description, domain, scheduled_at, duration_minutes, capacity,
+            meeting_link, pricing_mode, price_per_seat, visibility)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'invite_only') RETURNING id`,
+        [
+          req.user!.sub, s.topic, s.description, s.domain, startsAt, s.duration_minutes,
+          capacity, parsed.data.meetingLink || null,
+          s.pricing_mode, s.price_per_seat,
+        ],
+      )
+      await client.query(
+        `INSERT INTO group_session_invites (session_id, user_id)
+         SELECT $1, mentee_id FROM group_session_attendees WHERE session_id = $2`,
+        [ins.rows[0].id, req.params.id],
+      )
+      return ins.rows[0].id
+    })
 
     const mentor = await query<{ name: string }>(`SELECT name FROM users WHERE id = $1`, [req.user!.sub])
     for (const a of attendees.rows) {
@@ -653,7 +665,7 @@ groupSessionsRouter.post(
       )
     }
 
-    const full = await query<GroupSessionRow>(`${LIST_SELECT('$2')} WHERE g.id = $1`, [ins.rows[0].id, req.user!.sub])
+    const full = await query<GroupSessionRow>(`${LIST_SELECT('$2')} WHERE g.id = $1`, [newId, req.user!.sub])
     res.status(201).json(mapGroupSession(full.rows[0]))
   }),
 )

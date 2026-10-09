@@ -68,6 +68,9 @@ export function DomainPicker({ value, onChange }: { value: string; onChange: (ne
             onKeyDown={(e) => {
               if (e.key === 'Enter') { e.preventDefault(); addDraft() }
             }}
+            // Leaving the box keeps what was typed — clicking Save straight
+            // after typing would otherwise drop it without a word.
+            onBlur={() => { if (draft.trim()) addDraft() }}
             disabled={full}
             maxLength={30}
             placeholder={full ? `Up to ${MAX_TAGS} — remove one to add another` : 'Type a skill, e.g. Kubernetes, and press Enter'}

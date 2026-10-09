@@ -7,7 +7,7 @@ import { useApp } from '../../store/AppStore'
 import { api } from '../../lib/api'
 import {
   byDayThenTime, dayHeading, daysFromToday, freeSessionsLeft, groupCalendar, hostingRecord, istDayKey, mentorCalendar, menteeCalendar,
-  istTime, myMentors, nextSession, openByDomain, pendingRequestMentorIds, overviewCalendar, relativeDayLabel, sessionDayKey,
+  istTime, myMentors, nextHosted, nextSession, openByDomain, pendingRequestMentorIds, overviewCalendar, relativeDayLabel, sessionDayKey,
 } from '../../lib/agenda'
 import { useMentorshipTab } from '../../hooks/useMentorshipTab'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
@@ -79,6 +79,7 @@ const EMPTY_GROUPS: GroupSessionsSnapshot = { open: [], mine: [] }
  */
 function useGroupSnapshot(me: string, fetchMine: boolean): GroupSessionsSnapshot {
   const [snap, setSnap] = useState<GroupSessionsSnapshot | null>(() => lastGroupSessions(me))
+  // Listen for the Group tab's loads — for this member only.
   useEffect(() => {
     setSnap(lastGroupSessions(me)) // a different member: never keep the previous one's data
     const onLoad = (e: Event) => {
@@ -86,20 +87,22 @@ function useGroupSnapshot(me: string, fetchMine: boolean): GroupSessionsSnapshot
       if (load.owner === me) setSnap(load.snapshot)
     }
     window.addEventListener(GROUP_SESSIONS_EVENT, onLoad)
+    return () => window.removeEventListener(GROUP_SESSIONS_EVENT, onLoad)
+  }, [me])
+  // Off the Group tab, fetch the member's own sessions — again each time they
+  // leave it. Going back to the Group tab drops a reply still in flight, so a
+  // late answer can't overwrite the fresher lists that tab publishes.
+  useEffect(() => {
+    if (!fetchMine) return
     let alive = true
-    if (fetchMine) {
-      api.getMyGroupSessions().then(
-        (mine) => alive && setSnap((s) => ({ open: s?.open ?? [], mine })),
-        () => {},
-      )
-    }
+    api.getMyGroupSessions().then(
+      (mine) => alive && setSnap((s) => ({ open: s?.open ?? [], mine })),
+      () => {},
+    )
     return () => {
       alive = false
-      window.removeEventListener(GROUP_SESSIONS_EVENT, onLoad)
     }
-    // Per member, once per mount: the rail stays mounted across tab switches.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me])
+  }, [me, fetchMine])
   return snap ?? EMPTY_GROUPS
 }
 
@@ -400,9 +403,7 @@ function BecomeMentor() {
 function HostingNext({ mine }: { mine: GroupSession[] }) {
   const { currentUser } = useApp()
   const today = istDayKey(Date.now()) ?? ''
-  const next = mine
-    .filter((g) => g.mentorId === currentUser.id && g.status === 'scheduled' && (istDayKey(g.scheduledAt) ?? '') >= today)
-    .sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt))[0]
+  const next = nextHosted(mine, currentUser.id)
   if (!next) return null
   const day = istDayKey(next.scheduledAt) ?? today
   const pct = Math.round((next.attendeeCount / Math.max(next.capacity, 1)) * 100)

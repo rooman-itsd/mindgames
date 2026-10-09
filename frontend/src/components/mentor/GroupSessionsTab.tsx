@@ -12,7 +12,10 @@ import { SubscriptionPlans } from '../subscription/SubscriptionPlans'
 import type { GroupSession, GroupSessionAttendee } from '../../types'
 import { SkeletonRows } from '../ui/Skeleton'
 import { EmptyState } from '../ui/EmptyState'
-import { istDayKey, istInputParts, istInputToIso, istTime, matchesQuery, parseTags } from '../../lib/agenda'
+import {
+  attendingUnder, hostingUnder, istDateTime, istDayKey, istInputParts, istInputToIso, istTime, matchesQuery, parseTags,
+  type AttendFilter, type HostFilter,
+} from '../../lib/agenda'
 import { DateTile } from './AgendaParts'
 import { publishGroupSessions } from './groupSessionsBus'
 import { IconAction } from './IconAction'
@@ -31,8 +34,6 @@ import { UsersRound } from 'lucide-react'
  * visible to a mentor, and the 402 it can produce opens the plans rather
  * than erroring, exactly like accepting a 1:1 session does.
  */
-type HostFilter = 'scheduled' | 'completed' | 'cancelled' | 'all'
-type AttendFilter = 'upcoming' | 'invited' | 'completed' | 'cancelled' | 'all'
 const ATTEND_FILTERS: { id: AttendFilter; label: string }[] = [
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'invited', label: 'Invited' },
@@ -40,11 +41,6 @@ const ATTEND_FILTERS: { id: AttendFilter; label: string }[] = [
   { id: 'cancelled', label: 'Cancelled' },
   { id: 'all', label: 'All' },
 ]
-function attendKind(g: GroupSession): AttendFilter | null {
-  if (g.status === 'cancelled') return 'cancelled'
-  if (g.joinedByMe) return g.status === 'completed' ? 'completed' : 'upcoming'
-  return g.status === 'scheduled' ? 'invited' : null // an invite that lapsed — only under All
-}
 const HOST_FILTERS: { id: HostFilter; label: string }[] = [
   { id: 'scheduled', label: 'Upcoming' },
   { id: 'completed', label: 'Completed' },
@@ -89,14 +85,8 @@ export function GroupSessionsTab() {
   const hosting = hostingAll.filter(hit)
   // Filter chips, like My Sessions → History: upcoming soonest first,
   // everything else most recent first.
-  const hostCount = (f: HostFilter) => (f === 'all' ? hosting.length : hosting.filter((g) => g.status === f).length)
-  const hostingShown = hosting
-    .filter((g) => hostFilter === 'all' || g.status === hostFilter)
-    .sort((a, b) =>
-      hostFilter === 'scheduled'
-        ? Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt)
-        : Date.parse(b.scheduledAt) - Date.parse(a.scheduledAt),
-    )
+  const hostCount = (f: HostFilter) => hostingUnder(hosting, f).length
+  const hostingShown = hostingUnder(hosting, hostFilter)
   // An invite_only session I haven't joined yet: this is how it's found at
   // all, since it's deliberately excluded from the public "Discover sessions"
   // list below.
@@ -104,16 +94,10 @@ export function GroupSessionsTab() {
   const joined = mine.filter((g) => g.mentorId !== currentUser.id && g.joinedByMe)
   const attendingAll = [...invited, ...joined]
   const attending = attendingAll.filter(hit)
-  const attendCount = (f: AttendFilter) => (f === 'all' ? attending.length : attending.filter((g) => attendKind(g) === f).length)
+  const attendCount = (f: AttendFilter) => attendingUnder(attending, f).length
   const attendFilter: AttendFilter =
     attendPick ?? ((['upcoming', 'invited', 'completed'] as const).find((f) => attendCount(f) > 0) ?? 'upcoming')
-  const attendingShown = attending
-    .filter((g) => attendFilter === 'all' || attendKind(g) === attendFilter)
-    .sort((a, b) =>
-      attendFilter === 'upcoming' || attendFilter === 'invited'
-        ? Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt)
-        : Date.parse(b.scheduledAt) - Date.parse(a.scheduledAt),
-    )
+  const attendingShown = attendingUnder(attending, attendFilter)
   // Don't repeat a session the member already sees in "mine".
   const mineIds = new Set(mine.map((g) => g.id))
   const browsableAll = open.filter((g) => !mineIds.has(g.id))
@@ -359,16 +343,6 @@ export function GroupSessionsTab() {
   )
 }
 
-function fmt(iso: string): string {
-  // IST, like the date tile beside it — otherwise a late-night session can show
-  // one day on the tile and another in the text.
-  return new Date(iso).toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
-  })
-    // Newer ICU data spells September "Sept"; everywhere else says "Sep".
-    .replace('Sept', 'Sep')
-}
-
 /** The filter chips used by You're hosting and You're attending. */
 function FilterChips<T extends string>({ options, value, count, onChange }: {
   options: { id: T; label: string }[]; value: T; count: (id: T) => number; onChange: (id: T) => void
@@ -461,7 +435,7 @@ function JoinedRow({
       <div className={`min-w-0 flex-1 basis-48 ${session.status === 'cancelled' ? 'opacity-60' : ''}`}>
         <p className="truncate text-sm font-semibold text-ink">{session.topic}</p>
         <p className="text-xs text-muted">
-          with {session.mentorName} · {fmt(session.scheduledAt)} · {session.durationMinutes} min
+          with {session.mentorName} · {istDateTime(session.scheduledAt)} · {session.durationMinutes} min
         </p>
       </div>
       {session.status === 'cancelled' ? (
@@ -535,7 +509,7 @@ function HostRow({
             {session.status}
           </span>
         </p>
-        <p className="text-xs text-muted">{fmt(session.scheduledAt)}</p>
+        <p className="text-xs text-muted">{istDateTime(session.scheduledAt)}</p>
         {/* How full it is, at a glance. */}
         <div className="mt-1.5 flex max-w-[240px] items-center gap-2">
           <div className="h-1.5 flex-1 rounded-full bg-gray-100">
@@ -764,8 +738,10 @@ function RepeatSessionModal({
 
   async function submit() {
     if (!date || !time) return
-    const scheduledAt = new Date(`${date}T${time}`)
-    if (Number.isNaN(scheduledAt.getTime())) return
+    // IST, like the Edit form and every row — whatever the device's timezone.
+    const iso = istInputToIso(date, time)
+    if (!iso) return
+    const scheduledAt = new Date(iso)
     if (!isHttpUrl(meetingLink.trim())) return setLinkError('Add the meeting link, starting with https://')
     setSaving(true)
     await onRepeat(scheduledAt.toISOString(), meetingLink.trim())
@@ -793,7 +769,7 @@ function RepeatSessionModal({
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-muted">Time</label>
+            <label className="mb-1 block text-xs font-semibold text-muted">Time (IST)</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
           </div>
         </div>
@@ -850,8 +826,10 @@ function CreateGroupSessionModal({
       notify('Add a topic, date and time.', 'error')
       return
     }
-    const scheduledAt = new Date(`${date}T${time}`)
-    if (Number.isNaN(scheduledAt.getTime())) {
+    // IST, like the Edit form and every row — whatever the device's timezone.
+    const iso = istInputToIso(date, time)
+    const scheduledAt = new Date(iso ?? NaN)
+    if (!iso) {
       notify('That date/time doesn\'t look valid.', 'error')
       return
     }
@@ -931,7 +909,7 @@ function CreateGroupSessionModal({
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-muted">Time</label>
+            <label className="mb-1 block text-xs font-semibold text-muted">Time (IST)</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-brand" />
           </div>
         </div>
