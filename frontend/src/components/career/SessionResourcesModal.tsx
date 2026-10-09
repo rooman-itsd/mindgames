@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, Clock, ExternalLink, Link2, Trash2, X } from 'lucide-react'
 import { Button, Card } from '../ui'
-import { api } from '../../lib/api'
+import { HttpError, api } from '../../lib/api'
 import { assignedRelativeToSession, isSharedWithMe, shortStamp } from '../../lib/careerResources'
 import { submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
@@ -125,6 +125,9 @@ export function SessionResourcesModal({
       notify('Submitted — your mentor has been notified.')
     } catch (e) {
       notify(e instanceof Error ? e.message : 'Could not submit that.', 'error')
+      // 409: already sent elsewhere — reload so the row shows the evidence
+      // instead of an input that fails every retry.
+      if (e instanceof HttpError && e.status === 409) void load()
     }
     setSubmitting(null)
   }

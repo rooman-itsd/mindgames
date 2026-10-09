@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../lib/api'
+import { HttpError, api } from '../lib/api'
 import { toBase64 } from '../lib/file'
 import { MAX_RESOURCE_FILES, MAX_RESOURCE_FILE_BYTES, isBlockedFile } from '../lib/learningHub'
 
@@ -91,19 +91,23 @@ export function useAttachmentUploads() {
     setFiles([])
   }
 
-  /** After a failed submit. If the server says some uploads are gone (swept
-   *  after a day unattached), the list is stale and every retry would fail
-   *  the same way — so empty it (deleting what is still held, like ×) and
-   *  let the member attach again. Any other error leaves the files alone. */
-  const recoverFrom = (message: string) => {
-    if (!/no longer available/i.test(message)) return
+  /** Empty the form's files, deleting any upload still held (like ×). */
+  const discard = () => {
     for (const f of files) dropped.current.add(f.key)
     for (const id of uploaded.current) void api.deleteLearningUpload(id).catch(() => {})
     uploaded.current.clear()
     setFiles([])
   }
 
-  return { files, ready, readyIds: ready.map((f) => f.id!), uploading, slots, attach, remove, claimed, recoverFrom }
+  /** After a failed submit. 410 Gone means some uploads were swept (a day
+   *  unattached): the list is stale and every retry would fail the same way,
+   *  so empty it and let the member attach again. Keyed off the status, not
+   *  the message. Any other error leaves the files alone. */
+  const recoverFrom = (err: unknown) => {
+    if (err instanceof HttpError && err.status === 410) discard()
+  }
+
+  return { files, ready, readyIds: ready.map((f) => f.id!), uploading, slots, attach, remove, claimed, discard, recoverFrom }
 }
 
 export type AttachmentUploads = ReturnType<typeof useAttachmentUploads>

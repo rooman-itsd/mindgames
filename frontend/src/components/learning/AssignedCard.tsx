@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CircleCheck, ExternalLink, Link2, UserRound } from 'lucide-react'
-import { api } from '../../lib/api'
+import { HttpError, api } from '../../lib/api'
 import { isHttpUrl } from '../../lib/links'
 import { KIND_LABEL, assignmentOrigin, displayLink, submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
@@ -30,8 +30,11 @@ export function AssignedCard({
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const att = useAttachmentUploads()
+  // Set when the server says work was already sent (409) — from another tab,
+  // the session view, or a submit that timed out but landed.
+  const [alreadySent, setAlreadySent] = useState(false)
   const kind = toHubKind(resource.kind)
-  const state = submissionState(resource)
+  const state = alreadySent ? 'submitted' : submissionState(resource)
   const fetchFile = (fileId: string) => api.getCareerResourceFile(resource.id, fileId)
 
   const submit = async () => {
@@ -55,9 +58,17 @@ export function AssignedCard({
       setDraft('')
       notify('Submitted — your mentor has been notified.')
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Could not submit that.'
-      att.recoverFrom(message)
-      notify(message, 'error')
+      att.recoverFrom(e)
+      if (e instanceof HttpError && e.status === 409) {
+        // Already done: show it as sent and let go of these uploads, instead
+        // of a card that keeps asking and fails every retry.
+        att.discard()
+        setDraft('')
+        setAlreadySent(true)
+        notify('Already sent — your mentor has it.')
+      } else {
+        notify(e instanceof Error ? e.message : 'Could not submit that.', 'error')
+      }
     }
     setSending(false)
   }

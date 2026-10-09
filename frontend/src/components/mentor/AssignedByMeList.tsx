@@ -74,14 +74,6 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                   {r.attachments && r.attachments.length > 0 && (
                     <ShareFiles files={r.attachments} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                   )}
-                  {state === 'submitted' && r.submissionFiles && r.submissionFiles.length > 0 && (
-                    <>
-                      {/* The link below already says "Sent back:" — label
-                          the files only when there is no link. */}
-                      {!r.submissionUrl && <p className="mt-1 text-xs font-semibold text-green-700">Sent back:</p>}
-                      <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
-                    </>
-                  )}
                   {state === 'submitted' && r.submissionUrl && (
                     <a
                       href={r.submissionUrl}
@@ -91,6 +83,15 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                     >
                       Sent back: {displayLink(r.submissionUrl)} <ExternalLink size={11} />
                     </a>
+                  )}
+                  {/* Evidence files sit UNDER the "Sent back:" line, so they're
+                      never mistaken for the mentor's own attachments above.
+                      With no link, they get the label themselves. */}
+                  {state === 'submitted' && r.submissionFiles && r.submissionFiles.length > 0 && (
+                    <>
+                      {!r.submissionUrl && <p className="mt-1 text-xs font-semibold text-green-700">Sent back:</p>}
+                      <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
+                    </>
                   )}
                   {state === 'needed' && <p className="mt-0.5 text-xs text-muted">Waiting for their work</p>}
                 </div>

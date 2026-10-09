@@ -78,9 +78,8 @@ export function AssignResourceModal({
       notify(`Assigned to ${menteeName}.`)
       onClose()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not assign that.'
-      att.recoverFrom(message)
-      setError(message)
+      att.recoverFrom(err)
+      setError(err instanceof Error ? err.message : 'Could not assign that.')
       setSaving(false)
     }
   }

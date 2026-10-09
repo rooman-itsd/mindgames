@@ -445,6 +445,16 @@ careerResourcesRouter.post(
     // The row and its attachments land together: a missing upload rolls the
     // resource back too, so nobody is ever assigned something short of files.
     const ins = await withTransaction(async (client) => {
+      // assertOwnStage checked the mentee's roadmap was active, but as its own
+      // query. Re-checked here under FOR SHARE so check and insert are one
+      // step: a regeneration archiving this roadmap waits for us to commit.
+      if (d.assignedTo && d.roadmapId) {
+        const live = await client.query(
+          `SELECT 1 FROM career_roadmaps WHERE id = $1 AND status = 'active' FOR SHARE`,
+          [d.roadmapId],
+        )
+        if (!live.rowCount) throw new ApiError(409, 'Their roadmap has just changed — reopen it and pick the stage again')
+      }
       const row = await client.query<{ id: string }>(
         `INSERT INTO career_resources
            (user_id, title, url, note, kind, status, roadmap_id, step_key, session_id, is_public,

@@ -41,7 +41,9 @@ export async function claimUploads(
      SELECT count(*)::int AS n FROM moved`,
     [resourceId, fileIds, me, role],
   )
+  // 410 Gone, not 400: the form keys its recovery (drop the stale files) off
+  // this status — useAttachmentUploads.recoverFrom — never off the wording.
   if (r.rows[0].n !== fileIds.length) {
-    throw new ApiError(400, 'Some files are no longer available — please attach them again')
+    throw new ApiError(410, 'Some files are no longer available — please attach them again')
   }
 }

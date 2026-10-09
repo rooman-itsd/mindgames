@@ -31,19 +31,33 @@ export function PublicResourcesSection({ userId, empty }: { userId: string; empt
   const [items, setItems] = useState<PublicCareerResource[] | null>(null)
   // A failed load is not "nothing shared" — the tab must not claim that.
   const [failed, setFailed] = useState(false)
+  // Bumped by "Try again" to re-run the fetch.
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let live = true
+    // Back to "loading" on every fetch, so moving to another profile never
+    // shows the previous member's resources under the new name.
+    setItems(null)
     setFailed(false)
     api.getPublicCareerResources(userId).then(
       (r) => { if (live) setItems(r) },
       () => { if (live) { setItems([]); setFailed(true) } },
     )
     return () => { live = false }
-  }, [userId])
+  }, [userId, attempt])
 
   if (!items) return empty ? <p className="text-sm text-muted">Loading…</p> : null
-  if (failed && empty) return <p className="py-8 text-center text-sm text-red-600">Could not load resources — please try again.</p>
+  if (failed && empty) {
+    return (
+      <p className="py-8 text-center text-sm text-red-600">
+        Could not load resources.{' '}
+        <button onClick={() => setAttempt((n) => n + 1)} className="font-semibold text-brand hover:underline">
+          Try again
+        </button>
+      </p>
+    )
+  }
   if (items.length === 0) return empty ?? null
 
   return (
