@@ -43,12 +43,17 @@ export const RESOURCE_SELECT = `
              LIMIT 1)
          END AS step_title,
          -- Its attachments — the mentor's and any sent back as evidence —
-         -- names and sizes only, never the bytes. One index range on
-         -- idx_career_resource_files_resource.
-         (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime,
-                                            'size', f.size_bytes, 'role', f.role)
-                          ORDER BY f.role, f.position)
-            FROM career_resource_files f WHERE f.resource_id = r.id) AS resource_files
+         -- names and sizes only, never the bytes. Only a resource handed to
+         -- someone can have files (create refuses them on personal saves, and
+         -- session and direct assignments both set assigned_to), so the CASE
+         -- skips the lookup for every other row; when it runs, it is one index
+         -- range on idx_career_resource_files_resource.
+         CASE WHEN r.assigned_to IS NOT NULL THEN
+           (SELECT json_agg(json_build_object('id', f.id, 'name', f.name, 'mime', f.mime,
+                                              'size', f.size_bytes, 'role', f.role)
+                            ORDER BY f.role, f.position)
+              FROM career_resource_files f WHERE f.resource_id = r.id)
+         END AS resource_files
     FROM career_resources r
     JOIN users u ON u.id = r.user_id
     LEFT JOIN mentorship_sessions s ON s.id = r.session_id

@@ -13,16 +13,15 @@ import type { ShareFile } from '../../types'
  *
  * `fetchFile` lets another kind of attachment (an assigned resource's, which
  * has its own private route) use the same list; without it, a share's file.
+ * The props are a union so a caller must give one or the other — passing
+ * neither is a compile error, not a request to /shares//files/….
  */
-export function ShareFiles({
-  shareId,
-  files,
-  fetchFile,
-}: {
-  shareId?: string
-  files: ShareFile[]
-  fetchFile?: (fileId: string) => Promise<Blob>
-}) {
+type ShareFilesProps =
+  | { files: ShareFile[]; shareId: string; fetchFile?: undefined }
+  | { files: ShareFile[]; fetchFile: (fileId: string) => Promise<Blob>; shareId?: undefined }
+
+export function ShareFiles(props: ShareFilesProps) {
+  const { files } = props
   const { notify } = useApp()
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -31,7 +30,7 @@ export function ShareFiles({
     const tab = inTab ? window.open('', '_blank') : null
     setBusy(f.id)
     try {
-      const blob = fetchFile ? await fetchFile(f.id) : await api.getShareFile(shareId ?? '', f.id)
+      const blob = props.fetchFile ? await props.fetchFile(f.id) : await api.getShareFile(props.shareId, f.id)
       const url = URL.createObjectURL(blob)
       if (tab) {
         tab.location.href = url

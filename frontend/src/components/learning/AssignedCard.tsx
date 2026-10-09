@@ -55,7 +55,9 @@ export function AssignedCard({
       setDraft('')
       notify('Submitted — your mentor has been notified.')
     } catch (e) {
-      notify(e instanceof Error ? e.message : 'Could not submit that.', 'error')
+      const message = e instanceof Error ? e.message : 'Could not submit that.'
+      att.recoverFrom(message)
+      notify(message, 'error')
     }
     setSending(false)
   }

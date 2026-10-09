@@ -76,7 +76,9 @@ export function AssignedByMeList({ menteeId, menteeName }: { menteeId: string; m
                   )}
                   {state === 'submitted' && r.submissionFiles && r.submissionFiles.length > 0 && (
                     <>
-                      <p className="mt-1 text-xs font-semibold text-green-700">Sent back:</p>
+                      {/* The link below already says "Sent back:" — label
+                          the files only when there is no link. */}
+                      {!r.submissionUrl && <p className="mt-1 text-xs font-semibold text-green-700">Sent back:</p>}
                       <ShareFiles files={r.submissionFiles} fetchFile={(f) => api.getCareerResourceFile(r.id, f)} />
                     </>
                   )}

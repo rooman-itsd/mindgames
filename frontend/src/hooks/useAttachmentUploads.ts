@@ -91,7 +91,19 @@ export function useAttachmentUploads() {
     setFiles([])
   }
 
-  return { files, ready, readyIds: ready.map((f) => f.id!), uploading, slots, attach, remove, claimed }
+  /** After a failed submit. If the server says some uploads are gone (swept
+   *  after a day unattached), the list is stale and every retry would fail
+   *  the same way — so empty it (deleting what is still held, like ×) and
+   *  let the member attach again. Any other error leaves the files alone. */
+  const recoverFrom = (message: string) => {
+    if (!/no longer available/i.test(message)) return
+    for (const f of files) dropped.current.add(f.key)
+    for (const id of uploaded.current) void api.deleteLearningUpload(id).catch(() => {})
+    uploaded.current.clear()
+    setFiles([])
+  }
+
+  return { files, ready, readyIds: ready.map((f) => f.id!), uploading, slots, attach, remove, claimed, recoverFrom }
 }
 
 export type AttachmentUploads = ReturnType<typeof useAttachmentUploads>

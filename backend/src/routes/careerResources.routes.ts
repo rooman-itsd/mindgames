@@ -175,12 +175,20 @@ async function assertOwnStage(
   stepKey: string | undefined,
   owner: string,
   notFound = 'Roadmap not found (or not yours)',
+  // For a mentor's assignment: only the mentee's CURRENT plan. A roadmap is
+  // regenerated as a new version when they edit their assessment; filing
+  // under the archived one would hide it from their stage view, which only
+  // reads the active roadmap.
+  activeOnly = false,
 ): Promise<string | undefined> {
-  const r = await query<{ data: { stages?: { stepKey?: string; title?: string }[] } | null }>(
-    `SELECT data FROM career_roadmaps WHERE id = $1 AND user_id = $2`,
+  const r = await query<{ data: { stages?: { stepKey?: string; title?: string }[] } | null; status: string }>(
+    `SELECT data, status FROM career_roadmaps WHERE id = $1 AND user_id = $2`,
     [roadmapId, owner],
   )
   if (!r.rowCount) throw new ApiError(404, notFound)
+  if (activeOnly && r.rows[0].status !== 'active') {
+    throw new ApiError(409, 'Their roadmap has just changed — reopen it and pick the stage again')
+  }
   if (stepKey === undefined) return undefined
   const stage = (r.rows[0].data?.stages ?? []).find((s) => s.stepKey === stepKey)
   if (!stage) throw new ApiError(404, 'No such step in that roadmap')
@@ -428,7 +436,7 @@ careerResourcesRouter.post(
       // A mentor reading this member's roadmap assigned it to one stage of it.
       // After assertMentorOf, so a stranger can't use this to probe roadmaps.
       if (d.roadmapId) {
-        stageTitle = await assertOwnStage(d.roadmapId, d.stepKey, d.assignedTo, 'That roadmap is not this member’s')
+        stageTitle = await assertOwnStage(d.roadmapId, d.stepKey, d.assignedTo, 'That roadmap is not this member’s', true)
       }
     } else if (d.requiresSubmission) {
       throw new ApiError(400, 'Only a resource assigned to someone can ask for a submission')

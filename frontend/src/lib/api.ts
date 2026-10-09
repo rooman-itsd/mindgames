@@ -845,7 +845,7 @@ export const api = {
     http<void>(`/api/career-resources/${id}`, { method: 'DELETE' }),
   // The mentee proving they did a resource the mentor marked
   // requiresSubmission — a link, uploaded files (api.uploadLearningFile), or
-  // both. Sending again replaces what was sent.
+  // both. Once sent it is final: a second submit is refused (409).
   submitCareerResource: (id: string, url?: string, fileIds?: string[]) =>
     http<CareerResource>(`/api/career-resources/${id}/submit`, {
       method: 'POST',
@@ -863,7 +863,8 @@ export const api = {
     return res.blob()
   },
   // A mentor's side of direct assignments: what they gave this member without
-  // a session, and the work sent back (submissionUrl). Newest first, up to 50.
+  // a session, and the work sent back (submissionUrl and/or submissionFiles).
+  // Newest first, up to 50.
   getAssignedByMe: (menteeId: string) =>
     http<CareerResource[]>(`/api/career-resources/assigned-by-me?menteeId=${encodeURIComponent(menteeId)}`),
 

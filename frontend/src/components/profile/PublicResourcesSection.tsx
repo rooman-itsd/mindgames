@@ -29,17 +29,21 @@ const KIND_ICON: Record<CareerResourceKind, typeof BookOpen> = {
  */
 export function PublicResourcesSection({ userId, empty }: { userId: string; empty?: ReactNode }) {
   const [items, setItems] = useState<PublicCareerResource[] | null>(null)
+  // A failed load is not "nothing shared" — the tab must not claim that.
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let live = true
+    setFailed(false)
     api.getPublicCareerResources(userId).then(
       (r) => { if (live) setItems(r) },
-      () => { if (live) setItems([]) },
+      () => { if (live) { setItems([]); setFailed(true) } },
     )
     return () => { live = false }
   }, [userId])
 
   if (!items) return empty ? <p className="text-sm text-muted">Loading…</p> : null
+  if (failed && empty) return <p className="py-8 text-center text-sm text-red-600">Could not load resources — please try again.</p>
   if (items.length === 0) return empty ?? null
 
   return (

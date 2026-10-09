@@ -3,6 +3,7 @@ import { CheckCircle2, Clock, ExternalLink, Link2, Trash2, X } from 'lucide-reac
 import { Button, Card } from '../ui'
 import { api } from '../../lib/api'
 import { assignedRelativeToSession, isSharedWithMe, shortStamp } from '../../lib/careerResources'
+import { submissionState } from '../../lib/learningHub'
 import { useApp } from '../../store/AppStore'
 import type { CareerResource, CareerResourceKind } from '../../types'
 import { ShareFiles } from '../learning/ShareFiles'
@@ -128,8 +129,8 @@ export function SessionResourcesModal({
     setSubmitting(null)
   }
 
-  // submissionAt too: evidence sent as files only has no link.
-  const submittedCount = items.filter((r) => r.requiresSubmission && (r.submissionUrl || r.submissionAt)).length
+  // The shared rule (lib/learningHub): files-only evidence counts too.
+  const submittedCount = items.filter((r) => submissionState(r) === 'submitted').length
   const needsCount = items.filter((r) => r.requiresSubmission).length
 
   return (
@@ -256,7 +257,7 @@ export function SessionResourcesModal({
                 <div className="pl-9 text-xs">
                   {!r.requiresSubmission ? (
                     <span className="text-muted">No evidence needed</span>
-                  ) : r.submissionUrl || r.submissionAt ? (
+                  ) : submissionState(r) === 'submitted' ? (
                     <div className="rounded-lg bg-green-50 px-2.5 py-2">
                       <p className="flex items-center gap-1 font-semibold text-green-700">
                         <CheckCircle2 size={13} />

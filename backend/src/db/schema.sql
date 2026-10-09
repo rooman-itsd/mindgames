@@ -1972,3 +1972,7 @@ CREATE TABLE IF NOT EXISTS career_resource_files (
 -- A resource's files, in order (never the bytes — read one file at a time).
 CREATE INDEX IF NOT EXISTS idx_career_resource_files_resource
   ON career_resource_files (resource_id, role, position);
+-- owner_id cascades from users: without its own index, deleting a member
+-- would scan every attachment and evidence file to find theirs.
+CREATE INDEX IF NOT EXISTS idx_career_resource_files_owner
+  ON career_resource_files (owner_id);
